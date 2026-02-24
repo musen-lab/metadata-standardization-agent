@@ -15,6 +15,8 @@ from cedar_mcp.external_api import (
 from cedar_mcp.processing import clean_template_response
 from langchain_core.tools import tool
 
+from metadata_migration_agent.logging_config import log_tool_call
+
 
 def _get_cedar_api_key() -> str:
     """Return the CEDAR API key from the environment."""
@@ -61,6 +63,7 @@ def _cedar_http_error(exc: requests.exceptions.HTTPError, template_id: str) -> d
 
 
 @tool
+@log_tool_call
 def get_cedar_template(template_id: str) -> dict[str, Any]:
     """Fetch a CEDAR template by its ID or full URL and return its cleaned structure.
 
@@ -95,6 +98,7 @@ def get_cedar_template(template_id: str) -> dict[str, Any]:
 
 
 @tool
+@log_tool_call
 def term_search_from_branch(search_string: str, ontology_acronym: str, branch_iri: str) -> dict[str, Any]:
     """Search BioPortal for ontology terms within a specific branch.
 
@@ -111,6 +115,7 @@ def term_search_from_branch(search_string: str, ontology_acronym: str, branch_ir
 
 
 @tool
+@log_tool_call
 def term_search_from_ontology(search_string: str, ontology_acronym: str) -> dict[str, Any]:
     """Search BioPortal for ontology terms within an entire ontology.
 
@@ -126,6 +131,7 @@ def term_search_from_ontology(search_string: str, ontology_acronym: str) -> dict
 
 
 @tool
+@log_tool_call
 def get_branch_children(branch_iri: str, ontology_acronym: str) -> dict[str, Any]:
     """Get all child terms of a branch in a BioPortal ontology.
 
