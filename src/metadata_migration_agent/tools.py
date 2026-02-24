@@ -15,7 +15,18 @@ from cedar_mcp.external_api import (
 from cedar_mcp.processing import clean_template_response
 from langchain_core.tools import tool
 
+from metadata_migration_agent.cache import SqliteCache
 from metadata_migration_agent.logging_config import log_tool_call
+
+_cache: SqliteCache | None = None
+
+
+def _get_cache() -> SqliteCache:
+    """Return the module-level cache instance, creating it on first use."""
+    global _cache  # noqa: PLW0603
+    if _cache is None:
+        _cache = SqliteCache()
+    return _cache
 
 
 def _get_cedar_api_key() -> str:
@@ -75,6 +86,10 @@ def get_cedar_template(template_id: str) -> dict[str, Any]:
         template_id: The template ID (UUID) or full CEDAR URL
             (e.g., "https://repo.metadatacenter.org/templates/<uuid>").
     """
+    cached = _get_cache().get("get_cedar_template", template_id=template_id)
+    if cached is not None:
+        return cached
+
     cedar_api_key = _get_cedar_api_key()
 
     encoded_template_id = quote(template_id, safe="")
@@ -94,7 +109,9 @@ def get_cedar_template(template_id: str) -> dict[str, Any]:
     except requests.exceptions.RequestException as e:
         return {"error": f"Failed to fetch CEDAR template: {e}"}
 
-    return clean_template_response(template_data)
+    result = clean_template_response(template_data)
+    _get_cache().set("get_cedar_template", result, template_id=template_id)
+    return result
 
 
 @tool
@@ -110,8 +127,25 @@ def term_search_from_branch(search_string: str, ontology_acronym: str, branch_ir
         ontology_acronym: Ontology acronym (e.g., "CHEBI", "HRAVS").
         branch_iri: IRI of the branch to restrict the search to.
     """
+    cached = _get_cache().get(
+        "term_search_from_branch",
+        search_string=search_string,
+        ontology_acronym=ontology_acronym,
+        branch_iri=branch_iri,
+    )
+    if cached is not None:
+        return cached
+
     bioportal_api_key = _get_bioportal_api_key()
-    return search_terms_from_branch(search_string, ontology_acronym, branch_iri, bioportal_api_key)
+    result = search_terms_from_branch(search_string, ontology_acronym, branch_iri, bioportal_api_key)
+    _get_cache().set(
+        "term_search_from_branch",
+        result,
+        search_string=search_string,
+        ontology_acronym=ontology_acronym,
+        branch_iri=branch_iri,
+    )
+    return result
 
 
 @tool
@@ -126,8 +160,23 @@ def term_search_from_ontology(search_string: str, ontology_acronym: str) -> dict
         search_string: The term label or keyword to search for.
         ontology_acronym: Ontology acronym (e.g., "NCIT", "CHEBI").
     """
+    cached = _get_cache().get(
+        "term_search_from_ontology",
+        search_string=search_string,
+        ontology_acronym=ontology_acronym,
+    )
+    if cached is not None:
+        return cached
+
     bioportal_api_key = _get_bioportal_api_key()
-    return search_terms_from_ontology(search_string, ontology_acronym, bioportal_api_key)
+    result = search_terms_from_ontology(search_string, ontology_acronym, bioportal_api_key)
+    _get_cache().set(
+        "term_search_from_ontology",
+        result,
+        search_string=search_string,
+        ontology_acronym=ontology_acronym,
+    )
+    return result
 
 
 @tool
@@ -142,8 +191,23 @@ def get_branch_children(branch_iri: str, ontology_acronym: str) -> dict[str, Any
         branch_iri: IRI of the branch to get children for.
         ontology_acronym: Ontology acronym (e.g., "HRAVS").
     """
+    cached = _get_cache().get(
+        "get_branch_children",
+        branch_iri=branch_iri,
+        ontology_acronym=ontology_acronym,
+    )
+    if cached is not None:
+        return cached
+
     bioportal_api_key = _get_bioportal_api_key()
-    return get_children_from_branch(branch_iri, ontology_acronym, bioportal_api_key)
+    result = get_children_from_branch(branch_iri, ontology_acronym, bioportal_api_key)
+    _get_cache().set(
+        "get_branch_children",
+        result,
+        branch_iri=branch_iri,
+        ontology_acronym=ontology_acronym,
+    )
+    return result
 
 
 all_tools = [

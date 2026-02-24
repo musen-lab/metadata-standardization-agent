@@ -61,7 +61,15 @@ def log_tool_call(func):
         except Exception:
             _logger.exception("Exception in %s", func.__name__)
             raise
-        _logger.debug("%s returned: %s", func.__name__, _summarize(result))
+        if isinstance(result, dict) and result.get("_cached"):
+            _logger.debug(
+                "%s cache hit (age=%.1fs): %s",
+                func.__name__,
+                result.get("_cache_age_seconds", 0),
+                _summarize(result),
+            )
+        else:
+            _logger.debug("%s returned: %s", func.__name__, _summarize(result))
         return result
 
     return wrapper
