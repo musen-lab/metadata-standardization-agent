@@ -29,6 +29,7 @@ def main() -> None:
     )
     parser.add_argument("legacy_metadata", help="Path to the legacy metadata JSON file.")
     parser.add_argument("cedar_template_iri", help="IRI of the CEDAR template to migrate to.")
+    parser.add_argument("output_path", help="Path to write the migrated metadata JSON file.")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging to stderr.")
     args = parser.parse_args()
 
@@ -57,7 +58,10 @@ def main() -> None:
         config={"callbacks": [tracker]},
     )
     elapsed = time.perf_counter() - start
-    print(json.dumps(result["metadata"], indent=2))
+    output_path = Path(args.output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(result["metadata"], indent=2) + "\n")
+    logger.info("Output written to: %s", output_path)
     logger.info("Execution time: %.2fs", elapsed)
     logger.info(tracker.usage_summary())
 
