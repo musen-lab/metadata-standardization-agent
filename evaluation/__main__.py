@@ -56,13 +56,13 @@ def main() -> None:
     from evaluation.evaluate import run_experiment
 
     metrics = run_experiment(
-        input_dir=args.input_dir,
         template_iri=args.template_iri,
+        input_dir=args.input_dir,
         output_dir=args.output_dir,
         gold_dir=args.gold_dir,
         report_path=args.report_path,
         workflow_factory=workflow_factory,
-        prompt_builder=prompt_builder,
+        user_prompt_builder=prompt_builder,
     )
 
     if metrics:

@@ -19,19 +19,19 @@ logger = logging.getLogger(__name__)
 
 
 def run_experiment(
-    input_dir: Path,
     template_iri: str,
+    input_dir: Path,
     output_dir: Path,
     gold_dir: Path,
     report_path: Path,
     workflow_factory: Callable[[], CompiledStateGraph],
-    prompt_builder: Callable[[dict[str, Any], str], str],
+    user_prompt_builder: Callable[[dict[str, Any], str], str],
 ) -> list[dict[str, Any]]:
     """Run the full experiment: workflow execution, metric computation, and reporting.
 
     Returns the per-file metrics list.
     """
-    execute_workflow(input_dir, template_iri, output_dir, workflow_factory, prompt_builder)
+    execute_workflow(template_iri, input_dir, output_dir, workflow_factory, user_prompt_builder)
     metrics = apply_metrics(output_dir, gold_dir)
     _write_report(metrics, report_path)
     logger.info("Report written to %s", report_path)
@@ -39,11 +39,11 @@ def run_experiment(
 
 
 def execute_workflow(
-    input_dir: Path,
     template_iri: str,
+    input_dir: Path,
     output_dir: Path,
     workflow_factory: Callable[[], CompiledStateGraph],
-    prompt_builder: Callable[[dict[str, Any], str], str],
+    user_prompt_builder: Callable[[dict[str, Any], str], str],
 ) -> list[Path]:
     """Run the migration workflow on all JSON files in *input_dir*.
 
@@ -69,7 +69,7 @@ def execute_workflow(
         with open(input_file) as f:
             legacy_metadata = json.load(f)
 
-        user_message = prompt_builder(legacy_metadata, template_iri)
+        user_message = user_prompt_builder(legacy_metadata, template_iri)
 
         result = workflow.invoke(
             {

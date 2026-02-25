@@ -5,9 +5,17 @@ Measures the quality of agent-migrated metadata against gold-standard references
 ## Running
 
 ```bash
-python -m evaluation <input_dir> <template_iri> <output_dir> <gold_dir> <report_path> \
+python -m evaluation <template_iri> <input_dir> <output_dir> <gold_dir> <report_path> \
     (--baseline | --experiment) [--debug]
 ```
+
+| Argument | Description |
+|------|-------------|
+| `template_iri` | IRI of the CEDAR template to migrate to |
+| `input_dir` | Directory containing input JSON files |
+| `output_dir` | Directory to write migrated output JSON files |
+| `gold_dir` | Directory containing gold standard JSON files |
+| `report_path` | Path for the evaluation report file |
 
 | Flag | Description |
 |------|-------------|
