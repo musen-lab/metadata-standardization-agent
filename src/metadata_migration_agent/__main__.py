@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 
 from metadata_migration_agent.logging_config import configure_logging
+from metadata_migration_agent.token_tracker import TokenUsageTracker
 from metadata_migration_agent.workflow import build_workflow
 
 # Load environment variables from .env (project root)
@@ -46,16 +47,19 @@ def main() -> None:
     )
 
     workflow = build_workflow()
+    tracker = TokenUsageTracker()
     start = time.perf_counter()
     result = workflow.invoke(
         {
             "messages": [HumanMessage(content=user_message)],
             "cedar_template_iri": args.cedar_template_iri,
-        }
+        },
+        config={"callbacks": [tracker]},
     )
     elapsed = time.perf_counter() - start
     print(json.dumps(result["metadata"], indent=2))
     logger.info("Execution time: %.2fs", elapsed)
+    logger.info(tracker.usage_summary())
 
 
 if __name__ == "__main__":
