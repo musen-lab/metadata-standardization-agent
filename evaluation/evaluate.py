@@ -8,7 +8,10 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
+
+    from langgraph.graph.state import CompiledStateGraph
 
 from evaluation.metrics import compute_accuracy, compute_completeness
 
@@ -21,33 +24,36 @@ def run_experiment(
     output_dir: Path,
     gold_dir: Path,
     report_path: Path,
+    workflow_factory: Callable[[], CompiledStateGraph],
+    prompt_builder: Callable[[dict[str, Any], str], str],
 ) -> list[dict[str, Any]]:
     """Run the full experiment: workflow execution, metric computation, and reporting.
 
     Returns the per-file metrics list.
     """
-    run_experiment_workflow(input_dir, template_iri, output_dir)
+    execute_workflow(input_dir, template_iri, output_dir, workflow_factory, prompt_builder)
     metrics = apply_metrics(output_dir, gold_dir)
     _write_report(metrics, report_path)
     logger.info("Report written to %s", report_path)
     return metrics
 
 
-def run_experiment_workflow(
+def execute_workflow(
     input_dir: Path,
     template_iri: str,
     output_dir: Path,
+    workflow_factory: Callable[[], CompiledStateGraph],
+    prompt_builder: Callable[[dict[str, Any], str], str],
 ) -> list[Path]:
     """Run the migration workflow on all JSON files in *input_dir*.
 
-    The workflow is built once and reused for every input file. Each result is
-    written to *output_dir* with the same filename as the input.
+    The workflow is built once via *workflow_factory* and reused for every
+    input file. Each result is written to *output_dir* with the same filename
+    as the input.  The user message is constructed by *prompt_builder*.
 
     Returns the list of output file paths that were written.
     """
     from langchain_core.messages import HumanMessage
-
-    from metadata_migration_agent.workflow import build_workflow
 
     input_files = sorted(input_dir.glob("*.json"))
     if not input_files:
@@ -55,7 +61,7 @@ def run_experiment_workflow(
         return []
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    workflow = build_workflow()
+    workflow = workflow_factory()
     output_paths: list[Path] = []
 
     for input_file in input_files:
@@ -63,11 +69,7 @@ def run_experiment_workflow(
         with open(input_file) as f:
             legacy_metadata = json.load(f)
 
-        user_message = (
-            f"Migrate the following legacy metadata record to the CEDAR template.\n\n"
-            f"CEDAR Template IRI: {template_iri}\n\n"
-            f"Legacy metadata:\n```json\n{json.dumps(legacy_metadata, indent=2)}\n```"
-        )
+        user_message = prompt_builder(legacy_metadata, template_iri)
 
         result = workflow.invoke(
             {

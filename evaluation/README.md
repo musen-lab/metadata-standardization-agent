@@ -5,8 +5,17 @@ Measures the quality of agent-migrated metadata against gold-standard references
 ## Running
 
 ```bash
-python -m evaluation <input_dir> <template_iri> <output_dir> <gold_dir> <report_path> [--debug]
+python -m evaluation <input_dir> <template_iri> <output_dir> <gold_dir> <report_path> \
+    (--baseline | --experiment) [--debug]
 ```
+
+| Flag | Description |
+|------|-------------|
+| `--baseline` | Using a single LLM call without tool access |
+| `--experiment` | Using an agent with tool access |
+| `--debug` | Enable debug logging to stderr |
+
+One of `--baseline` or `--experiment` is required.
 
 This will:
 1. Run the migration workflow on each JSON file in `<input_dir>`.
