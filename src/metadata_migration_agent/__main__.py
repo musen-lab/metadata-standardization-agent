@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -45,13 +46,16 @@ def main() -> None:
     )
 
     workflow = build_workflow()
+    start = time.perf_counter()
     result = workflow.invoke(
         {
             "messages": [HumanMessage(content=user_message)],
             "cedar_template_iri": args.cedar_template_iri,
         }
     )
+    elapsed = time.perf_counter() - start
     print(json.dumps(result["metadata"], indent=2))
+    logger.info("Execution time: %.2fs", elapsed)
 
 
 if __name__ == "__main__":
