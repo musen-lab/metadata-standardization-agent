@@ -49,9 +49,9 @@ def main() -> None:
     )
 
     if metrics:
-        avg_p = sum(m["precision"] for m in metrics) / len(metrics)
+        avg_a = sum(m["accuracy"] for m in metrics) / len(metrics)
         avg_c = sum(m["completeness"] for m in metrics) / len(metrics)
-        print(f"Evaluated {len(metrics)} file(s) — avg precision: {avg_p:.3f}, avg completeness: {avg_c:.3f}")
+        print(f"Evaluated {len(metrics)} file(s) — avg accuracy: {avg_a:.3f}, avg completeness: {avg_c:.3f}")
     else:
         print("No files were evaluated.")
 

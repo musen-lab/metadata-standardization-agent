@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from evaluation.evaluate import apply_metrics, run_experiment, run_experiment_workflow
-from evaluation.metrics import compute_completeness, compute_precision
+from evaluation.metrics import compute_accuracy, compute_completeness
 
 __all__ = [
     "apply_metrics",
+    "compute_accuracy",
     "compute_completeness",
-    "compute_precision",
     "run_experiment",
     "run_experiment_workflow",
 ]

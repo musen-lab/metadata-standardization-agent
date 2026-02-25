@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
-from evaluation.metrics import compute_completeness, compute_precision
+from evaluation.metrics import compute_accuracy, compute_completeness
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ def apply_metrics(input_dir: Path, gold_dir: Path) -> list[dict[str, Any]]:
         results.append(
             {
                 "input_file": input_file.name,
-                "precision": compute_precision(predicted, gold),
+                "accuracy": compute_accuracy(predicted, gold),
                 "completeness": compute_completeness(predicted, gold),
             }
         )
@@ -123,7 +123,7 @@ def _write_report(metrics: list[dict[str, Any]], report_path: Path) -> None:
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(report_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["input_file", "precision", "completeness"])
+        writer = csv.DictWriter(f, fieldnames=["input_file", "accuracy", "completeness"])
         writer.writeheader()
         for row in metrics:
             writer.writerow(row)
