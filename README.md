@@ -28,6 +28,18 @@ export OPENAI_API_KEY="sk-..."
 
 ## Usage
 
+### CLI
+
+```bash
+uv run python -m metadata_migration_agent \
+  --input data/input/my_record.json \
+  --target-schema https://repo.metadatacenter.org/templates/TEMPLATE_ID \
+  --output data/output/migrated.json \
+  --debug  # optional: enable debug logging
+```
+
+### Python API
+
 ```python
 from metadata_migration_agent.agent import app
 from metadata_migration_agent.state import AgentState

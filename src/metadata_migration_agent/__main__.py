@@ -27,23 +27,23 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Migrate a legacy metadata record to a CEDAR template format.",
     )
-    parser.add_argument("legacy_metadata", help="Path to the legacy metadata JSON file.")
-    parser.add_argument("cedar_template_iri", help="IRI of the CEDAR template to migrate to.")
-    parser.add_argument("output_path", help="Path to write the migrated metadata JSON file.")
+    parser.add_argument("--input", required=True, help="Path to the legacy metadata JSON file.")
+    parser.add_argument("--target-schema", required=True, help="IRI of the CEDAR template to migrate to.")
+    parser.add_argument("--output", required=True, help="Path to write the migrated metadata JSON file.")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging to stderr.")
     args = parser.parse_args()
 
     configure_logging(args.debug)
 
-    logger.debug("Legacy metadata file: %s", args.legacy_metadata)
-    logger.debug("CEDAR template IRI: %s", args.cedar_template_iri)
+    logger.debug("Legacy metadata file: %s", args.input)
+    logger.debug("CEDAR template IRI: %s", args.target_schema)
 
-    with open(args.legacy_metadata) as f:
+    with open(args.input) as f:
         legacy_metadata = json.load(f)
 
     user_message = (
         f"Migrate the following legacy metadata record to the CEDAR template.\n\n"
-        f"CEDAR Template IRI: {args.cedar_template_iri}\n\n"
+        f"CEDAR Template IRI: {args.target_schema}\n\n"
         f"Legacy metadata:\n```json\n{json.dumps(legacy_metadata, indent=2)}\n```"
     )
 
@@ -53,12 +53,12 @@ def main() -> None:
     result = workflow.invoke(
         {
             "messages": [HumanMessage(content=user_message)],
-            "cedar_template_iri": args.cedar_template_iri,
+            "cedar_template_iri": args.target_schema,
         },
         config={"callbacks": [tracker]},
     )
     elapsed = time.perf_counter() - start
-    output_path = Path(args.output_path)
+    output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(result["metadata"], indent=2) + "\n")
     logger.info("Output written to: %s", output_path)
