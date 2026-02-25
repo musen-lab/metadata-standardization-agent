@@ -10,8 +10,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 
-from metadata_migration_agent.agent import build_agent
 from metadata_migration_agent.logging_config import configure_logging
+from metadata_migration_agent.workflow import build_workflow
 
 # Load environment variables from .env (project root)
 _project_root = Path(__file__).resolve().parents[2]
@@ -44,11 +44,13 @@ def main() -> None:
         f"Legacy metadata:\n```json\n{json.dumps(legacy_metadata, indent=2)}\n```"
     )
 
-    agent = build_agent()
-    result = agent.invoke({
-        "messages": [HumanMessage(content=user_message)],
-        "cedar_template_iri": args.cedar_template_iri,
-    })
+    workflow = build_workflow()
+    result = workflow.invoke(
+        {
+            "messages": [HumanMessage(content=user_message)],
+            "cedar_template_iri": args.cedar_template_iri,
+        }
+    )
     print(json.dumps(result["metadata"], indent=2))
 
 
