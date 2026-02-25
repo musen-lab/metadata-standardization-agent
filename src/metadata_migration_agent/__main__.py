@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 _project_root = Path(__file__).resolve().parents[2]
 load_dotenv(_project_root / ".env", override=True)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("metadata_migration_agent.__main__")
 
 
 def main() -> None:
