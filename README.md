@@ -52,25 +52,6 @@ uv run ruff check src/ tests/ evaluation/
 uv run ruff format src/ tests/ evaluation/
 ```
 
-## Evaluation
-
-The `evaluation/` directory contains tooling for comparing agent output against
-gold standard reference data. Two metrics are computed:
-
-- **Precision** -- fraction of output fields that match the gold standard
-- **Stability** -- consistency of output across repeated runs with the same input
-
-## Project Structure
-
-```
-src/metadata_migration_agent/   Core agent source code
-tests/                          Unit and integration tests
-data/templates/                 CEDAR template files
-data/input/                     Legacy metadata input files
-data/output/                    Agent-generated output
-evaluation/                     Evaluation scripts and gold standard data
-```
-
 ## License
 
 MIT
