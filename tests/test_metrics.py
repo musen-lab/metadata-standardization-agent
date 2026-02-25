@@ -124,3 +124,53 @@ class TestComputeAccuracy:
         gold = {"a": "hello"}
         predicted = {"a": ""}
         assert compute_accuracy(predicted, gold) == 0.0
+
+
+class TestComputeAccuracyMatchOptions:
+    """Tests for match_case and match_whole_word parameters of compute_accuracy."""
+
+    def test_case_insensitive_match(self) -> None:
+        """Differing case matches when match_case=False."""
+        gold = {"a": "hello"}
+        predicted = {"a": "Hello"}
+        assert compute_accuracy(predicted, gold, match_case=False) == 1.0
+
+    def test_case_sensitive_mismatch(self) -> None:
+        """Differing case does NOT match when match_case=True."""
+        gold = {"a": "hello"}
+        predicted = {"a": "Hello"}
+        assert compute_accuracy(predicted, gold, match_case=True) == 0.0
+
+    def test_substring_match(self) -> None:
+        """Gold value as substring of predicted matches when match_whole_word=False."""
+        gold = {"a": "world"}
+        predicted = {"a": "hello world"}
+        assert compute_accuracy(predicted, gold, match_whole_word=False) == 1.0
+
+    def test_substring_direction(self) -> None:
+        """Gold value longer than predicted does NOT match with match_whole_word=False."""
+        gold = {"a": "hello world"}
+        predicted = {"a": "world"}
+        assert compute_accuracy(predicted, gold, match_whole_word=False) == 0.0
+
+    def test_combined_case_insensitive_substring(self) -> None:
+        """Case-insensitive substring match works when both flags are relaxed."""
+        gold = {"a": "World"}
+        predicted = {"a": "hello world"}
+        assert compute_accuracy(predicted, gold, match_case=False, match_whole_word=False) == 1.0
+
+    def test_non_string_ignores_flags(self) -> None:
+        """Non-string values use exact match regardless of flags."""
+        gold = {"a": 42}
+        predicted = {"a": 42}
+        assert compute_accuracy(predicted, gold, match_case=False, match_whole_word=False) == 1.0
+
+        predicted_mismatch = {"a": 43}
+        assert compute_accuracy(predicted_mismatch, gold, match_case=False, match_whole_word=False) == 0.0
+
+    def test_defaults_unchanged(self) -> None:
+        """Default parameters behave as exact match (backward-compatible)."""
+        gold = {"a": "Hello", "b": "world"}
+        predicted = {"a": "Hello", "b": "World"}
+        # 'a' matches exactly, 'b' differs in case → 1/2
+        assert compute_accuracy(predicted, gold) == 0.5
