@@ -2,7 +2,7 @@
 
 Usage::
 
-    python -m evaluation <input_dir> <template_iri> <output_dir> <gold_dir> <report_path> \
+    evaluate --input <dir> --target-schema <iri> --output <dir> --gold <dir> --report <path> \
         (--baseline | --experiment) [--debug]
 """
 
@@ -25,11 +25,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Batch-run the migration workflow and evaluate against gold standards.",
     )
-    parser.add_argument("input_dir", type=Path, help="Directory containing input JSON files.")
-    parser.add_argument("template_iri", help="IRI of the CEDAR template to migrate to.")
-    parser.add_argument("output_dir", type=Path, help="Directory to write migrated output files.")
-    parser.add_argument("gold_dir", type=Path, help="Directory containing gold standard JSON files.")
-    parser.add_argument("report_path", type=Path, help="Path for the CSV report file.")
+    parser.add_argument("--input", required=True, type=Path, help="Directory containing input JSON files.")
+    parser.add_argument("--target-schema", required=True, help="IRI of the CEDAR template to migrate to.")
+    parser.add_argument("--output", required=True, type=Path, help="Directory to write migrated output files.")
+    parser.add_argument("--gold", required=True, type=Path, help="Directory containing gold standard JSON files.")
+    parser.add_argument("--report", required=True, type=Path, help="Path for the CSV report file.")
     workflow_group = parser.add_mutually_exclusive_group(required=True)
     workflow_group.add_argument("--baseline", action="store_true", help="Use the baseline workflow (single LLM call).")
     workflow_group.add_argument("--experiment", action="store_true", help="Use the experiment workflow (ReAct agent).")
@@ -56,11 +56,11 @@ def main() -> None:
     from evaluation.evaluate import run_experiment
 
     metrics = run_experiment(
-        template_iri=args.template_iri,
-        input_dir=args.input_dir,
-        output_dir=args.output_dir,
-        gold_dir=args.gold_dir,
-        report_path=args.report_path,
+        template_iri=args.target_schema,
+        input_dir=args.input,
+        output_dir=args.output,
+        gold_dir=args.gold,
+        report_path=args.report,
         workflow_factory=workflow_factory,
         user_prompt_builder=prompt_builder,
     )
