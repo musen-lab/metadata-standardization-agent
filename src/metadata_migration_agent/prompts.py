@@ -37,14 +37,12 @@ Map legacy keys to template field names in priority order:
 **4a. Ontology-Constrained Fields:**
 - **MANDATORY:** For every field that has an ontology or branch constraint, you MUST call the appropriate tool. Do NOT guess or rely on your own knowledge — always verify through BioPortal.
 - Clean the legacy value first: trim whitespace, normalize casing, strip qualifiers, expand abbreviations (e.g., `"HCC"` → `"hepatocellular carcinoma"`), remove noise.
-- If the template specifies a **branch** constraint, you MUST call `term_search_from_branch(search_string, ontology_acronym, branch_iri)`.
-- If the template specifies an **ontology** constraint, you MUST call `term_search_from_ontology(search_string, ontology_acronym)`. If multiple ontology acronyms are listed, try each; prefer the first-listed ontology.
-- Select the best match from the tool results by priority: exact `prefLabel` match → synonym match → highest-ranked partial match → narrower term over broader.
-- Output the **standardized label only** (plain string) in the record — use the label exactly as returned by BioPortal, not your own paraphrase.
-- If overly specific searches fail, progressively shorten the query and call the tool again.
+- If the template specifies a **branch** constraint, you MUST call `term_pick_from_branch(search_string, legacy_field_name, ontology_acronym, branch_iri)`.
+- If the template specifies an **ontology** constraint, you MUST call `term_pick_from_ontology(search_string, legacy_field_name, ontology_acronym)`. If multiple ontology acronyms are listed, try each; prefer the first-listed ontology.
+- These tools return `{"label": "...", "iri": "..."}` for the best match or `{}` if no good match was found. Use the returned `label` as the standardized value in the output record.
+- If a tool returns `{}`, progressively shorten or rephrase the query and call the tool again.
 - If no viable match exists after searching, output `null` and flag as `NO_ONTOLOGY_MATCH` with the original value, ontologies searched, and closest candidates.
-- Prefer non-obsolete/non-deprecated terms.
-- **Never skip the tool call.** Even if you believe you know the correct ontology term, you must confirm it via the search tools.
+- **Never skip the tool call.** Even if you believe you know the correct ontology term, you must confirm it via the pick tools.
 
 **4b. Datatype Enforcement:**
 - **String:** Output as string.
@@ -68,7 +66,7 @@ Map legacy keys to template field names in priority order:
 ## Key Principles
 
 - **Confident or null:** Always produce a value where a reasonable, confident inference exists. When no confident answer is possible, output `null` — never guess or fabricate a value. For ontology-constrained fields with no viable match, output `null` — a wrong ontology term is worse than none.
-- **Ontology-first:** When a field specifies an ontology/branch constraint, you MUST call the `term_search_from_branch` or `term_search_from_ontology` tool. Never output an ontology value without confirming it through a tool call first. Use the standardized label exactly as returned by BioPortal, not the raw legacy value or your own knowledge.
+- **Ontology-first:** When a field specifies an ontology/branch constraint, you MUST call the `term_pick_from_branch` or `term_pick_from_ontology` tool. Never output an ontology value without confirming it through a tool call first. Use the standardized label exactly as returned by the tool, not the raw legacy value or your own knowledge.
 - **Format fidelity:** Output format matches input format.
 - **Non-destructive:** No legacy data is silently dropped — unmapped fields are reported to the user.
 
