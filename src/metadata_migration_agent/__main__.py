@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import logging
 import tempfile
@@ -56,20 +57,22 @@ def main() -> None:
     tracker = TokenUsageTracker()
     input_stem = Path(args.input).stem
     start = time.perf_counter()
-    result = workflow.invoke(
-        {
-            "messages": [HumanMessage(content=user_message)],
-            "cedar_template_iri": args.target_schema,
-        },
-        config={
-            "callbacks": [tracker],
-            "run_name": f"migrate-{input_stem}",
-            "tags": ["cli", "migrate"],
-            "metadata": {
-                "input_file": Path(args.input).name,
-                "template_iri": args.target_schema,
+    result = asyncio.run(
+        workflow.ainvoke(
+            {
+                "messages": [HumanMessage(content=user_message)],
+                "cedar_template_iri": args.target_schema,
             },
-        },
+            config={
+                "callbacks": [tracker],
+                "run_name": f"migrate-{input_stem}",
+                "tags": ["cli", "migrate"],
+                "metadata": {
+                    "input_file": Path(args.input).name,
+                    "template_iri": args.target_schema,
+                },
+            },
+        )
     )
     elapsed = time.perf_counter() - start
     if args.output is None:

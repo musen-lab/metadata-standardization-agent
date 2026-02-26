@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import json
 import logging
@@ -82,12 +83,14 @@ def execute_workflow(
         run_config.setdefault("metadata", {})
         run_config["metadata"] = {**run_config["metadata"], "input_file": input_file.name}
 
-        result = workflow.invoke(
-            {
-                "messages": [HumanMessage(content=user_message)],
-                "cedar_template_iri": template_iri,
-            },
-            config=run_config,
+        result = asyncio.run(
+            workflow.ainvoke(
+                {
+                    "messages": [HumanMessage(content=user_message)],
+                    "cedar_template_iri": template_iri,
+                },
+                config=run_config,
+            )
         )
 
         output_path = output_dir / input_file.name
