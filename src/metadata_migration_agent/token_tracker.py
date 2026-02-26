@@ -56,8 +56,8 @@ class TokenUsageTracker(BaseCallbackHandler):
     def usage_summary(self) -> str:
         """Return a human-readable summary of accumulated token usage and cost."""
         return (
-            f"User prompt tokens: {self.prompt_tokens:,}, "
-            f"Completion tokens: {self.completion_tokens:,}, "
-            f"Total tokens: {self.total_tokens:,}, "
+            f"User prompt tokens: {self.prompt_tokens:,} | "
+            f"Completion tokens: {self.completion_tokens:,} | "
+            f"Total tokens: {self.total_tokens:,} | "
             f"Estimated cost: ${self.total_cost:.4f}"
         )
