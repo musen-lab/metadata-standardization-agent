@@ -26,12 +26,14 @@ def run_experiment(
     report_path: Path,
     workflow_factory: Callable[[], CompiledStateGraph],
     user_prompt_builder: Callable[[dict[str, Any], str], str],
+    *,
+    config: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Run the full experiment: workflow execution, metric computation, and reporting.
 
     Returns the per-file metrics list.
     """
-    execute_workflow(template_iri, input_dir, output_dir, workflow_factory, user_prompt_builder)
+    execute_workflow(template_iri, input_dir, output_dir, workflow_factory, user_prompt_builder, config=config)
     metrics = apply_metrics(output_dir, gold_dir)
     _write_report(metrics, report_path)
     logger.info("Report written to %s", report_path)
@@ -44,6 +46,8 @@ def execute_workflow(
     output_dir: Path,
     workflow_factory: Callable[[], CompiledStateGraph],
     user_prompt_builder: Callable[[dict[str, Any], str], str],
+    *,
+    config: dict[str, Any] | None = None,
 ) -> list[Path]:
     """Run the migration workflow on all JSON files in *input_dir*.
 
@@ -71,11 +75,19 @@ def execute_workflow(
 
         user_message = user_prompt_builder(legacy_metadata, template_iri)
 
+        run_config = dict(config) if config else {}
+        run_config["run_name"] = f"evaluate-{input_file.stem}"
+        run_config.setdefault("tags", [])
+        run_config["tags"] = [*run_config["tags"], input_file.stem]
+        run_config.setdefault("metadata", {})
+        run_config["metadata"] = {**run_config["metadata"], "input_file": input_file.name}
+
         result = workflow.invoke(
             {
                 "messages": [HumanMessage(content=user_message)],
                 "cedar_template_iri": template_iri,
-            }
+            },
+            config=run_config,
         )
 
         output_path = output_dir / input_file.name

@@ -54,16 +54,24 @@ def main() -> None:
 
     workflow = build_workflow()
     tracker = TokenUsageTracker()
+    input_stem = Path(args.input).stem
     start = time.perf_counter()
     result = workflow.invoke(
         {
             "messages": [HumanMessage(content=user_message)],
             "cedar_template_iri": args.target_schema,
         },
-        config={"callbacks": [tracker]},
+        config={
+            "callbacks": [tracker],
+            "run_name": f"migrate-{input_stem}",
+            "tags": ["cli", "migrate"],
+            "metadata": {
+                "input_file": Path(args.input).name,
+                "template_iri": args.target_schema,
+            },
+        },
     )
     elapsed = time.perf_counter() - start
-    input_stem = Path(args.input).stem
     if args.output is None:
         output_path = Path(tempfile.gettempdir()) / "migrated-metadata.json"
     elif Path(args.output).is_dir():

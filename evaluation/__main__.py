@@ -55,6 +55,7 @@ def main() -> None:
 
     from evaluation.evaluate import run_experiment
 
+    workflow_type = "baseline" if args.baseline else "experiment"
     metrics = run_experiment(
         template_iri=args.target_schema,
         input_dir=args.input,
@@ -63,6 +64,13 @@ def main() -> None:
         report_path=args.report,
         workflow_factory=workflow_factory,
         user_prompt_builder=prompt_builder,
+        config={
+            "tags": ["evaluation", workflow_type],
+            "metadata": {
+                "template_iri": args.target_schema,
+                "workflow_type": workflow_type,
+            },
+        },
     )
 
     if metrics:
