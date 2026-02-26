@@ -182,7 +182,7 @@ async def _pick_best_term(
         "or {} if no good match."
     )
 
-    llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
+    llm = ChatOpenAI(model="gpt-5-mini", temperature=0)
     response = await llm.ainvoke(prompt)
 
     try:

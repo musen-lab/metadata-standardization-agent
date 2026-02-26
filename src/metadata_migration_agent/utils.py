@@ -48,7 +48,7 @@ def extract_output_metadata(state: AgentState) -> dict[str, Any]:
             },
         },
     }
-    llm = ChatOpenAI(model="gpt-4o", temperature=0, model_kwargs=model_kwargs)
+    llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0, model_kwargs=model_kwargs)
     result = llm.invoke(
         f"Extract the JSON metadata object from the following text. "
         f"Return only the JSON object, nothing else. "
