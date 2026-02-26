@@ -48,7 +48,9 @@ class TokenUsageTracker(BaseCallbackHandler):
         self.total_tokens += total
 
         model_name = (response.llm_output or {}).get("model_name", "")
-        costs = MODEL_COSTS.get(model_name)
+        llm_output_keys = list(response.llm_output or {})
+        logger.debug("LLM response model_name: %r, llm_output keys: %s", model_name, llm_output_keys)
+        costs = _lookup_cost(model_name)
         if costs:
             input_cost, output_cost = costs
             self.total_cost += (prompt / 1_000_000) * input_cost + (completion / 1_000_000) * output_cost
@@ -61,3 +63,15 @@ class TokenUsageTracker(BaseCallbackHandler):
             f"Total tokens: {self.total_tokens:,} | "
             f"Estimated cost: ${self.total_cost:.4f}"
         )
+
+
+def _lookup_cost(model_name: str) -> tuple[float, float] | None:
+    """Look up cost by model name, matching against known prefixes to handle dated variants."""
+    if not model_name:
+        return None
+    if model_name in MODEL_COSTS:
+        return MODEL_COSTS[model_name]
+    for known in MODEL_COSTS:
+        if model_name.startswith(known):
+            return MODEL_COSTS[known]
+    return None
