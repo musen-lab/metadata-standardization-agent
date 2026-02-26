@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import tempfile
 import time
 from pathlib import Path
 
@@ -29,7 +30,11 @@ def main() -> None:
     )
     parser.add_argument("--input", required=True, help="Path to the legacy metadata JSON file.")
     parser.add_argument("--target-schema", required=True, help="IRI of the CEDAR template to migrate to.")
-    parser.add_argument("--output", required=True, help="Path to write the migrated metadata JSON file.")
+    parser.add_argument(
+        "--output",
+        help="Output file path or directory. If a directory, the output filename is derived from the input. "
+        f"(default: {Path(tempfile.gettempdir()) / 'migrated-metadata.json'})",
+    )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging to stderr.")
     args = parser.parse_args()
 
@@ -58,7 +63,13 @@ def main() -> None:
         config={"callbacks": [tracker]},
     )
     elapsed = time.perf_counter() - start
-    output_path = Path(args.output)
+    input_stem = Path(args.input).stem
+    if args.output is None:
+        output_path = Path(tempfile.gettempdir()) / "migrated-metadata.json"
+    elif Path(args.output).is_dir():
+        output_path = Path(args.output) / f"{input_stem}.json"
+    else:
+        output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(result["metadata"], indent=2) + "\n")
     logger.info("Output written to: %s", output_path)
