@@ -8,7 +8,6 @@ from urllib.parse import quote
 
 import requests
 from cedar_mcp.external_api import (
-    get_children_from_branch,
     search_terms_from_branch,
     search_terms_from_ontology,
 )
@@ -179,40 +178,8 @@ def term_search_from_ontology(search_string: str, ontology_acronym: str) -> dict
     return result
 
 
-@tool
-@log_tool_call
-def get_branch_children(branch_iri: str, ontology_acronym: str) -> dict[str, Any]:
-    """Get all child terms of a branch in a BioPortal ontology.
-
-    Use this to enumerate permissible values under a branch when a template field
-    requires selecting from a controlled set of terms.
-
-    Args:
-        branch_iri: IRI of the branch to get children for.
-        ontology_acronym: Ontology acronym (e.g., "HRAVS").
-    """
-    cached = _get_cache().get(
-        "get_branch_children",
-        branch_iri=branch_iri,
-        ontology_acronym=ontology_acronym,
-    )
-    if cached is not None:
-        return cached
-
-    bioportal_api_key = _get_bioportal_api_key()
-    result = get_children_from_branch(branch_iri, ontology_acronym, bioportal_api_key)
-    _get_cache().set(
-        "get_branch_children",
-        result,
-        branch_iri=branch_iri,
-        ontology_acronym=ontology_acronym,
-    )
-    return result
-
-
 all_tools = [
     get_cedar_template,
     term_search_from_branch,
-    term_search_from_ontology,
-    get_branch_children,
+    term_search_from_ontology
 ]

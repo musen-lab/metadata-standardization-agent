@@ -100,9 +100,9 @@ class TestFormatSummary:
         tracker = TokenUsageTracker()
         summary = tracker.usage_summary()
 
-        assert "prompt: 0" in summary
-        assert "completion: 0" in summary
-        assert "total: 0" in summary
+        assert "User prompt tokens: 0" in summary
+        assert "Completion tokens: 0" in summary
+        assert "Total tokens: 0" in summary
         assert "$0.0000" in summary
 
     def test_with_usage(self) -> None:
@@ -110,7 +110,7 @@ class TestFormatSummary:
         tracker.on_llm_end(_make_llm_result(1500, 500, "gpt-4o"))
         summary = tracker.usage_summary()
 
-        assert "prompt: 1,500" in summary
-        assert "completion: 500" in summary
-        assert "total: 2,000" in summary
+        assert "User prompt tokens: 1,500" in summary
+        assert "Completion tokens: 500" in summary
+        assert "Total tokens: 2,000" in summary
         assert "$" in summary

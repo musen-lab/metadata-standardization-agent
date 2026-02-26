@@ -18,4 +18,4 @@ def test_tools_registered():
     assert "get_cedar_template" in tool_names
     assert "term_search_from_branch" in tool_names
     assert "term_search_from_ontology" in tool_names
-    assert "get_branch_children" in tool_names
+    assert len(tool_names) == 3
