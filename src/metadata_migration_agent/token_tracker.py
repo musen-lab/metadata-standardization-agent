@@ -48,8 +48,6 @@ class TokenUsageTracker(BaseCallbackHandler):
         self.total_tokens += total
 
         model_name = (response.llm_output or {}).get("model_name", "")
-        llm_output_keys = list(response.llm_output or {})
-        logger.debug("LLM response model_name: %r, llm_output keys: %s", model_name, llm_output_keys)
         costs = _lookup_cost(model_name)
         if costs:
             input_cost, output_cost = costs
