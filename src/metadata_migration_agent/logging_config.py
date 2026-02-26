@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import json
 import logging
@@ -52,6 +53,29 @@ def _summarize(value: Any) -> str:
 def log_tool_call(func):
     """Decorator that logs tool function calls, results, and exceptions."""
     _logger = logging.getLogger(func.__module__)
+
+    if asyncio.iscoroutinefunction(func):
+
+        @functools.wraps(func)
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+            _logger.debug("Calling %s with %s", func.__name__, kwargs)
+            try:
+                result = await func(*args, **kwargs)
+            except Exception:
+                _logger.exception("Exception in %s", func.__name__)
+                raise
+            if isinstance(result, dict) and result.get("_cached"):
+                _logger.debug(
+                    "%s cache hit (age=%.1fs): %s",
+                    func.__name__,
+                    result.get("_cache_age_seconds", 0),
+                    _summarize(result),
+                )
+            else:
+                _logger.debug("%s returned: %s", func.__name__, _summarize(result))
+            return result
+
+        return async_wrapper
 
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
