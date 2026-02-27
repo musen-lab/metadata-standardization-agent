@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import TYPE_CHECKING, Any
 
+from cedar_mcp.external_api import get_template
+from cedar_mcp.processing import clean_template_response
 from langgraph.graph import END, START, StateGraph
+
+from metadata_migration_agent.cache import SqliteCache
 
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
@@ -39,11 +44,45 @@ def build_baseline_workflow(model: str) -> CompiledStateGraph:
     return graph.compile()
 
 
+_cache: SqliteCache | None = None
+
+
+def _get_cache() -> SqliteCache:
+    """Return the module-level cache instance, creating it on first use."""
+    global _cache  # noqa: PLW0603
+    if _cache is None:
+        _cache = SqliteCache()
+    return _cache
+
+
+def _get_cedar_api_key() -> str:
+    """Return the CEDAR API key from the environment."""
+    key = os.environ.get("CEDAR_API_KEY", "")
+    if not key:
+        raise ValueError("CEDAR_API_KEY environment variable is not set")
+    return key
+
+
+def _fetch_cedar_template(template_id: str) -> dict[str, Any]:
+    """Fetch a CEDAR template by its ID or full URL and return its cleaned structure."""
+    cached = _get_cache().get("get_cedar_template", template_id=template_id)
+    if cached is not None:
+        return cached
+
+    cedar_api_key = _get_cedar_api_key()
+
+    template_data = get_template(template_id, cedar_api_key)
+    if "error" in template_data:
+        return template_data
+
+    result = clean_template_response(template_data)
+    _get_cache().set("get_cedar_template", result, template_id=template_id)
+    return result
+
+
 def build_user_prompt_v1(legacy_metadata: dict[str, Any], template_iri: str) -> str:
     """Build the original user prompt for the baseline workflow."""
-    from metadata_migration_agent.tools import get_cedar_template
-
-    template = get_cedar_template.invoke({"template_id": template_iri})
+    template = _fetch_cedar_template(template_iri)
     field_names = _collect_field_names(template["children"])
     ontology_lines = _collect_ontology_constraints(template["children"])
 
@@ -64,9 +103,7 @@ def build_user_prompt_v1(legacy_metadata: dict[str, Any], template_iri: str) -> 
 
 def build_user_prompt_v2(legacy_metadata: dict[str, Any], template_iri: str) -> str:
     """Build the second version user prompt for the baseline workflow."""
-    from metadata_migration_agent.tools import get_cedar_template
-
-    template = get_cedar_template.invoke({"template_id": template_iri})
+    template = _fetch_cedar_template(template_iri)
     field_names = _collect_field_names(template["children"])
     ontology_lines = _collect_ontology_constraints(template["children"])
 
