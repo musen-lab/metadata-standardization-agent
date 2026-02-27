@@ -11,6 +11,7 @@ from langgraph.graph import END, START, StateGraph
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
 
+from evaluation.prompts import BASELINE_SYSTEM_PROMPT
 from metadata_migration_agent.state import AgentState
 from metadata_migration_agent.utils import extract_output_metadata
 
@@ -65,7 +66,8 @@ def baseline_migrate_node(state: AgentState) -> dict[str, Any]:
     """Perform a single LLM call to migrate legacy metadata without tools.
 
     The user message (built by ``build_user_prompt``) already contains all
-    necessary context, so no system message or template fetch is needed.
+    necessary context. A system message is prepended to guide the LLM's
+    behaviour during migration.
 
     Args:
         state: The current agent state containing messages.
@@ -73,11 +75,12 @@ def baseline_migrate_node(state: AgentState) -> dict[str, Any]:
     Returns:
         A partial state update appending the AI response to messages.
     """
-    from langchain_core.messages import AIMessage
+    from langchain_core.messages import AIMessage, SystemMessage
     from langchain_openai import ChatOpenAI
 
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-    response = llm.invoke(state["messages"])
+    messages = [SystemMessage(content=BASELINE_SYSTEM_PROMPT)] + state["messages"]
+    response = llm.invoke(messages)
 
     return {"messages": [AIMessage(content=response.content)]}
 
