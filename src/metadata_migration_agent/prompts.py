@@ -40,7 +40,7 @@ Map legacy keys to template field names in priority order:
 - If the template specifies a **branch** constraint, you MUST call `term_pick_from_branch(search_string, legacy_field_name, ontology_acronym, branch_iri)`.
 - If the template specifies an **ontology** constraint, you MUST call `term_pick_from_ontology(search_string, legacy_field_name, ontology_acronym)`. If multiple ontology acronyms are listed, try each; prefer the first-listed ontology.
 - These tools return `{"label": "...", "iri": "..."}` for the best match or `{}` if no good match was found. Use the returned `label` as the standardized value in the output record.
-- If a tool returns `{}`, progressively shorten or rephrase the query and call the tool again.
+- If a tool returns `{}`, try once more with a shortened or rephrased query. If it still returns `{}`, output `null` for that field.
 - If no viable match exists after searching, output `null` and flag as `NO_ONTOLOGY_MATCH` with the original value, ontologies searched, and closest candidates.
 - **Never skip the tool call.** Even if you believe you know the correct ontology term, you must confirm it via the pick tools.
 

@@ -77,6 +77,7 @@ def execute_workflow(
         user_message = user_prompt_builder(legacy_metadata, template_iri)
 
         run_config = dict(config) if config else {}
+        run_config.setdefault("recursion_limit", 30)
         run_config["run_name"] = f"evaluate-{input_file.stem}"
         run_config.setdefault("tags", [])
         run_config["tags"] = [*run_config["tags"], input_file.stem]

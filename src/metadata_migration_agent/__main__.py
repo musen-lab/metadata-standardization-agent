@@ -64,6 +64,7 @@ def main() -> None:
                 "cedar_template_iri": args.target_schema,
             },
             config={
+                "recursion_limit": 30,
                 "callbacks": [tracker],
                 "run_name": f"migrate-{input_stem}",
                 "tags": ["cli", "migrate"],
