@@ -34,13 +34,8 @@ def build_baseline_workflow() -> CompiledStateGraph:
     return graph.compile()
 
 
-def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str:
-    """Build the user prompt for the baseline workflow.
-
-    Fetches the CEDAR template identified by *template_iri* and dynamically
-    generates the field list and ontology constraint instructions from the
-    template's ``children`` structure.
-    """
+def build_user_prompt_v1(legacy_metadata: dict[str, Any], template_iri: str) -> str:
+    """Build the original user prompt for the baseline workflow."""
     from metadata_migration_agent.tools import get_cedar_template
 
     template = get_cedar_template.invoke({"template_id": template_iri})
@@ -59,6 +54,26 @@ def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str
     if ontology_lines:
         prompt += "\n".join(ontology_lines) + "\n"
     prompt += "- Missing values: use null\nDo not provide any explanation"
+    return prompt
+
+
+def build_user_prompt_v2(legacy_metadata: dict[str, Any], template_iri: str) -> str:
+    """Build the second version user prompt for the baseline workflow."""
+    from metadata_migration_agent.tools import get_cedar_template
+
+    template = get_cedar_template.invoke({"template_id": template_iri})
+    field_names = _collect_field_names(template["children"])
+    ontology_lines = _collect_ontology_constraints(template["children"])
+
+    field_list = ", ".join(field_names)
+    prompt = (
+        f"Migrate the following legacy metadata record to the CEDAR template.\n\n"
+        f"Legacy metadata:\n```json\n{json.dumps(legacy_metadata, indent=2)}\n\n```"
+        f"Target field list:\n{field_list}.\n\n"
+        f"Ontology-constrained fields:\n"
+    )
+    if ontology_lines:
+        prompt += "\n".join(ontology_lines) + "\n"
     return prompt
 
 

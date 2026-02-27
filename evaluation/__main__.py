@@ -43,10 +43,10 @@ def main() -> None:
     )
 
     if args.baseline:
-        from evaluation.baseline import build_baseline_workflow, build_user_prompt
+        from evaluation.baseline import build_baseline_workflow, build_user_prompt_v2
 
         workflow_factory = build_baseline_workflow
-        prompt_builder = build_user_prompt
+        prompt_builder = build_user_prompt_v2
     else:
         from evaluation.experiment import build_experiment_workflow, build_user_prompt
 
