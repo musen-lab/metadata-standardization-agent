@@ -57,7 +57,7 @@ def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str
     )
     if ontology_lines:
         prompt += "\n".join(ontology_lines) + "\n"
-    prompt += '- Missing values: use "NA"\nDo not provide any explanation'
+    prompt += "- Missing values: use null\nDo not provide any explanation"
     return prompt
 
 
