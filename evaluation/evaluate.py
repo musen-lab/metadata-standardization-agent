@@ -36,8 +36,13 @@ def run_experiment(
     Returns the per-file metrics list.
     """
     execute_workflow(
-        template_iri, input_dir, output_dir, workflow_factory, user_prompt_builder,
-        config=config, max_concurrency=max_concurrency,
+        template_iri,
+        input_dir,
+        output_dir,
+        workflow_factory,
+        user_prompt_builder,
+        config=config,
+        max_concurrency=max_concurrency,
     )
     metrics = apply_metrics(output_dir, gold_dir)
     _write_report(metrics, report_path)
