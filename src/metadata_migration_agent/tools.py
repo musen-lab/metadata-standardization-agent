@@ -139,9 +139,7 @@ async def term_search_from_ontology(search_string: str, ontology_acronym: str) -
     return result
 
 
-def _pick_best_term(
-    legacy_field_name: str, search_string: str, candidates: list[dict[str, Any]]
-) -> dict[str, str]:
+def _pick_best_term(legacy_field_name: str, search_string: str, candidates: list[dict[str, Any]]) -> dict[str, str]:
     """Select the best ontology term from BioPortal search results using deterministic string-similarity scoring.
 
     Args:
@@ -242,9 +240,7 @@ async def term_pick_from_branch(
 
 @tool
 @log_tool_call
-async def term_pick_from_ontology(
-    search_string: str, legacy_field_name: str, ontology_acronym: str
-) -> dict[str, str]:
+async def term_pick_from_ontology(search_string: str, legacy_field_name: str, ontology_acronym: str) -> dict[str, str]:
     """Search BioPortal within an entire ontology and return the best matching term.
 
     Use this when a CEDAR template field has an ontology-level controlled vocabulary
