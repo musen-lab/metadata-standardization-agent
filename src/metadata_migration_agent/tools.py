@@ -277,4 +277,4 @@ async def term_pick_from_ontology(search_string: str, legacy_field_name: str, on
     return best_term
 
 
-all_tools = [get_cedar_template, term_pick_from_branch, term_pick_from_ontology]
+all_tools = [get_cedar_template, term_search_from_branch, term_search_from_ontology]
