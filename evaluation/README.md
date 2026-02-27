@@ -45,14 +45,14 @@ completeness = |non_missing(gold) ∩ non_missing(predicted)| / |non_missing(gol
 A field is "missing" if its value is `None`. Empty strings and empty lists count as
 present.
 
-### Field-Value Accuracy
+### Field-Value Correctness
 
 Among fields that are non-missing in **both** predicted and gold, the fraction with
 matching values.
 
 ```
-comparable  = {k : k ∈ gold, gold[k] ≠ None, predicted[k] ≠ None}
-accuracy    = |{k ∈ comparable : matches(predicted[k], gold[k])}| / |comparable|
+comparable   = {k : k ∈ gold, gold[k] ≠ None, predicted[k] ≠ None}
+correctness  = |{k ∈ comparable : matches(predicted[k], gold[k])}| / |comparable|
 ```
 
 By default, `matches` is exact equality. Two optional parameters relax matching:
@@ -65,16 +65,16 @@ By default, `matches` is exact equality. Two optional parameters relax matching:
 Both parameters can be combined (e.g. case-insensitive substring matching). With
 defaults `(True, True)`, behaviour is identical to strict exact match.
 
-### Record Concordance
+### Record Accuracy
 
 Overall record-level agreement across all fields in the gold standard. Unlike
-accuracy, which only considers fields that are non-missing in both records,
-concordance evaluates every field. Two fields agree when both values are missing
+correctness, which only considers fields that are non-missing in both records,
+accuracy evaluates every field. Two fields agree when both values are missing
 (`None`), or both are non-missing and match. Any difference in value or presence
 counts as a mismatch.
 
 ```
-concordance = |{k ∈ gold : agree(predicted[k], gold[k])}| / |gold|
+accuracy = |{k ∈ gold : agree(predicted[k], gold[k])}| / |gold|
 ```
 
 where `agree(p, g)` is true when both are `None`, or both are non-`None` and
@@ -97,6 +97,6 @@ Files without a gold-standard counterpart are skipped during evaluation.
 | Column        | Description                              |
 |---------------|------------------------------------------|
 | input_file    | Filename of the evaluated record         |
-| accuracy      | Field-value accuracy for that record     |
+| correctness   | Field-value correctness for that record  |
 | completeness  | Field completeness for that record       |
-| concordance   | Record concordance for that record       |
+| accuracy      | Record accuracy for that record          |

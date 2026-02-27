@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
     from langgraph.graph.state import CompiledStateGraph
 
-from evaluation.metrics import compute_accuracy, compute_completeness, compute_concordance
+from evaluation.metrics import compute_accuracy, compute_completeness, compute_correctness
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +104,9 @@ def apply_metrics(input_dir: Path, gold_dir: Path) -> list[dict[str, Any]]:
         results.append(
             {
                 "input_file": input_file.name,
-                "accuracy": compute_accuracy(predicted, gold),
+                "correctness": compute_correctness(predicted, gold),
                 "completeness": compute_completeness(predicted, gold),
-                "concordance": compute_concordance(predicted, gold),
+                "accuracy": compute_accuracy(predicted, gold),
             }
         )
 
@@ -165,7 +165,7 @@ def _write_report(metrics: list[dict[str, Any]], report_path: Path) -> None:
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(report_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["input_file", "accuracy", "completeness", "concordance"])
+        writer = csv.DictWriter(f, fieldnames=["input_file", "correctness", "completeness", "accuracy"])
         writer.writeheader()
         for row in metrics:
             writer.writerow(row)

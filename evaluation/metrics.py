@@ -4,9 +4,9 @@ Metrics:
     - Field completeness: proportion of gold-standard non-missing fields that are
       also present (non-empty) in the predicted output. No value comparison; only
       checks presence.
-    - Value accuracy: among fields present in both predicted and gold, fraction
+    - Value correctness: among fields present in both predicted and gold, fraction
       with identical values (exact match).
-    - Record concordance: overall record-level agreement across all fields in the
+    - Record accuracy: overall record-level agreement across all fields in the
       gold standard.  Both-null counts as a match; any difference in value or
       presence counts as a mismatch.
 """
@@ -16,14 +16,14 @@ from __future__ import annotations
 from typing import Any
 
 
-def compute_accuracy(
+def compute_correctness(
     predicted: dict[str, Any],
     gold: dict[str, Any],
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
 ) -> float:
-    """Compute value accuracy of *predicted* metadata against *gold*.
+    """Compute value correctness of *predicted* metadata against *gold*.
 
     The denominator is the set of fields that are non-missing in **both**
     *predicted* and *gold*.  The numerator counts how many of those have
@@ -74,16 +74,16 @@ def compute_completeness(predicted: dict[str, Any], gold: dict[str, Any]) -> flo
     return len(non_missing_gold & non_missing_pred) / len(non_missing_gold)
 
 
-def compute_concordance(
+def compute_accuracy(
     predicted: dict[str, Any],
     gold: dict[str, Any],
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
 ) -> float:
-    """Compute concordance of *predicted* metadata against *gold*.
+    """Compute accuracy of *predicted* metadata against *gold*.
 
-    Concordance measures overall record-level agreement: the fraction of gold
+    Accuracy measures overall record-level agreement: the fraction of gold
     fields where both records agree.  Two fields agree when:
 
     * both values are missing (``None``), or
