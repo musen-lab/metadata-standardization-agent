@@ -49,7 +49,7 @@ def execute_workflow(
     user_prompt_builder: Callable[[dict[str, Any], str], str],
     *,
     config: dict[str, Any] | None = None,
-    max_concurrency: int = 3,
+    max_concurrency: int = 5,
 ) -> list[Path]:
     """Run the migration workflow on all JSON files in *input_dir*.
 
