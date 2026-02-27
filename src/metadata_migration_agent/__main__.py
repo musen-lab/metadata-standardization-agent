@@ -84,9 +84,9 @@ def main() -> None:
         output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(result["metadata"], indent=2) + "\n")
-    logger.info("Output written to: %s", output_path)
-    logger.info("Execution time: %.2fs", elapsed)
-    logger.info(tracker.usage_summary())
+    print(f"Output written to: {output_path}")
+    print(f"Execution time: {elapsed:.2f}s")
+    print(tracker.usage_summary())
 
 
 if __name__ == "__main__":
