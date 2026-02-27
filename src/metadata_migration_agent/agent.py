@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+import re
+from typing import TYPE_CHECKING, Any
 
 from langchain.agents import create_agent
 
@@ -15,6 +16,9 @@ from metadata_migration_agent.state import AgentState
 from metadata_migration_agent.tools import all_tools
 
 logger = logging.getLogger(__name__)
+
+# OpenAI o-series reasoning models don't support parallel_tool_calls
+_O_SERIES = re.compile(r"^o\d")
 
 
 def build_migration_agent(model: str = "gpt-5-mini") -> CompiledStateGraph:
@@ -29,5 +33,8 @@ def build_migration_agent(model: str = "gpt-5-mini") -> CompiledStateGraph:
     from langchain_openai import ChatOpenAI
 
     logger.debug("Building migration agent with model=%s, tools=%d", model, len(all_tools))
-    llm = ChatOpenAI(model=model, temperature=0)
+    model_kwargs: dict[str, Any] = {}
+    if not _O_SERIES.match(model):
+        model_kwargs["parallel_tool_calls"] = True
+    llm = ChatOpenAI(model=model, temperature=0, model_kwargs=model_kwargs)
     return create_agent(llm, tools=all_tools, system_prompt=SYSTEM_PROMPT, state_schema=AgentState)
