@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from langchain_core.messages import AnyMessage
+    from langchain_openai import ChatOpenAI
 
     from metadata_migration_agent.state import AgentState
 
@@ -15,6 +16,18 @@ from metadata_migration_agent.schema import build_output_model
 from metadata_migration_agent.tools import get_cedar_template
 
 logger = logging.getLogger(__name__)
+
+_extraction_llm: ChatOpenAI | None = None
+
+
+def _get_extraction_llm() -> ChatOpenAI:
+    """Return a shared extraction LLM client, creating it on first use."""
+    global _extraction_llm  # noqa: PLW0603
+    if _extraction_llm is None:
+        from langchain_openai import ChatOpenAI as _ChatOpenAI
+
+        _extraction_llm = _ChatOpenAI(model="gpt-4.1-mini", temperature=0)
+    return _extraction_llm
 
 
 def extract_output_metadata(state: AgentState) -> dict[str, Any]:
@@ -30,8 +43,6 @@ def extract_output_metadata(state: AgentState) -> dict[str, Any]:
     Returns:
         A partial state update with the ``metadata`` key populated.
     """
-    from langchain_openai import ChatOpenAI
-
     final_text = extract_agent_final_response(state["messages"])
     logger.debug("Raw agent response:\n%s", final_text)
 
@@ -48,12 +59,13 @@ def extract_output_metadata(state: AgentState) -> dict[str, Any]:
             },
         },
     }
-    llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0, model_kwargs=model_kwargs)
+    llm = _get_extraction_llm()
     result = llm.invoke(
         f"Extract the JSON metadata object from the following text. "
         f"Return only the JSON object, nothing else. "
         f"Use null (not empty strings) for any field whose value is unknown, "
-        f"missing, or empty.\n\n{final_text}"
+        f"missing, or empty.\n\n{final_text}",
+        **model_kwargs,
     )
     metadata = json.loads(result.content)
     logger.debug("Extracted metadata with %d top-level keys", len(metadata))
