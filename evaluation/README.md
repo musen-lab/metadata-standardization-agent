@@ -6,7 +6,9 @@ Measures the quality of agent-migrated metadata against gold-standard references
 
 ```bash
 python -m evaluation <template_iri> <input_dir> <output_dir> <gold_dir> <report_path> \
-    (--baseline | --experiment) [--debug]
+    [--model MODEL] [--concurrent N] [--langsmith-project NAME] \
+    (--baseline | --experiment) \
+    [--debug]
 ```
 
 | Argument | Description |
@@ -21,6 +23,9 @@ python -m evaluation <template_iri> <input_dir> <output_dir> <gold_dir> <report_
 |------|-------------|
 | `--baseline` | Using a single LLM call without tool access |
 | `--experiment` | Using an agent with tool access |
+| `--model MODEL` | GPT model variant: `gpt-4.1`, `gpt-4.1-mini`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano` (default: `gpt-4.1-mini`) |
+| `--concurrent N` | Max number of concurrent file evaluations (default: `5`) |
+| `--langsmith-project NAME` | LangSmith project name (overrides `.env` setting) |
 | `--debug` | Enable debug logging to stderr |
 
 One of `--baseline` or `--experiment` is required.

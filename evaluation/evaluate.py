@@ -28,13 +28,17 @@ def run_experiment(
     workflow_factory: Callable[[], CompiledStateGraph],
     user_prompt_builder: Callable[[dict[str, Any], str], str],
     *,
+    max_concurrency: int = 5,
     config: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Run the full experiment: workflow execution, metric computation, and reporting.
 
     Returns the per-file metrics list.
     """
-    execute_workflow(template_iri, input_dir, output_dir, workflow_factory, user_prompt_builder, config=config)
+    execute_workflow(
+        template_iri, input_dir, output_dir, workflow_factory, user_prompt_builder,
+        config=config, max_concurrency=max_concurrency,
+    )
     metrics = apply_metrics(output_dir, gold_dir)
     _write_report(metrics, report_path)
     logger.info("Report written to %s", report_path)

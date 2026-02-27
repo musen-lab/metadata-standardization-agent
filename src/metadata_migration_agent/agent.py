@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 _O_SERIES = re.compile(r"^o\d")
 
 
-def build_migration_agent(model: str = "gpt-5-mini") -> CompiledStateGraph:
+def build_migration_agent(model: str) -> CompiledStateGraph:
     """Build the ReAct migration agent with tools.
 
     Args:

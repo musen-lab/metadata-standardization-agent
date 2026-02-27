@@ -18,14 +18,19 @@ from metadata_migration_agent.utils import extract_output_metadata
 logger = logging.getLogger(__name__)
 
 
-def build_baseline_workflow() -> CompiledStateGraph:
+def build_baseline_workflow(model: str) -> CompiledStateGraph:
     """Build the baseline workflow: single LLM migrate followed by structured extraction.
+
+    Args:
+        model: LLM model identifier used for the migration call.
 
     Returns:
         A compiled LangGraph with ``START -> migrate -> extract -> END``.
     """
+    from functools import partial
+
     graph = StateGraph(AgentState)
-    graph.add_node("migrate", baseline_migrate_node)
+    graph.add_node("migrate", partial(baseline_migrate_node, model=model))
     graph.add_node("extract", extract_output_metadata)
     graph.add_edge(START, "migrate")
     graph.add_edge("migrate", "extract")
@@ -77,7 +82,7 @@ def build_user_prompt_v2(legacy_metadata: dict[str, Any], template_iri: str) -> 
     return prompt
 
 
-def baseline_migrate_node(state: AgentState) -> dict[str, Any]:
+def baseline_migrate_node(state: AgentState, model: str) -> dict[str, Any]:
     """Perform a single LLM call to migrate legacy metadata without tools.
 
     The user message (built by ``build_user_prompt``) already contains all
@@ -86,6 +91,7 @@ def baseline_migrate_node(state: AgentState) -> dict[str, Any]:
 
     Args:
         state: The current agent state containing messages.
+        model: LLM model identifier.
 
     Returns:
         A partial state update appending the AI response to messages.
@@ -93,7 +99,7 @@ def baseline_migrate_node(state: AgentState) -> dict[str, Any]:
     from langchain_core.messages import AIMessage, SystemMessage
     from langchain_openai import ChatOpenAI
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    llm = ChatOpenAI(model=model, temperature=0)
     messages = [SystemMessage(content=BASELINE_SYSTEM_PROMPT)] + state["messages"]
     response = llm.invoke(messages)
 

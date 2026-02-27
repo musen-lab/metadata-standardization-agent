@@ -17,16 +17,19 @@ from metadata_migration_agent.utils import extract_output_metadata
 logger = logging.getLogger(__name__)
 
 
-def build_workflow() -> CompiledStateGraph:
+def build_workflow(model: str) -> CompiledStateGraph:
     """Build the full migration workflow: migrate followed by extract.
 
     The returned graph runs the ReAct migration agent followed by a structured
     extraction node that produces a schema-conformant metadata dict.
 
+    Args:
+        model: LLM model identifier passed to the migration agent.
+
     Returns:
         A compiled LangGraph that can be invoked with ``AgentState``.
     """
-    migration_agent = build_migration_agent(model="gpt-5-mini")
+    migration_agent = build_migration_agent(model=model)
 
     graph = StateGraph(AgentState)
     graph.add_node("migrate", migration_agent)

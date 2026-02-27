@@ -9,19 +9,22 @@ if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
 
 
-def build_experiment_workflow() -> CompiledStateGraph:
+def build_experiment_workflow(model: str) -> CompiledStateGraph:
     """Build the experiment workflow by delegating to the shipped ``build_workflow``.
 
     This gives the evaluation framework a parallel factory alongside
     ``build_baseline_workflow``, while ``build_workflow`` stays in
     ``src/`` for the shipped CLI.
 
+    Args:
+        model: LLM model identifier forwarded to ``build_workflow``.
+
     Returns:
         A compiled LangGraph produced by ``metadata_migration_agent.workflow.build_workflow``.
     """
     from metadata_migration_agent.workflow import build_workflow
 
-    return build_workflow()
+    return build_workflow(model=model)
 
 
 def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str:

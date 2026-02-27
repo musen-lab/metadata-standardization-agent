@@ -3,13 +3,17 @@
 Usage::
 
     evaluate --input <dir> --target-schema <iri> --output <dir> --gold <dir> --report <path> \
-        (--baseline | --experiment) [--debug]
+        [--model MODEL] [--concurrent N] [--langsmith-project NAME] \
+        (--baseline | --experiment) \
+        [--debug]
 """
 
 from __future__ import annotations
+from functools import partial
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -33,6 +37,20 @@ def main() -> None:
     workflow_group = parser.add_mutually_exclusive_group(required=True)
     workflow_group.add_argument("--baseline", action="store_true", help="Use the baseline workflow (single LLM call).")
     workflow_group.add_argument("--experiment", action="store_true", help="Use the experiment workflow (ReAct agent).")
+    gpt_models = ["gpt-4.1", "gpt-4.1-mini", "gpt-5", "gpt-5-mini", "gpt-5-nano"]
+    parser.add_argument(
+        "--model",
+        choices=gpt_models,
+        default="gpt-4o-mini",
+        help="GPT model variant (default: gpt-4o-mini).",
+    )
+    parser.add_argument(
+        "--concurrent",
+        type=int,
+        default=5,
+        help="Max number of concurrent file evaluations (default: 5).",
+    )
+    parser.add_argument("--langsmith-project", type=str, default=None, help="LangSmith project name (overrides .env).")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging to stderr.")
     args = parser.parse_args()
 
@@ -42,15 +60,18 @@ def main() -> None:
         stream=sys.stderr,
     )
 
+    if args.langsmith_project:
+        os.environ["LANGSMITH_PROJECT"] = args.langsmith_project
+
     if args.baseline:
         from evaluation.baseline import build_baseline_workflow, build_user_prompt_v2
 
-        workflow_factory = build_baseline_workflow
+        workflow_factory = partial(build_baseline_workflow, model=args.model)
         prompt_builder = build_user_prompt_v2
     else:
         from evaluation.experiment import build_experiment_workflow, build_user_prompt
 
-        workflow_factory = build_experiment_workflow
+        workflow_factory = partial(build_experiment_workflow, model=args.model)
         prompt_builder = build_user_prompt
 
     from evaluation.evaluate import run_experiment
@@ -64,6 +85,7 @@ def main() -> None:
         report_path=args.report,
         workflow_factory=workflow_factory,
         user_prompt_builder=prompt_builder,
+        max_concurrency=args.concurrent,
         config={
             "tags": ["evaluation", workflow_type],
             "metadata": {
