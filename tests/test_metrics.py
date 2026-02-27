@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from evaluation.metrics import compute_accuracy, compute_completeness
+from evaluation.metrics import compute_accuracy, compute_completeness, compute_concordance
 
 
 class TestComputeCompleteness:
@@ -174,3 +174,55 @@ class TestComputeAccuracyMatchOptions:
         predicted = {"a": "Hello", "b": "World"}
         # 'a' matches exactly, 'b' differs in case → 1/2
         assert compute_accuracy(predicted, gold) == 0.5
+
+
+class TestComputeConcordance:
+    """Tests for the concordance metric."""
+
+    def test_perfect_match(self) -> None:
+        """All fields identical yields 1.0."""
+        gold = {"a": 1, "b": "hello", "c": [1, 2]}
+        predicted = {"a": 1, "b": "hello", "c": [1, 2]}
+        assert compute_concordance(predicted, gold) == 1.0
+
+    def test_both_empty(self) -> None:
+        """Both dicts empty returns 0.0."""
+        assert compute_concordance({}, {}) == 0.0
+
+    def test_both_null_counts_as_match(self) -> None:
+        """Fields that are None in both predicted and gold count as matches."""
+        gold = {"a": 1, "b": None, "c": None}
+        predicted = {"a": 1, "b": None, "c": None}
+        assert compute_concordance(predicted, gold) == 1.0
+
+    def test_value_mismatch(self) -> None:
+        """Value mismatches reduce the score."""
+        gold = {"a": 1, "b": 2}
+        predicted = {"a": 1, "b": 99}
+        assert compute_concordance(predicted, gold) == 0.5
+
+    def test_pred_null_gold_non_null(self) -> None:
+        """Predicted null vs gold non-null counts as mismatch."""
+        gold = {"a": 1, "b": 2}
+        predicted = {"a": 1, "b": None}
+        assert compute_concordance(predicted, gold) == 0.5
+
+    def test_pred_non_null_gold_null(self) -> None:
+        """Predicted non-null vs gold null counts as mismatch."""
+        gold = {"a": 1, "b": None}
+        predicted = {"a": 1, "b": 2}
+        assert compute_concordance(predicted, gold) == 0.5
+
+    def test_mixed_scenario(self) -> None:
+        """Mixed scenario: match, both-null match, value mismatch, presence mismatch."""
+        gold = {"a": "x", "b": None, "c": "y", "d": "z"}
+        predicted = {"a": "x", "b": None, "c": "wrong", "d": None}
+        # a: match, b: both null (match), c: mismatch, d: presence mismatch → 2/4
+        assert compute_concordance(predicted, gold) == 0.5
+
+    def test_pred_missing_key(self) -> None:
+        """Key in gold but absent from predicted (get returns None) counts as presence mismatch."""
+        gold = {"a": 1, "b": 2}
+        predicted = {"a": 1}
+        # 'b': predicted.get("b") is None vs gold 2 → mismatch → 1/2
+        assert compute_concordance(predicted, gold) == 0.5
