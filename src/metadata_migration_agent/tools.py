@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from typing import Any
@@ -14,7 +13,6 @@ from cedar_mcp.external_api import (
 )
 from cedar_mcp.processing import clean_template_response
 from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
 
 from metadata_migration_agent.cache import SqliteCache
 from metadata_migration_agent.logging_config import log_tool_call
@@ -141,10 +139,10 @@ async def term_search_from_ontology(search_string: str, ontology_acronym: str) -
     return result
 
 
-async def _pick_best_term(
+def _pick_best_term(
     legacy_field_name: str, search_string: str, candidates: list[dict[str, Any]]
 ) -> dict[str, str]:
-    """Use an LLM to select the best ontology term from BioPortal search results.
+    """Select the best ontology term from BioPortal search results using deterministic string-similarity scoring.
 
     Args:
         legacy_field_name: The name of the legacy metadata field (provides context).
@@ -157,42 +155,42 @@ async def _pick_best_term(
     if not candidates:
         return {}
 
-    condensed = []
+    query = search_string.strip().lower()
+    best_score = 0.0
+    best_match: dict[str, str] = {}
+
     for c in candidates:
-        entry: dict[str, Any] = {"prefLabel": c.get("prefLabel", "")}
-        if c.get("synonym"):
-            entry["synonyms"] = c["synonym"]
-        if c.get("definition"):
-            entry["definition"] = c["definition"]
-        entry["iri"] = c.get("@id", "")
-        condensed.append(entry)
+        pref_label = c.get("prefLabel", "")
+        pref_lower = pref_label.strip().lower()
+        synonyms: list[str] = c.get("synonym", []) or []
+        is_obsolete = c.get("obsolete", False)
 
-    prompt = (
-        "You are a biomedical ontology expert. Given a legacy metadata field name, "
-        "a legacy value, and a list of candidate ontology terms from BioPortal, "
-        "select the single best matching term to replace the legacy value.\n\n"
-        f"Legacy field name: {legacy_field_name}\n"
-        f"Legacy value: {search_string}\n\n"
-        f"Candidates:\n{json.dumps(condensed, indent=2)}\n\n"
-        "Rules:\n"
-        "- Prefer exact prefLabel matches over synonym matches.\n"
-        "- Prefer non-obsolete terms.\n"
-        "- If no candidate is a reasonable match, return an empty JSON object.\n\n"
-        'Respond with ONLY a JSON object: {"label": "<prefLabel>", "iri": "<IRI>"} '
-        "or {} if no good match."
-    )
+        # Score by matching priority
+        score = 0.0
+        if pref_lower == query:
+            score = 1.0
+        elif query in pref_lower or pref_lower in query:
+            score = 0.7
+        else:
+            synonym_scores: list[float] = []
+            for syn in synonyms:
+                syn_lower = syn.strip().lower()
+                if syn_lower == query:
+                    synonym_scores.append(0.6)
+                elif query in syn_lower or syn_lower in query:
+                    synonym_scores.append(0.4)
+            score = max(synonym_scores) if synonym_scores else 0.1
 
-    llm = ChatOpenAI(model="gpt-5-mini", temperature=0)
-    response = await llm.ainvoke(prompt)
+        # Penalize obsolete terms
+        if is_obsolete:
+            score -= 0.2
 
-    try:
-        result = json.loads(str(response.content))
-    except (json.JSONDecodeError, TypeError):
-        logger.warning("LLM returned non-JSON response in _pick_best_term: %s", response.content)
-        return {}
+        if score > best_score:
+            best_score = score
+            best_match = {"label": pref_label, "iri": c.get("@id", "")}
 
-    if isinstance(result, dict) and "label" in result and "iri" in result:
-        return {"label": result["label"], "iri": result["iri"]}
+    if best_score >= 0.3:
+        return best_match
     return {}
 
 
@@ -229,7 +227,7 @@ async def term_pick_from_branch(
     )
 
     candidates = search_results.get("collection", [])
-    best_term = await _pick_best_term(legacy_field_name, search_string, candidates)
+    best_term = _pick_best_term(legacy_field_name, search_string, candidates)
 
     _get_cache().set(
         "term_pick_from_branch",
@@ -271,7 +269,7 @@ async def term_pick_from_ontology(
     search_results = await async_search_terms_from_ontology(search_string, ontology_acronym, bioportal_api_key)
 
     candidates = search_results.get("collection", [])
-    best_term = await _pick_best_term(legacy_field_name, search_string, candidates)
+    best_term = _pick_best_term(legacy_field_name, search_string, candidates)
 
     _get_cache().set(
         "term_pick_from_ontology",
