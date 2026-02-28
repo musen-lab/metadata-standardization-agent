@@ -73,20 +73,20 @@ class TestComputeCorrectness:
         """Both dicts empty returns 0.0."""
         assert compute_correctness({}, {}) == 0.0
 
-    def test_no_comparable_fields_all_none_in_gold(self) -> None:
-        """All gold values are None; no comparable fields yields 0.0."""
+    def test_no_non_missing_gold_fields_all_none(self) -> None:
+        """All gold values are None; no non-missing gold fields yields 0.0."""
         gold = {"a": None, "b": None}
         predicted = {"a": 1, "b": 2}
         assert compute_correctness(predicted, gold) == 0.0
 
-    def test_no_comparable_fields_all_none_in_predicted(self) -> None:
-        """All predicted values are None; no comparable fields yields 0.0."""
+    def test_all_predicted_none(self) -> None:
+        """All predicted values are None; no matches yields 0.0."""
         gold = {"a": 1, "b": 2}
         predicted = {"a": None, "b": None}
         assert compute_correctness(predicted, gold) == 0.0
 
-    def test_all_comparable_match(self) -> None:
-        """All comparable fields match gives 1.0."""
+    def test_all_non_missing_gold_fields_match(self) -> None:
+        """All non-missing gold fields match gives 1.0."""
         gold = {"a": 1, "b": "hello"}
         predicted = {"a": 1, "b": "hello"}
         assert compute_correctness(predicted, gold) == 1.0
@@ -95,15 +95,15 @@ class TestComputeCorrectness:
         """Mixed matches and mismatches give correct fraction."""
         gold = {"a": 1, "b": 2, "c": 3, "d": 4}
         predicted = {"a": 1, "b": 2, "c": 99, "d": 0}
-        # 4 comparable, 2 match → 0.5
+        # 4 non-missing gold fields, 2 match → 0.5
         assert compute_correctness(predicted, gold) == 0.5
 
-    def test_none_excluded_from_comparable(self) -> None:
-        """Fields with None on either side are excluded from comparison."""
+    def test_none_in_gold_excluded_from_denominator(self) -> None:
+        """Fields with None in gold are excluded from the denominator."""
         gold = {"a": 1, "b": None, "c": 3}
         predicted = {"a": 1, "b": 2, "c": None}
-        # Only 'a' is comparable → 1/1
-        assert compute_correctness(predicted, gold) == 1.0
+        # Non-missing gold: {a, c} → predicted matches a but misses c → 1/2
+        assert compute_correctness(predicted, gold) == 0.5
 
     def test_fields_only_in_predicted_not_counted(self) -> None:
         """Fields present only in predicted (not in gold) are ignored."""
@@ -111,13 +111,12 @@ class TestComputeCorrectness:
         predicted = {"a": 1, "extra": "data"}
         assert compute_correctness(predicted, gold) == 1.0
 
-    def test_fields_only_in_gold_not_counted(self) -> None:
-        """Fields in gold but absent from predicted are not comparable."""
+    def test_fields_only_in_gold_penalise_prediction(self) -> None:
+        """Fields in gold but absent from predicted count against the score."""
         gold = {"a": 1, "b": 2}
         predicted = {"a": 1}
-        # 'b' is missing from predicted (get returns None) → excluded
-        # Only 'a' is comparable → 1/1
-        assert compute_correctness(predicted, gold) == 1.0
+        # Non-missing gold: {a, b} → predicted matches a, misses b → 1/2
+        assert compute_correctness(predicted, gold) == 0.5
 
     def test_empty_string_mismatch(self) -> None:
         """Empty string does not equal a non-empty string."""

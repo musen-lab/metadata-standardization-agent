@@ -25,9 +25,10 @@ def compute_correctness(
 ) -> float:
     """Compute value correctness of *predicted* metadata against *gold*.
 
-    The denominator is the set of fields that are non-missing in **both**
-    *predicted* and *gold*.  The numerator counts how many of those have
-    matching values.
+    The denominator is the set of fields that are non-missing in *gold*.
+    The numerator counts how many of those fields also have a non-missing,
+    matching value in *predicted*.  This means omitted or empty predictions
+    lower the score.
 
     Parameters
     ----------
@@ -45,17 +46,18 @@ def compute_correctness(
         **substring of** the predicted value.  Non-string values are always
         compared with exact equality.
 
-    Returns 0.0 when there are no comparable fields.
+    Returns 0.0 when there are no non-missing gold fields.
     """
-    comparable = {k for k in gold if not _is_missing(gold[k]) and not _is_missing(predicted.get(k))}
-    if not comparable:
+    non_missing_gold = {k for k, v in gold.items() if not _is_missing(v)}
+    if not non_missing_gold:
         return 0.0
     matching = sum(
         1
-        for k in comparable
-        if _values_match(predicted[k], gold[k], match_case=match_case, match_whole_word=match_whole_word)
+        for k in non_missing_gold
+        if not _is_missing(predicted.get(k))
+        and _values_match(predicted[k], gold[k], match_case=match_case, match_whole_word=match_whole_word)
     )
-    return matching / len(comparable)
+    return matching / len(non_missing_gold)
 
 
 def compute_completeness(predicted: dict[str, Any], gold: dict[str, Any]) -> float:

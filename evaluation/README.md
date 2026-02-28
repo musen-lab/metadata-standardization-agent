@@ -52,12 +52,12 @@ present.
 
 ### Field-Value Correctness
 
-Among fields that are non-missing in **both** predicted and gold, the fraction with
-matching values.
+Of all fields that are non-missing in gold, the fraction where the predicted value
+is also non-missing and matches. Omitted or empty predictions lower the score.
 
 ```
-comparable   = {k : k ∈ gold, gold[k] ≠ None, predicted[k] ≠ None}
-correctness  = |{k ∈ comparable : matches(predicted[k], gold[k])}| / |comparable|
+non_missing_gold = {k : k ∈ gold, gold[k] ≠ None}
+correctness      = |{k ∈ non_missing_gold : predicted[k] ≠ None ∧ matches(predicted[k], gold[k])}| / |non_missing_gold|
 ```
 
 By default, `matches` is exact equality. Two optional parameters relax matching:
@@ -73,8 +73,8 @@ defaults `(True, True)`, behaviour is identical to strict exact match.
 ### Record Accuracy
 
 Overall record-level agreement across all fields in the gold standard. Unlike
-correctness, which only considers fields that are non-missing in both records,
-accuracy evaluates every field. Two fields agree when both values are missing
+correctness, which only considers non-missing gold fields,
+accuracy evaluates every field (including those that should be missing). Two fields agree when both values are missing
 (`None`), or both are non-missing and match. Any difference in value or presence
 counts as a mismatch.
 
