@@ -88,8 +88,8 @@ wheels = [
 
 [[package]]
 name = "cedar-mcp"
-version = "0.1.0"
-source = { editable = "../cedar-mcp" }
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastmcp" },
     { name = "pydantic" },
@@ -97,14 +97,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastmcp" },
-    { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "pyyaml", specifier = ">=6.0.0" },
-    { name = "requests", specifier = ">=2.28.0" },
+sdist = { url = "https://files.pythonhosted.org/packages/e8/97/32d976324d4c4217f55d88c4eccdfa6045e1d4d2f1c79ef872d9a0151d42/cedar_mcp-1.0.0.tar.gz", hash = "sha256:9ff3f0333e22aaf39090f0f9907a1fb8410bf01e61c27471fc561633de63d7e5", size = 132562, upload-time = "2026-02-28T00:18:22.435Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ef/48/aa5c6bb2deafa39255b0779d76cd937f38de3031557d2cda35e58bc63250/cedar_mcp-1.0.0-py3-none-any.whl", hash = "sha256:28ab4d0f0ca681233d42acf3d62d99b7bc9c40e10a2ac0e74eb5f21b444f59a1", size = 20385, upload-time = "2026-02-28T00:18:20.837Z" },
 ]
 
 [[package]]
@@ -779,7 +774,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cedar-mcp", editable = "../cedar-mcp" },
+    { name = "cedar-mcp", specifier = ">=1.0.0" },
     { name = "langchain", specifier = ">=1.2,<2.0" },
     { name = "langchain-core", specifier = ">=1.2,<2.0" },
     { name = "langchain-openai", specifier = ">=1.0,<2.0" },
