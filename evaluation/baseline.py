@@ -16,7 +16,6 @@ from metadata_migration_agent.cache import SqliteCache
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
 
-from evaluation.prompts import BASELINE_SYSTEM_PROMPT
 from metadata_migration_agent.state import AgentState
 from metadata_migration_agent.utils import extract_output_metadata
 
@@ -83,12 +82,22 @@ def _fetch_cedar_template(template_id: str) -> dict[str, Any]:
 def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str:
     """Build the second version user prompt for the baseline workflow."""
     template = _fetch_cedar_template(template_iri)
+    field_names = _collect_field_names(template["children"])
+    ontology_lines = _collect_ontology_constraints(template["children"])
 
+    field_list = ", ".join(field_names)
     prompt = (
-        f"Migrate the following legacy metadata record to the CEDAR template.\n\n"
-        f"CEDAR template specification:\n```json\n{json.dumps(template, indent=2)}\n```\n\n"
-        f"Legacy metadata:\n```json\n{json.dumps(legacy_metadata, indent=2)}\n```"
+        f"Given the following legacy metadata: {json.dumps(legacy_metadata, indent=2)}.\n"
+        "Report a new and corrected metadata sample where the following "
+        f"template is as complete as possible:\n{field_list}.\n"
+        "Check if the field values and field names make sense. If no match "
+        "is found for a field name, match it to an ontology. As far as possible, "
+        "make field values adhere to ontology restrictions.\n"
     )
+    if ontology_lines:
+        prompt += "\n".join(ontology_lines) + "\n"
+    prompt += "- Missing values: use null\n\n"
+    prompt += "Do not provide any explanation. Output only the corrected record in Python dict format"
     return prompt
 
 
@@ -106,11 +115,11 @@ def baseline_migrate_node(state: AgentState, model: str) -> dict[str, Any]:
     Returns:
         A partial state update appending the AI response to messages.
     """
-    from langchain_core.messages import AIMessage, SystemMessage
+    from langchain_core.messages import AIMessage
     from langchain_openai import ChatOpenAI
 
     llm = ChatOpenAI(model=model, temperature=0)
-    messages = [SystemMessage(content=BASELINE_SYSTEM_PROMPT)] + state["messages"]
+    messages = state["messages"]
     response = llm.invoke(messages)
 
     return {"messages": [AIMessage(content=response.content)]}
