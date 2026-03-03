@@ -11,19 +11,16 @@ Activate when the user asks to transform, migrate, harmonize, clean up, or conve
 
 ## Inputs & Outputs
 
-**Inputs:** (1) Legacy metadata records — JSON object, JSON array, or CSV file. (2) A CEDAR template URL.
+**Inputs:** (1) Legacy metadata records in JSON format. (2) A CEDAR template URL.
 
-**Outputs:** Transformed record(s) in the same format as input (JSON→JSON, CSV→CSV).
+**Outputs:** Transformed record(s) in JSON format.
 
 ## Workflow
 
 ### Step 1 — Fetch Template
 Call `get_cedar_template(template_id="<CEDAR URL or ID>")` to retrieve the template's required fields, types, and ontology constraints.
 
-### Step 2 — Parse Input
-Detect format: JSON object → single record; JSON array → batch; CSV → batch (each row = 1 record). Use Python `csv` or `pandas` for CSV.
-
-### Step 3 — Field Mapping
+### Step 2 — Field Mapping
 Map legacy keys to template field names in priority order:
 1. **Exact match** — legacy key = template `name` (case-insensitive).
 2. **Label match** — legacy key = template `label`.
@@ -32,9 +29,9 @@ Map legacy keys to template field names in priority order:
 
 **Misplaced value detection:** Cross-check each value against its target field's description and ontology constraint. If a value belongs elsewhere (e.g., `"breast cancer"` in a tissue field), relocate it and attempt to infer the correct value from context.
 
-### Step 4 — Value Resolution
+### Step 3 — Value Resolution
 
-**4a. Ontology-Constrained Fields:**
+**3a. Ontology-Constrained Fields:**
 - **MANDATORY:** For every field that has an ontology or branch constraint, you MUST call the appropriate tool. Do NOT guess or rely on your own knowledge — always verify through BioPortal.
 - Clean the legacy value first: trim whitespace, normalize casing, strip qualifiers, expand abbreviations (e.g., `"HCC"` → `"hepatocellular carcinoma"`), remove noise.
 - If the template specifies a **branch** constraint, you MUST call `term_search_from_branch(search_string, ontology_acronym, branch_iri)`.
@@ -46,24 +43,23 @@ Map legacy keys to template field names in priority order:
 - Prefer non-obsolete/non-deprecated terms.
 - **Never skip the tool call.** Even if you believe you know the correct ontology term, you must confirm it via the search tools.
 
-**4b. Datatype Enforcement:**
+**3b. Datatype Enforcement:**
 - **String:** Output as string.
 - **Numeric (`number`, `integer`, `decimal`):** Extract bare number, no embedded units. If legacy value has units (e.g., `"64 yr"`), strip the unit; place unit in a companion field if one exists.
 - **Boolean:** Normalize to `true`/`false`.
 - **Date:** Normalize to the pattern specified in the template (e.g., ISO 8601).
 
-**4c. Free-Text String Fields:** Preserve as-is unless the template description implies a specific pattern.
+**3c. Free-Text String Fields:** Preserve as-is unless the template description implies a specific pattern.
 
-**4d. Missing or Uncertain Values:**
+**3d. Missing or Uncertain Values:**
 1. Attempt to **infer from context** in other fields (e.g., `disease = "hepatocellular carcinoma"` → infer `tissue = "liver"`).
 2. If inferable, fill and mark as `INFERRED`.
 3. If not inferable or you are not confident in the answer → output `null`.
 
-### Step 5 — Assemble Output
-- JSON: single record → object; batch → array. Only template-compliant field names as keys; ontology values as plain label strings; datatypes enforced.
+### Step 4 — Assemble Output
+- Output a single JSON object. Only target field names as keys; ontology values as plain label strings; datatypes enforced.
 - **The output MUST be a valid JSON object. Do not include comments (no `//` or `/* */`), trailing commas, or any non-JSON syntax.**
 - Use `null` (not empty strings, placeholders, or omitted keys) for any field where no confident value can be determined.
-- CSV: template field names as column headers; only template fields in output.
 
 ## Key Principles
 
@@ -82,7 +78,7 @@ Map legacy keys to template field names in priority order:
 ## Error Handling
 
 - **Template fetch fails:** Inform the user, do not proceed.
-- **BioPortal returns no results:** Keep original value (or `null` for ontology fields), mark as `NO_ONTOLOGY_MATCH`.
+- **BioPortal returns no results:** Keep original value, mark as `NO_ONTOLOGY_MATCH`.
 - **Ambiguous mapping:** Best guess, mark as `AMBIGUOUS_MAPPING`.
 - **Malformed input:** Report which records/rows failed, continue with valid ones.
 """
