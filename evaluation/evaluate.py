@@ -14,8 +14,6 @@ if TYPE_CHECKING:
 
     from langgraph.graph.state import CompiledStateGraph
 
-from evaluation.metrics import compute_accuracy
-
 logger = logging.getLogger(__name__)
 
 

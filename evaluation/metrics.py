@@ -8,10 +8,11 @@ Metrics:
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 
-def compute_accuracy(
+def compute_overall_accuracy(
     predicted: dict[str, Any],
     gold: dict[str, Any],
     *,
@@ -45,6 +46,76 @@ def compute_accuracy(
         ):
             matches += 1
     return matches / len(gold)
+
+
+def compute_ontology_constrained_field_accuracy(
+    predicted: dict[str, object],
+    gold: dict[str, object],
+    schema_path: str,
+    *,
+    match_case: bool = True,
+    match_whole_word: bool = True,
+) -> float:
+    """Compute correctness restricted to ontology-constrained fields.
+
+    Only gold fields whose names appear in the schema's ontology/branch
+    permissible-value list *and* have a non-missing gold value are evaluated.
+    Returns the fraction of those fields where the predicted value matches.
+
+    Returns 0.0 when no ontology-constrained fields with non-missing gold
+    values exist.
+    """
+    ontology_fields = set(_get_ontology_constrained_fields(schema_path))
+    filtered_gold = {k: v for k, v in gold.items() if k in ontology_fields and not _is_missing(v)}
+    if not filtered_gold:
+        return 0.0
+    matching = sum(
+        1
+        for k, gold_val in filtered_gold.items()
+        if not _is_missing(predicted.get(k))
+        and _values_match(
+            predicted[k],
+            gold_val,
+            match_case=match_case,
+            match_whole_word=match_whole_word,
+        )
+    )
+    return matching / len(filtered_gold)
+
+
+def compute_non_ontology_constrained_field_accuracy(
+    predicted: dict[str, object],
+    gold: dict[str, object],
+    schema_path: str,
+    *,
+    match_case: bool = True,
+    match_whole_word: bool = True,
+) -> float:
+    """Compute correctness restricted to non-ontology-constrained fields.
+
+    Only gold fields whose names do **not** appear in the schema's
+    ontology/branch permissible-value list *and* have a non-missing gold value
+    are evaluated.  Returns the fraction of those fields where the predicted
+    value matches.
+
+    Returns 0.0 when no qualifying fields exist.
+    """
+    ontology_fields = set(_get_ontology_constrained_fields(schema_path))
+    filtered_gold = {k: v for k, v in gold.items() if k not in ontology_fields and not _is_missing(v)}
+    if not filtered_gold:
+        return 0.0
+    matching = sum(
+        1
+        for k, gold_val in filtered_gold.items()
+        if not _is_missing(predicted.get(k))
+        and _values_match(
+            predicted[k],
+            gold_val,
+            match_case=match_case,
+            match_whole_word=match_whole_word,
+        )
+    )
+    return matching / len(filtered_gold)
 
 
 def _values_match(
@@ -81,3 +152,16 @@ def _is_missing(value: Any) -> bool:
     and other falsy-but-not-None values are considered present.
     """
     return value is None
+
+
+def _get_ontology_constrained_fields(schema_path: str) -> list[str]:
+    """Return field names constrained by ontology/branch permissible values."""
+    with open(schema_path) as f:
+        schema = json.load(f)
+    fields: list[str] = []
+    for child in schema.get("children", []):
+        for pv in child.get("permissible_values", []):
+            if pv.get("type") in ("branch", "ontology"):
+                fields.append(child["name"])
+                break
+    return fields

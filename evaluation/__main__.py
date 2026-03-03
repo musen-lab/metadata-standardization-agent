@@ -63,10 +63,12 @@ def main() -> None:
 
     if args.baseline:
         from evaluation.baseline import build_baseline_workflow, build_user_prompt
+
         workflow_factory = partial(build_baseline_workflow, model=args.model)
         prompt_builder = build_user_prompt
     elif args.experiment:
         from evaluation.experiment import build_experiment_workflow, build_user_prompt
+
         workflow_factory = partial(build_experiment_workflow, model=args.model)
         prompt_builder = build_user_prompt
 
