@@ -1,12 +1,7 @@
 """Evaluation metrics for comparing agent output against gold standard.
 
 Metrics:
-    - Field completeness: proportion of gold-standard non-missing fields that are
-      also present (non-empty) in the predicted output. No value comparison; only
-      checks presence.
-    - Value correctness: among fields present in both predicted and gold, fraction
-      with identical values (exact match).
-    - Record accuracy: overall record-level agreement across all fields in the
+    - Overall accuracy: overall record-level agreement across all fields in the
       gold standard.  Both-null counts as a match; any difference in value or
       presence counts as a mismatch.
 """
@@ -14,66 +9,6 @@ Metrics:
 from __future__ import annotations
 
 from typing import Any
-
-
-def compute_correctness(
-    predicted: dict[str, Any],
-    gold: dict[str, Any],
-    *,
-    match_case: bool = True,
-    match_whole_word: bool = True,
-) -> float:
-    """Compute value correctness of *predicted* metadata against *gold*.
-
-    The denominator is the set of fields that are non-missing in *gold*.
-    The numerator counts how many of those fields also have a non-missing,
-    matching value in *predicted*.  This means omitted or empty predictions
-    lower the score.
-
-    Parameters
-    ----------
-    predicted:
-        Agent-generated metadata record.
-    gold:
-        Gold-standard reference metadata record.
-    match_case:
-        When ``True`` (default), string values are compared as-is.  When
-        ``False``, string values are lowercased before comparison.  Non-string
-        values are always compared with exact equality.
-    match_whole_word:
-        When ``True`` (default), string values must be equal (after optional
-        case normalisation).  When ``False``, the gold value must be a
-        **substring of** the predicted value.  Non-string values are always
-        compared with exact equality.
-
-    Returns 0.0 when there are no non-missing gold fields.
-    """
-    non_missing_gold = {k for k, v in gold.items() if not _is_missing(v)}
-    if not non_missing_gold:
-        return 0.0
-    matching = sum(
-        1
-        for k in non_missing_gold
-        if not _is_missing(predicted.get(k))
-        and _values_match(predicted[k], gold[k], match_case=match_case, match_whole_word=match_whole_word)
-    )
-    return matching / len(non_missing_gold)
-
-
-def compute_completeness(predicted: dict[str, Any], gold: dict[str, Any]) -> float:
-    """Compute field completeness of *predicted* metadata against *gold*.
-
-    Completeness is the proportion of gold-standard non-missing fields that are
-    also non-missing in the predicted output.  Only field presence matters; value
-    correctness is ignored.
-
-    Returns 0.0 when the gold standard has no non-missing fields.
-    """
-    non_missing_gold = {k for k, v in gold.items() if not _is_missing(v)}
-    if not non_missing_gold:
-        return 0.0
-    non_missing_pred = {k for k, v in predicted.items() if not _is_missing(v)}
-    return len(non_missing_gold & non_missing_pred) / len(non_missing_gold)
 
 
 def compute_accuracy(

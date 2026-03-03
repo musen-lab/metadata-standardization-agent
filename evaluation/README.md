@@ -5,24 +5,19 @@ Measures the quality of agent-migrated metadata against gold-standard references
 ## Running
 
 ```bash
-python -m evaluation <template_iri> <input_dir> <output_dir> <gold_dir> <report_path> \
-    [--model MODEL] [--concurrent N] [--langsmith-project NAME] \
+python -m evaluation --input <dir> --target-schema <iri> --output <dir> \
     (--baseline | --experiment) \
+    [--model MODEL] [--concurrent N] [--langsmith-project NAME] \
     [--debug]
 ```
 
-| Argument | Description |
-|------|-------------|
-| `template_iri` | IRI of the CEDAR template to migrate to |
-| `input_dir` | Directory containing input JSON files |
-| `output_dir` | Directory to write migrated output JSON files |
-| `gold_dir` | Directory containing gold standard JSON files |
-| `report_path` | Path for the evaluation report file |
-
 | Flag | Description |
 |------|-------------|
-| `--baseline` | Using a single LLM call without tool access |
-| `--experiment` | Using an agent with tool access |
+| `--input DIR` | Directory containing input JSON files |
+| `--target-schema IRI` | IRI of the CEDAR template to migrate to |
+| `--output DIR` | Directory to write migrated output JSON files |
+| `--baseline` | Use the baseline workflow (single LLM call) |
+| `--experiment` | Use the experiment workflow (ReAct agent) |
 | `--model MODEL` | GPT model variant: `gpt-4.1`, `gpt-4.1-mini`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano` (default: `gpt-4.1-mini`) |
 | `--concurrent N` | Max number of concurrent file evaluations (default: `5`) |
 | `--langsmith-project NAME` | LangSmith project name (overrides `.env` setting) |
@@ -31,10 +26,8 @@ python -m evaluation <template_iri> <input_dir> <output_dir> <gold_dir> <report_
 One of `--baseline` or `--experiment` is required.
 
 This will:
-1. Run the migration workflow on each JSON file in `<input_dir>`.
-2. Write outputs to `<output_dir>`.
-3. Compare outputs against gold-standard files in `<gold_dir>`.
-4. Write a CSV report to `<report_path>`.
+1. Run the migration workflow on each JSON file in the input directory.
+2. Write outputs to the output directory.
 
 ## Metrics
 
