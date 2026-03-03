@@ -79,10 +79,10 @@ def main() -> None:
         _write_report(metrics, args.report)
     else:
         if args.baseline:
-            from evaluation.baseline import build_baseline_workflow, build_user_prompt_v2
+            from evaluation.baseline import build_baseline_workflow, build_user_prompt
 
             workflow_factory = partial(build_baseline_workflow, model=args.model)
-            prompt_builder = build_user_prompt_v2
+            prompt_builder = build_user_prompt
         else:
             from evaluation.experiment import build_experiment_workflow, build_user_prompt
 

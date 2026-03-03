@@ -80,42 +80,15 @@ def _fetch_cedar_template(template_id: str) -> dict[str, Any]:
     return result
 
 
-def build_user_prompt_v1(legacy_metadata: dict[str, Any], template_iri: str) -> str:
-    """Build the original user prompt for the baseline workflow."""
-    template = _fetch_cedar_template(template_iri)
-    field_names = _collect_field_names(template["children"])
-    ontology_lines = _collect_ontology_constraints(template["children"])
-
-    field_list = ", ".join(field_names)
-    prompt = (
-        f"Given the following legacy metadata: {json.dumps(legacy_metadata, indent=2)}.\n"
-        "Report a new and corrected metadata sample where the following "
-        f"template is as complete as possible:\n{field_list}.\n"
-        "Check if the field values and field names make sense. If no match "
-        "is found for a field name, match it to an ontology. As far as possible, "
-        "make field values adhere to ontology restrictions.\n"
-    )
-    if ontology_lines:
-        prompt += "\n".join(ontology_lines) + "\n"
-    prompt += "- Missing values: use null\nDo not provide any explanation"
-    return prompt
-
-
-def build_user_prompt_v2(legacy_metadata: dict[str, Any], template_iri: str) -> str:
+def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str:
     """Build the second version user prompt for the baseline workflow."""
     template = _fetch_cedar_template(template_iri)
-    field_names = _collect_field_names(template["children"])
-    ontology_lines = _collect_ontology_constraints(template["children"])
 
-    field_list = ", ".join(field_names)
     prompt = (
         f"Migrate the following legacy metadata record to the CEDAR template.\n\n"
-        f"Legacy metadata:\n```json\n{json.dumps(legacy_metadata, indent=2)}\n\n```"
-        f"Target field list:\n{field_list}.\n\n"
-        f"Ontology-constrained fields:\n"
+        f"CEDAR template specification:\n```json\n{json.dumps(template, indent=2)}\n```\n\n"
+        f"Legacy metadata:\n```json\n{json.dumps(legacy_metadata, indent=2)}\n```"
     )
-    if ontology_lines:
-        prompt += "\n".join(ontology_lines) + "\n"
     return prompt
 
 
