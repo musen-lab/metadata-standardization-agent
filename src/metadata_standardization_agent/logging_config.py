@@ -1,4 +1,4 @@
-"""Logging configuration and utilities for the metadata migration agent."""
+"""Logging configuration and utilities for the metadata standardization agent."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ def configure_logging(debug: bool = False) -> None:
     """Configure logging for the agent.
 
     Args:
-        debug: When True, sets the ``metadata_migration_agent`` and key
+        debug: When True, sets the ``metadata_standardization_agent`` and key
             LangChain/LangGraph loggers to DEBUG. Otherwise only WARNING
             and above are shown.
     """
@@ -31,7 +31,7 @@ def configure_logging(debug: bool = False) -> None:
     root.setLevel(logging.WARNING)
 
     if debug:
-        for name in ("metadata_migration_agent", "langchain", "langgraph"):
+        for name in ("metadata_standardization_agent", "langchain", "langgraph"):
             logger = logging.getLogger(name)
             logger.setLevel(logging.DEBUG)
 

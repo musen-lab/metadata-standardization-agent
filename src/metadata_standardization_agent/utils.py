@@ -10,10 +10,10 @@ if TYPE_CHECKING:
     from langchain_core.messages import AnyMessage
     from langchain_openai import ChatOpenAI
 
-    from metadata_migration_agent.state import AgentState
+    from metadata_standardization_agent.state import AgentState
 
-from metadata_migration_agent.schema import build_output_model
-from metadata_migration_agent.tools import get_cedar_template
+from metadata_standardization_agent.schema import build_output_model
+from metadata_standardization_agent.tools import get_cedar_template
 
 logger = logging.getLogger(__name__)
 

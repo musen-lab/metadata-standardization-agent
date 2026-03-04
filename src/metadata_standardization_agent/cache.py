@@ -22,7 +22,7 @@ DEFAULT_TTL_SECONDS = 86400
 
 
 def _get_cache_dir() -> Path:
-    """Get the platform-appropriate cache directory for metadata-migration-agent.
+    """Get the platform-appropriate cache directory for metadata-standardization-agent.
 
     Uses the ``MMA_CACHE_DIR`` environment variable if set,
     otherwise falls back to a platform-specific default.
@@ -33,17 +33,17 @@ def _get_cache_dir() -> Path:
 
     system = platform.system()
     if system == "Darwin":
-        return Path.home() / "Library" / "Caches" / "metadata-migration-agent"
+        return Path.home() / "Library" / "Caches" / "metadata-standardization-agent"
     elif system == "Windows":
         local_app_data = os.environ.get("LOCALAPPDATA", "")
         if local_app_data:
-            return Path(local_app_data) / "metadata-migration-agent" / "cache"
-        return Path.home() / "AppData" / "Local" / "metadata-migration-agent" / "cache"
+            return Path(local_app_data) / "metadata-standardization-agent" / "cache"
+        return Path.home() / "AppData" / "Local" / "metadata-standardization-agent" / "cache"
     else:
         xdg_cache = os.environ.get("XDG_CACHE_HOME", "")
         if xdg_cache:
-            return Path(xdg_cache) / "metadata-migration-agent"
-        return Path.home() / ".cache" / "metadata-migration-agent"
+            return Path(xdg_cache) / "metadata-standardization-agent"
+        return Path.home() / ".cache" / "metadata-standardization-agent"
 
 
 def _get_ttl() -> int:

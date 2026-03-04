@@ -1,4 +1,4 @@
-"""Agent state definitions for the metadata migration agent."""
+"""Agent state definitions for the metadata standardization agent."""
 
 from __future__ import annotations
 

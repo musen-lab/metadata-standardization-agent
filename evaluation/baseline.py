@@ -11,13 +11,13 @@ from cedar_mcp.external_api import get_template
 from cedar_mcp.processing import clean_template_response
 from langgraph.graph import END, START, StateGraph
 
-from metadata_migration_agent.cache import SqliteCache
+from metadata_standardization_agent.cache import SqliteCache
 
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
 
-from metadata_migration_agent.state import AgentState
-from metadata_migration_agent.utils import extract_output_metadata
+from metadata_standardization_agent.state import AgentState
+from metadata_standardization_agent.utils import extract_output_metadata
 
 logger = logging.getLogger(__name__)
 

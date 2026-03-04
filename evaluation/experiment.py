@@ -20,9 +20,9 @@ def build_experiment_workflow(model: str) -> CompiledStateGraph:
         model: LLM model identifier forwarded to ``build_workflow``.
 
     Returns:
-        A compiled LangGraph produced by ``metadata_migration_agent.workflow.build_workflow``.
+        A compiled LangGraph produced by ``metadata_standardization_agent.workflow.build_workflow``.
     """
-    from metadata_migration_agent.workflow import build_workflow
+    from metadata_standardization_agent.workflow import build_workflow
 
     return build_workflow(model=model)
 

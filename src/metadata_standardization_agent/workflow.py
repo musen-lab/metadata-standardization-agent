@@ -10,9 +10,9 @@ from langgraph.graph import END, START, StateGraph
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
 
-from metadata_migration_agent.agent import build_migration_agent
-from metadata_migration_agent.state import AgentState
-from metadata_migration_agent.utils import extract_output_metadata
+from metadata_standardization_agent.agent import build_migration_agent
+from metadata_standardization_agent.state import AgentState
+from metadata_standardization_agent.utils import extract_output_metadata
 
 logger = logging.getLogger(__name__)
 

@@ -11,9 +11,9 @@ from langchain.agents import create_agent
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
 
-from metadata_migration_agent.prompts import SYSTEM_PROMPT
-from metadata_migration_agent.state import AgentState
-from metadata_migration_agent.tools import all_tools
+from metadata_standardization_agent.prompts import SYSTEM_PROMPT
+from metadata_standardization_agent.state import AgentState
+from metadata_standardization_agent.tools import all_tools
 
 logger = logging.getLogger(__name__)
 

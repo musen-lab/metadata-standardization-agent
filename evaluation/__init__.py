@@ -1,1 +1,1 @@
-"""Evaluation framework for the metadata migration agent."""
+"""Evaluation framework for the metadata standardization agent."""

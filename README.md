@@ -1,4 +1,4 @@
-# Metadata Migration Agent
+# Metadata Standardization Agent
 
 A LangGraph-based agent for migrating legacy metadata records to
 [CEDAR](https://metadatacenter.org/) metadata template format.
@@ -17,7 +17,7 @@ This project provides an AI agent that:
 ```bash
 # Clone the repository
 git clone <repo-url>
-cd metadata-migration-agent
+cd metadata-standardization-agent
 
 # Install dependencies
 uv sync --all-extras
@@ -31,7 +31,7 @@ export OPENAI_API_KEY="sk-..."
 ### CLI
 
 ```bash
-uv run python -m metadata_migration_agent \
+uv run python -m metadata_standardization_agent \
   --input data/input/my_record.json \
   --target-schema https://repo.metadatacenter.org/templates/TEMPLATE_ID \
   --output data/output/migrated.json \
@@ -41,9 +41,9 @@ uv run python -m metadata_migration_agent \
 ### Python API
 
 ```python
-from metadata_migration_agent.agent import app
-from metadata_migration_agent.state import AgentState
-from metadata_migration_agent.utils import load_json
+from metadata_standardization_agent.agent import app
+from metadata_standardization_agent.state import AgentState
+from metadata_standardization_agent.utils import load_json
 
 state = AgentState(
     legacy_metadata=load_json("data/input/my_record.json"),

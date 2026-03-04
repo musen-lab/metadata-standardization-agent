@@ -14,8 +14,8 @@ from cedar_mcp.external_api import (
 from cedar_mcp.processing import clean_template_response
 from langchain_core.tools import tool
 
-from metadata_migration_agent.cache import SqliteCache
-from metadata_migration_agent.logging_config import log_tool_call
+from metadata_standardization_agent.cache import SqliteCache
+from metadata_standardization_agent.logging_config import log_tool_call
 
 logger = logging.getLogger(__name__)
 

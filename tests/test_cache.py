@@ -10,7 +10,7 @@ import pytest
 if TYPE_CHECKING:
     from pathlib import Path
 
-from metadata_migration_agent.cache import SqliteCache
+from metadata_standardization_agent.cache import SqliteCache
 
 
 @pytest.fixture

@@ -1,7 +1,7 @@
 """Tests for the metadata migration workflow."""
 
-from metadata_migration_agent.state import AgentState
-from metadata_migration_agent.tools import all_tools
+from metadata_standardization_agent.state import AgentState
+from metadata_standardization_agent.tools import all_tools
 
 
 def test_state_has_messages():

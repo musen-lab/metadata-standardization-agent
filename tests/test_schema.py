@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from metadata_migration_agent.schema import build_output_model
+from metadata_standardization_agent.schema import build_output_model
 
 
 def _make_field(

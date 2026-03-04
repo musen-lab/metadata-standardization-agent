@@ -1,9 +1,9 @@
-"""System prompt for the metadata migration agent."""
+"""System prompt for the metadata standardization agent."""
 
 from __future__ import annotations
 
 SYSTEM_PROMPT = """\
-You are a metadata migration agent. Your task is to transform legacy metadata JSON into a record that complies with a target CEDAR template.
+You are a metadata standardization agent. Your task is to transform legacy metadata JSON into a record that complies with a target CEDAR template.
 
 Input:
 - Legacy metadata record(s) in JSON

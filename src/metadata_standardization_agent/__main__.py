@@ -1,4 +1,4 @@
-"""Entry point for running the metadata migration agent."""
+"""Entry point for running the metadata standardization agent."""
 
 from __future__ import annotations
 
@@ -13,15 +13,15 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 
-from metadata_migration_agent.logging_config import configure_logging
-from metadata_migration_agent.token_tracker import TokenUsageTracker
-from metadata_migration_agent.workflow import build_workflow
+from metadata_standardization_agent.logging_config import configure_logging
+from metadata_standardization_agent.token_tracker import TokenUsageTracker
+from metadata_standardization_agent.workflow import build_workflow
 
 # Load environment variables from .env (project root)
 _project_root = Path(__file__).resolve().parents[2]
 load_dotenv(_project_root / ".env", override=True)
 
-logger = logging.getLogger("metadata_migration_agent.__main__")
+logger = logging.getLogger("metadata_standardization_agent.__main__")
 
 
 def main() -> None:

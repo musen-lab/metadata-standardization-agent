@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from langchain_core.outputs import LLMResult
 
-from metadata_migration_agent.token_tracker import TokenUsageTracker
+from metadata_standardization_agent.token_tracker import TokenUsageTracker
 
 
 def _make_llm_result(prompt_tokens: int, completion_tokens: int, model_name: str) -> LLMResult:
