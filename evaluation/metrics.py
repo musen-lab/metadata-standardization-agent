@@ -125,6 +125,89 @@ def compute_non_ontology_constrained_field_accuracy(
     return matches / len(filtered_gold)
 
 
+def compute_overall_accuracy(
+    predicted: dict[str, Any],
+    gold: dict[str, Any],
+    schema_path: str,
+    *,
+    match_case: bool = True,
+    match_whole_word: bool = True,
+) -> dict[str, float]:
+    """Compute accuracy for a single predicted/gold record pair.
+
+    Returns a dict with keys ``ontology_constrained_accuracy``,
+    ``non_ontology_constrained_accuracy``, and ``all_field_accuracy``.
+    Any metric whose denominator is zero is reported as ``0.0``.
+    """
+    counts = _compute_field_counts(
+        predicted, gold, schema_path, match_case=match_case, match_whole_word=match_whole_word
+    )
+
+    ontology_total = counts["ontology_total"]
+    non_ontology_total = counts["non_ontology_total"]
+    all_correct = counts["ontology_correct"] + counts["non_ontology_correct"]
+    all_total = ontology_total + non_ontology_total
+
+    return {
+        "ontology_constrained_accuracy": counts["ontology_correct"] / ontology_total if ontology_total else 0.0,
+        "non_ontology_constrained_accuracy": (
+            counts["non_ontology_correct"] / non_ontology_total if non_ontology_total else 0.0
+        ),
+        "all_field_accuracy": all_correct / all_total if all_total else 0.0,
+    }
+
+
+def _compute_field_counts(
+    predicted: dict[str, Any],
+    gold: dict[str, Any],
+    schema_path: str,
+    *,
+    match_case: bool = True,
+    match_whole_word: bool = True,
+) -> dict[str, int]:
+    """Return raw correct/total counts split by ontology vs non-ontology fields.
+
+    Returns a dict with keys: ``ontology_correct``, ``ontology_total``,
+    ``non_ontology_correct``, ``non_ontology_total``.
+    """
+    ontology_fields = set(_get_ontology_constrained_fields(schema_path))
+
+    ontology_correct = 0
+    ontology_total = 0
+    non_ontology_correct = 0
+    non_ontology_total = 0
+
+    for k in gold:
+        gold_val = gold[k]
+        pred_val = predicted.get(k)
+        gold_missing = _is_missing(gold_val)
+        pred_missing = _is_missing(pred_val)
+
+        is_correct = (gold_missing and pred_missing) or (
+            not gold_missing
+            and not pred_missing
+            and _values_match(
+                pred_val, gold_val, match_case=match_case, match_whole_word=match_whole_word, field_name=k
+            )
+        )
+
+        if k in ontology_fields:
+            ontology_total += 1
+            if is_correct:
+                ontology_correct += 1
+        else:
+            non_ontology_total += 1
+            if is_correct:
+                non_ontology_correct += 1
+
+    return {
+        "ontology_correct": ontology_correct,
+        "ontology_total": ontology_total,
+        "non_ontology_correct": non_ontology_correct,
+        "non_ontology_total": non_ontology_total,
+    }
+
+
 def _normalize_doi(value: str) -> str:
     """Normalize DOI URLs so that doi.org, dx.doi.org, and bare DOIs are equivalent."""
     return value.replace("https://doi.org/", "https://dx.doi.org/")
