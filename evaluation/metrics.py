@@ -1,7 +1,7 @@
 """Evaluation metrics for comparing agent output against gold standard.
 
 Metrics:
-    - Overall accuracy: overall record-level agreement across all fields in the
+    - All-field accuracy: overall record-level agreement across all fields in the
       gold standard.  Both-null counts as a match; any difference in value or
       presence counts as a mismatch.
 """
@@ -12,7 +12,7 @@ import json
 from typing import Any
 
 
-def compute_overall_accuracy(
+def compute_all_field_accuracy(
     predicted: dict[str, Any],
     gold: dict[str, Any],
     *,
@@ -21,7 +21,7 @@ def compute_overall_accuracy(
 ) -> float:
     """Compute accuracy of *predicted* metadata against *gold*.
 
-    Accuracy measures overall record-level agreement: the fraction of gold
+    Accuracy measures all-field record-level agreement: the fraction of gold
     fields where both records agree.  Two fields agree when:
 
     * both values are missing (``None``), or
