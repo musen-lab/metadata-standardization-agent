@@ -174,10 +174,9 @@ def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: Path) -> pd.Data
 
 
 def analyze_prediction_errors(
-    assays: list[str],
     data_root: str,
-    models: list[str],
-    condition: str = "baseline",
+    model: str,
+    run_type: str = "baseline",
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
@@ -190,14 +189,12 @@ def analyze_prediction_errors(
 
     Parameters
     ----------
-    assays:
-        Assay names to evaluate (e.g. ``["rnaseq"]``).
     data_root:
         Path to the ``data/`` directory containing ``schemas/``, gold files,
         and model outputs.
-    models:
-        Model names to evaluate (e.g. ``["gpt41mini"]``).
-    condition:
+    model:
+        Model name to evaluate (e.g. ``"gpt5mini"``).
+    run_type:
         Output sub-directory under each model (``"baseline"`` or
         ``"experiment"``).
     match_case:
@@ -207,52 +204,52 @@ def analyze_prediction_errors(
     """
     import pandas as pd
 
+    from assays import ASSAY_ORDER
+
     root = Path(data_root)
     rows: list[dict[str, Any]] = []
 
-    for assay in assays:
-        schema_path = root / "schemas" / f"{assay}.json"
+    for assay_key, _assay_label in ASSAY_ORDER:
+        schema_path = root / "schemas" / f"{assay_key}.json"
         ontology_fields = set(_get_ontology_constrained_fields(schema_path))
 
-        gold_dir = root / assay / "gold"
+        gold_dir = root / assay_key / "gold"
+        output_dir = root / assay_key / "output" / model / run_type
 
-        for model in models:
-            output_dir = root / assay / "output" / model / condition
+        for gold_file in sorted(gold_dir.glob("*.json")):
+            pred_file = output_dir / gold_file.name
+            if not pred_file.exists():
+                continue
 
-            for gold_file in sorted(gold_dir.glob("*.json")):
-                pred_file = output_dir / gold_file.name
-                if not pred_file.exists():
-                    continue
+            with open(gold_file) as f:
+                gold = json.load(f)
+            with open(pred_file) as f:
+                predicted = json.load(f)
 
-                with open(gold_file) as f:
-                    gold = json.load(f)
-                with open(pred_file) as f:
-                    predicted = json.load(f)
-
-                for field, gold_val in gold.items():
-                    pred_val = predicted.get(field)
-                    error_type = _classify_error(
-                        field,
-                        gold_val,
-                        pred_val,
-                        match_case=match_case,
-                        match_whole_word=match_whole_word,
+            for field, gold_val in gold.items():
+                pred_val = predicted.get(field)
+                error_type = _classify_error(
+                    field,
+                    gold_val,
+                    pred_val,
+                    match_case=match_case,
+                    match_whole_word=match_whole_word,
+                )
+                if error_type is not None:
+                    rows.append(
+                        {
+                            "assay": assay_key,
+                            "model": model,
+                            "file": gold_file.name,
+                            "field": field,
+                            "error_type": error_type,
+                            "field_type": "ontology-constrained"
+                            if field in ontology_fields
+                            else "non-ontology-constrained",
+                            "gold_value": gold_val,
+                            "predicted_value": pred_val,
+                        }
                     )
-                    if error_type is not None:
-                        rows.append(
-                            {
-                                "assay": assay,
-                                "model": model,
-                                "file": gold_file.name,
-                                "field": field,
-                                "error_type": error_type,
-                                "field_type": "ontology-constrained"
-                                if field in ontology_fields
-                                else "non-ontology-constrained",
-                                "gold_value": gold_val,
-                                "predicted_value": pred_val,
-                            }
-                        )
 
     return pd.DataFrame(
         rows,
@@ -269,11 +266,10 @@ def analyze_prediction_errors(
     )
 
 
-def build_error_report(
-    assays: list[str],
+def create_error_report(
     data_root: str,
-    models: list[str],
-    condition: str = "baseline",
+    model: str,
+    run_type: str = "baseline",
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
@@ -291,10 +287,9 @@ def build_error_report(
     import pandas as pd
 
     errors_df = analyze_prediction_errors(
-        assays,
         data_root,
-        models,
-        condition,
+        model,
+        run_type,
         match_case=match_case,
         match_whole_word=match_whole_word,
     )
