@@ -22,6 +22,47 @@ _BOOLEAN_STRINGS = {"yes", "no", "true", "false"}
 _DOI_PATTERN = re.compile(r"https?://(dx\.)?doi\.org/")
 
 
+def create_prediction_accuracy_summary(
+    data_root: str,
+    model: str,
+    run_type: str,
+) -> pd.DataFrame:
+    """Compute average accuracy per assay across all samples.
+
+    Iterates over assays defined in ``ASSAY_ORDER``, calls :func:`apply_metrics`
+    for each, and returns a single DataFrame with one row per assay containing
+    the mean accuracy for each metric.
+    """
+    import pandas as pd
+
+    from assays import ASSAY_ORDER
+
+    rows: list[dict[str, Any]] = []
+    for assay_key, assay_label in ASSAY_ORDER:
+        df = apply_metrics(
+            Path(data_root, assay_key, "output", model, run_type),
+            Path(data_root, assay_key, "gold"),
+            str(Path(data_root, "schemas", f"{assay_key}.json")),
+        )
+        if df.empty:
+            continue
+        means = df[
+            [
+                "ontology_constrained_field_accuracy",
+                "non_ontology_constrained_field_accuracy",
+                "all_field_accuracy",
+            ]
+        ].mean()
+        rows.append(
+            {
+                "assay": assay_label,
+                "ontology_constrained_field_accuracy": means["ontology_constrained_field_accuracy"],
+                "non_ontology_constrained_field_accuracy": means["non_ontology_constrained_field_accuracy"],
+                "all_field_accuracy": means["all_field_accuracy"],
+            }
+        )
+    return pd.DataFrame(rows)
+
 
 def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: str) -> pd.DataFrame:
     """Compare predicted outputs in *input_dir* against gold standards in *gold_dir*."""
@@ -49,10 +90,10 @@ def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: str) -> pd.DataF
         results.append(
             {
                 "input_file": input_file.name,
-                "ontology_constrained_fields_accuracy": compute_ontology_constrained_field_accuracy(
+                "ontology_constrained_field_accuracy": compute_ontology_constrained_field_accuracy(
                     predicted, gold, schema_path
                 ),
-                "non_ontology_constrained_fields_accuracy": compute_non_ontology_constrained_field_accuracy(
+                "non_ontology_constrained_field_accuracy": compute_non_ontology_constrained_field_accuracy(
                     predicted, gold, schema_path
                 ),
                 "all_field_accuracy": compute_all_field_accuracy(predicted, gold),
@@ -60,6 +101,7 @@ def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: str) -> pd.DataF
         )
 
     return pd.DataFrame(results)
+
 
 def analyze_prediction_errors(
     assays: list[str],
