@@ -1,8 +1,8 @@
-"""Prediction error analysis for diagnosing systematic migration failures.
+"""Accuracy summaries and error analysis for metadata standardization evaluation.
 
-Provides ``analyze_prediction_errors`` which returns a flat DataFrame of
-field-level errors across assays and models, enabling aggregation via
-standard pandas ``groupby`` / ``pivot_table`` / ``value_counts``.
+Provides functions to measure transformation quality at different granularities:
+per-assay accuracy summaries, field-level error classification, and
+aggregated error reports for diagnosing systematic transformation failures.
 """
 
 from __future__ import annotations
