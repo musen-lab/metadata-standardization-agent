@@ -73,21 +73,27 @@ def create_overall_accuracy_summary(
     *,
     decimal_places: int = 2,
 ) -> pd.DataFrame:
-    """Compute average overall accuracy per assay using :func:`compute_overall_accuracy`.
+    """Compute aggregate overall accuracy across all assays from raw counts.
 
-    Unlike :func:`create_per_assay_accuracy_summary` which delegates to
-    :func:`apply_metrics`, this function calls :func:`compute_overall_accuracy`
-    directly for each predicted/gold file pair and averages the results per assay.
+    Accumulates raw correct/total counts from every predicted/gold file pair
+    across all assays and computes accuracy ratios once from the totals, rather
+    than averaging per-file or per-assay ratios.  Returns a single-row DataFrame
+    with columns ``ontology_constrained_accuracy``,
+    ``non_ontology_constrained_accuracy``, and ``all_field_accuracy``.
     """
     import json
 
     import pandas as pd
 
     from assays import ASSAY_ORDER
-    from metrics import compute_overall_accuracy
+    from metrics import _compute_field_counts
 
-    rows: list[dict[str, Any]] = []
-    for assay_key, assay_label in ASSAY_ORDER:
+    ontology_correct = 0
+    ontology_total = 0
+    non_ontology_correct = 0
+    non_ontology_total = 0
+
+    for assay_key, _assay_label in ASSAY_ORDER:
         output_dir = Path(data_root, assay_key, "output", model, run_type)
         gold_dir = Path(data_root, assay_key, "gold")
         schema_path = Path(data_root, "schemas", f"{assay_key}.json")
@@ -96,7 +102,6 @@ def create_overall_accuracy_summary(
         if not predicted_files:
             continue
 
-        accuracies: list[dict[str, float]] = []
         for pred_file in predicted_files:
             gold_file = gold_dir / pred_file.name
             if not gold_file.exists():
@@ -105,22 +110,28 @@ def create_overall_accuracy_summary(
                 predicted = json.load(f)
             with open(gold_file) as f:
                 gold = json.load(f)
-            accuracies.append(compute_overall_accuracy(predicted, gold, schema_path))
+            counts = _compute_field_counts(predicted, gold, schema_path)
+            ontology_correct += counts["ontology_correct"]
+            ontology_total += counts["ontology_total"]
+            non_ontology_correct += counts["non_ontology_correct"]
+            non_ontology_total += counts["non_ontology_total"]
 
-        if not accuracies:
-            continue
+    total_correct = ontology_correct + non_ontology_correct
+    total_fields = ontology_total + non_ontology_total
 
-        acc_df = pd.DataFrame(accuracies)
-        means = acc_df.mean()
-        rows.append(
+    return pd.DataFrame(
+        [
             {
-                "assay": assay_label,
-                "ontology_constrained_accuracy": round(means["ontology_constrained_accuracy"], decimal_places),
-                "non_ontology_constrained_accuracy": round(means["non_ontology_constrained_accuracy"], decimal_places),
-                "all_field_accuracy": round(means["all_field_accuracy"], decimal_places),
+                "ontology_constrained_accuracy": round(ontology_correct / ontology_total, decimal_places)
+                if ontology_total
+                else 0.0,
+                "non_ontology_constrained_accuracy": round(non_ontology_correct / non_ontology_total, decimal_places)
+                if non_ontology_total
+                else 0.0,
+                "all_field_accuracy": round(total_correct / total_fields, decimal_places) if total_fields else 0.0,
             }
-        )
-    return pd.DataFrame(rows)
+        ]
+    )
 
 
 def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: Path) -> pd.DataFrame:
