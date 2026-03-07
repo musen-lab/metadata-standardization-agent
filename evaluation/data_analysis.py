@@ -22,7 +22,7 @@ _BOOLEAN_STRINGS = {"yes", "no", "true", "false"}
 _DOI_PATTERN = re.compile(r"https?://(dx\.)?doi\.org/")
 
 
-def create_prediction_accuracy_summary(
+def create_per_assay_accuracy_summary(
     data_root: str,
     model: str,
     run_type: str,
@@ -71,7 +71,7 @@ def create_overall_accuracy_summary(
 ) -> pd.DataFrame:
     """Compute average overall accuracy per assay using :func:`compute_overall_accuracy`.
 
-    Unlike :func:`create_prediction_accuracy_summary` which delegates to
+    Unlike :func:`create_per_assay_accuracy_summary` which delegates to
     :func:`apply_metrics`, this function calls :func:`compute_overall_accuracy`
     directly for each predicted/gold file pair and averages the results per assay.
     """
