@@ -9,7 +9,10 @@ Metrics:
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def compute_all_field_accuracy(
@@ -53,7 +56,7 @@ def compute_all_field_accuracy(
 def compute_ontology_constrained_field_accuracy(
     predicted: dict[str, object],
     gold: dict[str, object],
-    schema_path: str,
+    schema_path: Path,
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
@@ -90,7 +93,7 @@ def compute_ontology_constrained_field_accuracy(
 def compute_non_ontology_constrained_field_accuracy(
     predicted: dict[str, object],
     gold: dict[str, object],
-    schema_path: str,
+    schema_path: Path,
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
@@ -128,7 +131,7 @@ def compute_non_ontology_constrained_field_accuracy(
 def compute_overall_accuracy(
     predicted: dict[str, Any],
     gold: dict[str, Any],
-    schema_path: str,
+    schema_path: Path,
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
@@ -160,7 +163,7 @@ def compute_overall_accuracy(
 def _compute_field_counts(
     predicted: dict[str, Any],
     gold: dict[str, Any],
-    schema_path: str,
+    schema_path: Path,
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
@@ -256,7 +259,7 @@ def _is_missing(value: Any) -> bool:
     return value is None
 
 
-def _get_ontology_constrained_fields(schema_path: str) -> list[str]:
+def _get_ontology_constrained_fields(schema_path: Path) -> list[str]:
     """Return field names constrained by ontology/branch permissible values."""
     with open(schema_path) as f:
         schema = json.load(f)

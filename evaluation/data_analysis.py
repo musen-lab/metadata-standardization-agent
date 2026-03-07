@@ -42,7 +42,7 @@ def create_prediction_accuracy_summary(
         df = apply_metrics(
             Path(data_root, assay_key, "output", model, run_type),
             Path(data_root, assay_key, "gold"),
-            str(Path(data_root, "schemas", f"{assay_key}.json")),
+            Path(data_root, "schemas", f"{assay_key}.json"),
         )
         if df.empty:
             continue
@@ -64,7 +64,7 @@ def create_prediction_accuracy_summary(
     return pd.DataFrame(rows)
 
 
-def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: str) -> pd.DataFrame:
+def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: Path) -> pd.DataFrame:
     """Compare predicted outputs in *input_dir* against gold standards in *gold_dir*."""
     import pandas as pd
 
@@ -142,7 +142,7 @@ def analyze_prediction_errors(
 
     for assay in assays:
         schema_path = root / "schemas" / f"{assay}.json"
-        ontology_fields = set(_get_ontology_constrained_fields(str(schema_path)))
+        ontology_fields = set(_get_ontology_constrained_fields(schema_path))
 
         gold_dir = root / assay / "gold"
 
