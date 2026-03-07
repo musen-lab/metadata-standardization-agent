@@ -22,6 +22,45 @@ _BOOLEAN_STRINGS = {"yes", "no", "true", "false"}
 _DOI_PATTERN = re.compile(r"https?://(dx\.)?doi\.org/")
 
 
+
+def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: str) -> pd.DataFrame:
+    """Compare predicted outputs in *input_dir* against gold standards in *gold_dir*."""
+    import pandas as pd
+
+    from metrics import (
+        compute_all_field_accuracy,
+        compute_non_ontology_constrained_field_accuracy,
+        compute_ontology_constrained_field_accuracy,
+    )
+
+    input_files = sorted(input_dir.glob("*.json"))
+    results: list[dict[str, Any]] = []
+
+    for input_file in input_files:
+        gold_file = gold_dir / input_file.name
+        if not gold_file.exists():
+            continue
+
+        with open(input_file) as f:
+            predicted = json.load(f)
+        with open(gold_file) as f:
+            gold = json.load(f)
+
+        results.append(
+            {
+                "input_file": input_file.name,
+                "ontology_constrained_fields_accuracy": compute_ontology_constrained_field_accuracy(
+                    predicted, gold, schema_path
+                ),
+                "non_ontology_constrained_fields_accuracy": compute_non_ontology_constrained_field_accuracy(
+                    predicted, gold, schema_path
+                ),
+                "all_field_accuracy": compute_all_field_accuracy(predicted, gold),
+            }
+        )
+
+    return pd.DataFrame(results)
+
 def analyze_prediction_errors(
     assays: list[str],
     data_root: str,
