@@ -64,6 +64,61 @@ def create_prediction_accuracy_summary(
     return pd.DataFrame(rows)
 
 
+def create_overall_accuracy_summary(
+    data_root: str,
+    model: str,
+    run_type: str,
+) -> pd.DataFrame:
+    """Compute average overall accuracy per assay using :func:`compute_overall_accuracy`.
+
+    Unlike :func:`create_prediction_accuracy_summary` which delegates to
+    :func:`apply_metrics`, this function calls :func:`compute_overall_accuracy`
+    directly for each predicted/gold file pair and averages the results per assay.
+    """
+    import json
+
+    import pandas as pd
+
+    from assays import ASSAY_ORDER
+    from metrics import compute_overall_accuracy
+
+    rows: list[dict[str, Any]] = []
+    for assay_key, assay_label in ASSAY_ORDER:
+        output_dir = Path(data_root, assay_key, "output", model, run_type)
+        gold_dir = Path(data_root, assay_key, "gold")
+        schema_path = Path(data_root, "schemas", f"{assay_key}.json")
+
+        predicted_files = sorted(output_dir.glob("*.json"))
+        if not predicted_files:
+            continue
+
+        accuracies: list[dict[str, float]] = []
+        for pred_file in predicted_files:
+            gold_file = gold_dir / pred_file.name
+            if not gold_file.exists():
+                continue
+            with open(pred_file) as f:
+                predicted = json.load(f)
+            with open(gold_file) as f:
+                gold = json.load(f)
+            accuracies.append(compute_overall_accuracy(predicted, gold, schema_path))
+
+        if not accuracies:
+            continue
+
+        acc_df = pd.DataFrame(accuracies)
+        means = acc_df.mean()
+        rows.append(
+            {
+                "assay": assay_label,
+                "ontology_constrained_accuracy": means["ontology_constrained_accuracy"],
+                "non_ontology_constrained_accuracy": means["non_ontology_constrained_accuracy"],
+                "all_field_accuracy": means["all_field_accuracy"],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: Path) -> pd.DataFrame:
     """Compare predicted outputs in *input_dir* against gold standards in *gold_dir*."""
     import pandas as pd
