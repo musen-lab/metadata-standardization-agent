@@ -26,6 +26,8 @@ def create_per_assay_accuracy_summary(
     data_root: str,
     model: str,
     run_type: str,
+    *,
+    decimal_places: int = 2,
 ) -> pd.DataFrame:
     """Compute average accuracy per assay across all samples.
 
@@ -56,9 +58,9 @@ def create_per_assay_accuracy_summary(
         rows.append(
             {
                 "assay": assay_label,
-                "ontology_constrained_field_accuracy": means["ontology_constrained_field_accuracy"],
-                "non_ontology_constrained_field_accuracy": means["non_ontology_constrained_field_accuracy"],
-                "all_field_accuracy": means["all_field_accuracy"],
+                "ontology_constrained_field_accuracy": round(means["ontology_constrained_field_accuracy"], decimal_places),
+                "non_ontology_constrained_field_accuracy": round(means["non_ontology_constrained_field_accuracy"], decimal_places),
+                "all_field_accuracy": round(means["all_field_accuracy"], decimal_places),
             }
         )
     return pd.DataFrame(rows)
@@ -68,6 +70,8 @@ def create_overall_accuracy_summary(
     data_root: str,
     model: str,
     run_type: str,
+    *,
+    decimal_places: int = 2,
 ) -> pd.DataFrame:
     """Compute average overall accuracy per assay using :func:`compute_overall_accuracy`.
 
@@ -111,9 +115,9 @@ def create_overall_accuracy_summary(
         rows.append(
             {
                 "assay": assay_label,
-                "ontology_constrained_accuracy": means["ontology_constrained_accuracy"],
-                "non_ontology_constrained_accuracy": means["non_ontology_constrained_accuracy"],
-                "all_field_accuracy": means["all_field_accuracy"],
+                "ontology_constrained_accuracy": round(means["ontology_constrained_accuracy"], decimal_places),
+                "non_ontology_constrained_accuracy": round(means["non_ontology_constrained_accuracy"], decimal_places),
+                "all_field_accuracy": round(means["all_field_accuracy"], decimal_places),
             }
         )
     return pd.DataFrame(rows)
