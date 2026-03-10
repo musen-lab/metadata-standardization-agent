@@ -1,0 +1,301 @@
+{
+  "type": "template",
+  "name": "Light Sheet",
+  "children": [
+    {
+      "name": "parent_sample_id",
+      "description": "The unique identifier from HuBMAP or SenNet for the sample (such as a block, section, or suspension) used to perform the assay. For instance, in an RNAseq assay, the parent sample would be the suspension, while in imaging assays, it would be the tissue section. If the assay is derived from multiple parent samples, this field should contain a comma-separated list of identifiers. Example: HBM386.ZGKG.235, HBM672.MKPK.442",
+      "label": "Parent sample ID",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "pattern": "^(?:HBM|SNT)\\d{3}\\.[A-Z]{4}\\.\\d{3}(?:,\\s*(?:HBM|SNT)\\d{3}\\.[A-Z]{4}\\.\\d{3})*$"
+    },
+    {
+      "name": "lab_id",
+      "description": "A locally assigned identifier provided by the data provider for the dataset. It is used to reference an external metadata record that may be maintained independently, enabling traceability and supporting provenance tracking. Example: Visium_9OLC_A4_S1",
+      "label": "Lab ID",
+      "type": "string",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "preparation_protocol_doi",
+      "description": "The DOI for the protocols.io page that details the assay or the procedures used for sample procurement and preparation. For example, in the case of an imaging assay, the protocol may start with tissue section staining and end with the generation of an OME-TIFF file. The documented protocol should also include any image processing steps involved in producing the final OME-TIFF. Example: https://dx.doi.org/10.17504/protocols.io.eq2lyno9qvx9/v1",
+      "label": "Preparation protocol DOI",
+      "type": "link",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "dataset_type",
+      "description": "The specific type of dataset being produced. Example: RNAseq",
+      "label": "Dataset type",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Light Sheet",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_0000168"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000361"
+        }
+      ]
+    },
+    {
+      "name": "analyte_class",
+      "description": "The analyte class which is the target molecule that the assay is measuring. Example: DNA",
+      "label": "Analyte class",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Analyte class",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000371"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000371"
+        }
+      ]
+    },
+    {
+      "name": "is_targeted",
+      "description": "Indicates whether a specific molecule or set of molecules is targeted for detection or measurement by the assay. Example: Yes",
+      "label": "Is targeted?",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "permissible_values": [
+        {
+          "type": "literal",
+          "options": [
+            "Yes",
+            "No"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "acquisition_instrument_vendor",
+      "description": "The company that manufactures or supplies the acquisition instrument. An acquisition instrument is a device equipped with signal detection hardware and signal processing software. It captures signals produced by assays, such as variations in light intensity or color, or signals corresponding to molecular mass. If the instrument was custom-built or developed internally, enter \"In-House\". Example: Illumina",
+      "label": "Acquisition instrument vendor",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Acquisition instrument vendor",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000391"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000391"
+        }
+      ]
+    },
+    {
+      "name": "acquisition_instrument_model",
+      "description": "The specific model of the acquisition instrument, as manufacturers often offer various versions with differing features or sensitivities. These differences may be relevant to the processing or interpretation of the data. If the instrument was custom-built or developed internally, enter \"In-House\". If the model is unknown, enter \"Unknown\". Example: HiSeq 4000",
+      "label": "Acquisition instrument model",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Acquisition instrument model",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000401"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000401"
+        }
+      ]
+    },
+    {
+      "name": "source_storage_duration_value",
+      "description": "The length of time the sample was stored prior to processing it. For assays performed on tissue sections, this refers to how long the tissue section (e.g., slide) was stored before the assay began (e.g., imaging). For assays performed on suspensions, such as sequencing, it refers to how long the suspension was stored before library construction started. Example: 12",
+      "label": "Source storage duration value",
+      "type": "decimal",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "source_storage_duration_unit",
+      "description": "The unit of measurement used to specify the source storage duration value. Example: hour",
+      "label": "Source storage duration unit",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Source storage duration unit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000031"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000031"
+        }
+      ]
+    },
+    {
+      "name": "time_since_acquisition_instrument_calibration_value",
+      "description": "The length of time since the acquisition instrument was last serviced or calibrated. This provides a metric for assessing drift in data capture. Example: 10",
+      "label": "Time since acquisition instrument calibration value",
+      "type": "decimal",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "time_since_acquisition_instrument_calibration_unit",
+      "description": "The unit of measurement used to specify the time since acquisition instrument calibration value. Example: month",
+      "label": "Time since acquisition instrument calibration unit",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Time since acquisition instrument calibration unit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000421"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000421"
+        }
+      ]
+    },
+    {
+      "name": "contributors_path",
+      "description": "The name of the file containing the ORCID IDs for all contributors to this dataset. Example: ./contributors.csv",
+      "label": "Contributors path",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "pattern": "^(?:\\.\\/.*|\\w.*)\\.tsv$"
+    },
+    {
+      "name": "data_path",
+      "description": "The top-level directory containing the raw and/or processed data. For a single dataset upload, this might be represented as \".\", whereas for a data upload containing multiple datasets, this would be the directory name for the respective dataset. For example, if the data is within a directory named \"TEST001-RK\", use the syntax \"./TEST001-RK\" for this field. If there are multiple directory levels, use the format \"./TEST001-RK/Run1/Pass2\", where \"Pass2\" is the subdirectory where the single dataset's data is stored. This is an internal metadata field used solely for data ingestion. Example: ./TEST001-RK",
+      "label": "Data path",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "pattern": "^(?:\\.|\\.\\/.+|\\w.*)$"
+    },
+    {
+      "name": "antibodies_path",
+      "description": "The path to the antibodies.tsv file relative to the root directory of the upload structure. This path should start with \".\" and is typically formatted as \"./extras/antibodies.tsv\". Example: ./extras/antibodies.tsv",
+      "label": "Antibodies path",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "pattern": "^(?:\\.\\/.*|\\w.*)\\.tsv$"
+    },
+    {
+      "name": "is_image_preprocessing_required",
+      "description": "Indicates whether image preprocessing is necessary based on the type of acquisition instrument used, such as a microscope or slide scanner. This may involve steps like fusing image tiles to assemble the complete image. Example: Yes",
+      "label": "Is image preprocessing required?",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "permissible_values": [
+        {
+          "type": "literal",
+          "options": [
+            "Yes",
+            "No"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "slide_id",
+      "description": "The unique identifier assigned to each slide, enabling users to determine which tissue sections were processed together on the same slide. It is recommended that data providers prefix the ID with the center name to prevent overlapping values across different centers. Example: VAN0071-PA-1-1_AF",
+      "label": "Slide ID",
+      "type": "string",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "tile_configuration",
+      "description": "The configuration of tiles used for stitching in the assay process. If no tile configuration is applicable, enter \"Not applicable\". Example: Row-by-row",
+      "label": "Tile configuration",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Tile configuration",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000531"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000531"
+        }
+      ]
+    },
+    {
+      "name": "scan_direction",
+      "description": "The direction of imaging, which is necessary for the stitching process. Example: Left-and-down",
+      "label": "Scan direction",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Scan direction",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000541"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000541"
+        }
+      ]
+    },
+    {
+      "name": "tiled_image_columns",
+      "description": "The number of columns used in the stitching process of a tiled image, often referred to as the grid size in the x-dimension. Example: 5",
+      "label": "Tiled image columns",
+      "type": "integer",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "tiled_image_count",
+      "description": "The total number of raw tiled images captured, which are intended to be stitched together. Example: 75",
+      "label": "Tiled image count",
+      "type": "integer",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "intended_tile_overlap_percentage",
+      "description": "The intended percentage of overlap between tiled images. This value serves as the set point, although slight variations may occur during image acquisition due to stage registration. Example: 5",
+      "label": "Intended tile overlap percentage",
+      "type": "decimal",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "metadata_schema_id",
+      "description": "The unique string identifier for the metadata specification version, which is easily interpretable by computers for purposes of data validation and processing. Example: 22bc762a-5020-419d-b170-24253ed9e8d9",
+      "label": "Metadata schema ID",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": "a4ff738c-a7e9-40c1-966e-22cf9c885fad"
+    }
+  ]
+}

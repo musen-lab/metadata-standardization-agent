@@ -1,0 +1,684 @@
+{
+  "type": "template",
+  "name": "RNAseq",
+  "children": [
+    {
+      "name": "parent_sample_id",
+      "description": "The unique identifier from HuBMAP or SenNet for the sample (such as a block, section, or suspension) used to perform the assay. For instance, in an RNAseq assay, the parent sample would be the suspension, while in imaging assays, it would be the tissue section. If the assay is derived from multiple parent samples, this field should contain a comma-separated list of identifiers. Example: HBM386.ZGKG.235, HBM672.MKPK.442",
+      "label": "Parent sample ID",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "pattern": "^(?:HBM|SNT)\\d{3}\\.[A-Z]{4}\\.\\d{3}(?:,\\s*(?:HBM|SNT)\\d{3}\\.[A-Z]{4}\\.\\d{3})*$"
+    },
+    {
+      "name": "lab_id",
+      "description": "A locally assigned identifier provided by the data provider for the dataset. It is used to reference an external metadata record that may be maintained independently, enabling traceability and supporting provenance tracking. Example: Visium_9OLC_A4_S1",
+      "label": "Lab ID",
+      "type": "string",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "preparation_protocol_doi",
+      "description": "The DOI for the protocols.io page that details the assay or the procedures used for sample procurement and preparation. For example, in the case of an imaging assay, the protocol may start with tissue section staining and end with the generation of an OME-TIFF file. The documented protocol should also include any image processing steps involved in producing the final OME-TIFF. Example: https://dx.doi.org/10.17504/protocols.io.eq2lyno9qvx9/v1",
+      "label": "Preparation protocol DOI",
+      "type": "link",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "dataset_type",
+      "description": "The specific type of dataset being produced. Example: RNAseq",
+      "label": "Dataset type",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "RNAseq",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_0000310"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000361"
+        }
+      ]
+    },
+    {
+      "name": "analyte_class",
+      "description": "The analyte class which is the target molecule that the assay is measuring. Example: DNA",
+      "label": "Analyte class",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Analyte class",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000371"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000371"
+        }
+      ]
+    },
+    {
+      "name": "is_targeted",
+      "description": "Indicates whether a specific molecule or set of molecules is targeted for detection or measurement by the assay. Example: Yes",
+      "label": "Is targeted?",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "permissible_values": [
+        {
+          "type": "literal",
+          "options": [
+            "Yes",
+            "No"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "acquisition_instrument_vendor",
+      "description": "The company that manufactures or supplies the acquisition instrument. An acquisition instrument is a device equipped with signal detection hardware and signal processing software. It captures signals produced by assays, such as variations in light intensity or color, or signals corresponding to molecular mass. If the instrument was custom-built or developed internally, enter \"In-House\". Example: Illumina",
+      "label": "Acquisition instrument vendor",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Acquisition instrument vendor",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000391"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000391"
+        }
+      ]
+    },
+    {
+      "name": "acquisition_instrument_model",
+      "description": "The specific model of the acquisition instrument, as manufacturers often offer various versions with differing features or sensitivities. These differences may be relevant to the processing or interpretation of the data. If the instrument was custom-built or developed internally, enter \"In-House\". If the model is unknown, enter \"Unknown\". Example: HiSeq 4000",
+      "label": "Acquisition instrument model",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Acquisition instrument model",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000401"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000401"
+        }
+      ]
+    },
+    {
+      "name": "source_storage_duration_value",
+      "description": "The length of time the sample was stored prior to processing it. For assays performed on tissue sections, this refers to how long the tissue section (e.g., slide) was stored before the assay began (e.g., imaging). For assays performed on suspensions, such as sequencing, it refers to how long the suspension was stored before library construction started. Example: 12",
+      "label": "Source storage duration value",
+      "type": "decimal",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "source_storage_duration_unit",
+      "description": "The unit of measurement used to specify the source storage duration value. Example: hour",
+      "label": "Source storage duration unit",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Source storage duration unit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000031"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000031"
+        }
+      ]
+    },
+    {
+      "name": "time_since_acquisition_instrument_calibration_value",
+      "description": "The length of time since the acquisition instrument was last serviced or calibrated. This provides a metric for assessing drift in data capture. Example: 10",
+      "label": "Time since acquisition instrument calibration value",
+      "type": "decimal",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "time_since_acquisition_instrument_calibration_unit",
+      "description": "The unit of measurement used to specify the time since acquisition instrument calibration value. Example: month",
+      "label": "Time since acquisition instrument calibration unit",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Time since acquisition instrument calibration unit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000421"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000421"
+        }
+      ]
+    },
+    {
+      "name": "contributors_path",
+      "description": "The name of the file containing the ORCID IDs for all contributors to this dataset. Example: ./contributors.csv",
+      "label": "Contributors path",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "pattern": "^(?:\\.\\/.*|\\w.*)\\.tsv$"
+    },
+    {
+      "name": "data_path",
+      "description": "The top-level directory containing the raw and/or processed data. For a single dataset upload, this might be represented as \".\", whereas for a data upload containing multiple datasets, this would be the directory name for the respective dataset. For example, if the data is within a directory named \"TEST001-RK\", use the syntax \"./TEST001-RK\" for this field. If there are multiple directory levels, use the format \"./TEST001-RK/Run1/Pass2\", where \"Pass2\" is the subdirectory where the single dataset's data is stored. This is an internal metadata field used solely for data ingestion. Example: ./TEST001-RK",
+      "label": "Data path",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "pattern": "^(?:\\.|\\.\\/.+|\\w.*)$"
+    },
+    {
+      "name": "barcode_offset",
+      "description": "The position within a sequencing read where a barcode sequence begins. In sequencing libraries, barcodes—short DNA sequences used to tag individual cells or molecules—are often arranged in a pattern where each barcode is separated by a constant sequence of known length. These constant sequences create predictable spacing between barcodes, known as offsets. For example, if barcodes are 8 base pairs (bp) long and separated by 30 bp constant regions, the barcodes might start at positions 0, 38, and 76 within the read. If the source material is not barcoded, this field should be marked as \"Not applicable\". Example: 0,38,76",
+      "label": "Barcode offset",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "permissible_values": [
+        {
+          "type": "literal",
+          "options": [
+            "0",
+            "8",
+            "20",
+            "1,27",
+            "0,38,76",
+            "10,48,78",
+            "10,48,86",
+            "0,20-23,41-44",
+            "Not applicable"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "barcode_read",
+      "description": "The sequencing read file contains the cell or capture spot barcode sequences. This information is essential when constructing sequencing libraries with a non-commercial kit, as it ensures that barcodes are correctly extracted during data processing. If the source material is not barcoded, this field should be marked as \"Not applicable\". Example: Read 1 (R1)",
+      "label": "Barcode read",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Barcode read",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001031"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001031"
+        }
+      ]
+    },
+    {
+      "name": "barcode_size",
+      "description": "The length of each cell or capture spot barcode in base pairs (bp). If the source material is not barcoded, enter \"Not applicable\". Example: 16",
+      "label": "Barcode size",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "permissible_values": [
+        {
+          "type": "literal",
+          "options": [
+            "14",
+            "16",
+            "40",
+            "8,8,8",
+            "8,6",
+            "Not applicable"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "umi_offset",
+      "description": "The position within a sequencing read where the Unique Molecular Identifier (UMI) sequence begins. UMIs are short, random nucleotide sequences added to DNA or RNA fragments during library preparation to uniquely tag each original molecule. If no UMI is used, enter \"Not applicable\". Example: 16",
+      "label": "UMI offset",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "permissible_values": [
+        {
+          "type": "literal",
+          "options": [
+            "0",
+            "16",
+            "36",
+            "Not applicable"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "umi_read",
+      "description": "Specifies which sequencing read file contains the Unique Molecular Identifier (UMI) barcode. If no UMI is used, enter \"Not applicable\". Example: Read 1 (R1)",
+      "label": "UMI read",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "UMI read",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001061"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001061"
+        }
+      ]
+    },
+    {
+      "name": "umi_size",
+      "description": "The length of the Unique Molecular Identifier (UMI) in base pairs (bp). If no UMI is used, enter \"Not applicable\". Example: 8",
+      "label": "UMI size",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "permissible_values": [
+        {
+          "type": "literal",
+          "options": [
+            "8",
+            "9",
+            "10",
+            "12",
+            "Not applicable"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "assay_input_entity",
+      "description": "The entity from which the analyte is captured. For example, in bulk sequencing, the source entity would be \"tissue\" while in single-cell sequencing, it would be \"single cell\". Example: single cell",
+      "label": "Assay input entity",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Assay input entity",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001181"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001181"
+        }
+      ]
+    },
+    {
+      "name": "number_of_input_cells_or_nuclei",
+      "description": "The number of cells or nuclei that were input into the assay. This information is typically not available for assays performed on bulk tissue preparations, and therefore this field may be left blank. Example: 1000",
+      "label": "Number of input cells or nuclei",
+      "type": "integer",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "amount_of_input_analyte_value",
+      "description": "The amount of RNA or DNA input into the assay, typically measured using instruments such as a Qubit, BioAnalyzer, or TapeStation. In most single-cell or single-nucleus assays, this value is usually not available, and therfore this field may be left blank. Example: 500",
+      "label": "Amount of input analyte value",
+      "type": "decimal",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "amount_of_input_analyte_unit",
+      "description": "The unit of measurement used to specify the amount of input analyte value. If no input amount, this field may be left blank. Example: ng",
+      "label": "Amount of input analyte unit",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Amount of input analyte unit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001221"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001221"
+        }
+      ]
+    },
+    {
+      "name": "library_adapter_sequence",
+      "description": "The 5' and/or 3' adapter sequences used during library preparation to make the library compatible with the sequencing protocol and instrumentation. Adapter sequences should be provided as a comma-separated list of key-value pairs in the format: \"adapter name: sequence\". Example: Nextera Read 1: CTGTCTCTTATACACATCT",
+      "label": "Library adapter sequence",
+      "type": "string",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "library_average_fragment_size",
+      "description": "The average size of sequencing library fragments, measured in base pairs (bp), as estimated by gel electrophoresis, BioAnalyzer, or TapeStation. Example: 200",
+      "label": "Library average fragment size",
+      "type": "integer",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "library_input_amount_value",
+      "description": "The amount of cDNA, after amplification, that was used for library construction. Example: 60",
+      "label": "Library input amount value",
+      "type": "decimal",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "library_input_amount_unit",
+      "description": "The unit of measurement used to specify the library input amount value. Example: ng",
+      "label": "Library input amount unit",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Library input amount unit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000881"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000881"
+        }
+      ]
+    },
+    {
+      "name": "library_output_amount_value",
+      "description": "The total amount of library following the clean-up step after the final PCR amplification. To calculate, multiply the Qubit-measured concentration (ng/µl) by the elution volume (µl) obtained after the final clean-up. Example: 125",
+      "label": "Library output amount value",
+      "type": "decimal",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "library_output_amount_unit",
+      "description": "The unit of measurement used to specify the library output amount value. Example: ng",
+      "label": "Library output amount unit",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Library output amount unit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000901"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000901"
+        }
+      ]
+    },
+    {
+      "name": "library_concentration_value",
+      "description": "The concentration of the pooled library submitted for sequencing. Example: 2.5",
+      "label": "Library concentration value",
+      "type": "decimal",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "library_concentration_unit",
+      "description": "Unit of library concentration value.",
+      "label": "Library concentration unit",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Library concentration unit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000921"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000921"
+        }
+      ]
+    },
+    {
+      "name": "library_layout",
+      "description": "Indicates whether the sequencing library was prepared for single-end or paired-end sequencing. This information determines how reads are generated and aligned during data processing. Example: single-end",
+      "label": "Library layout",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Library layout",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000931"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000931"
+        }
+      ]
+    },
+    {
+      "name": "number_of_iterations_of_cdna_amplification",
+      "description": "The number of amplification cycles applied to cDNA prior to library construction. This is typically the number of PCR cycles used. For protocols using linear amplification methods (e.g., aRNA), this refers to the number of amplification rounds performed. Example: 3",
+      "label": "Number of iterations of cDNA amplification",
+      "type": "integer",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "number_of_pcr_cycles_for_indexing",
+      "description": "The number of PCR cycles used specifically to add sequencing adapters and amplify the library during the indexing step. This count does not include earlier cDNA amplification cycles, which are recorded separately under the \"Number of iterations of cDNA amplification\" field. Example: 8",
+      "label": "Number of PCR cycles for indexing",
+      "type": "integer",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "library_preparation_kit",
+      "description": "The reagent kit used to construct the sequencing library, including both the kit name and, if available, version and product number. If the library was prepared using a custom protocol, enter “Custom”. Example: 10X Genomics; Chromium Next GEM Single Cell 5' Kit v2, 16 rxns; PN 1000263",
+      "label": "Library preparation kit",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Library preparation kit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000961"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000961"
+        }
+      ]
+    },
+    {
+      "name": "sample_indexing_kit",
+      "description": "The reagent kit used to add index sequences to samples. Indexes enable multiplexing, allowing multiple libraries to be pooled and sequenced together on the same Illumina flow cell. Each indexing kit includes a set of compatible index sequences (often called \"indexing sets\") used to uniquely label a specific number of samples, depending on the kit’s design. If the library was prepared using a custom protocol, enter “Custom”. If no indexing was performed, enter \"Not applicable\". Example: 10X Genomics; Dual Index Kit TS, Set A; PN 1000251",
+      "label": "Sample indexing kit",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Sample indexing kit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000971"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000971"
+        }
+      ]
+    },
+    {
+      "name": "sample_indexing_set",
+      "description": "The specific sequencing barcode index set used, chosen from the sample indexing kit. For example, in the case of 10x, this might be \"SI-GA-A1\", whereas for Nextera, it could be \"N505 - CTCCTTAC\". Example: SI-GA-A1",
+      "label": "Sample indexing set",
+      "type": "string",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "is_technical_replicate",
+      "description": "Indicates whether the sequencing reaction was run in replicate. If \"Yes,\" the corresponding FASTQ files in the dataset should be merged for analysis. Example: Yes",
+      "label": "Is technical replicate?",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "permissible_values": [
+        {
+          "type": "literal",
+          "options": [
+            "Yes",
+            "No"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "expected_entity_capture_count",
+      "description": "The number of cells, nuclei, or capture spots expected to be captured by the assay. Example: 14336",
+      "label": "Expected entity capture count",
+      "type": "integer",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "sequencing_reagent_kit",
+      "description": "The reagent kit used to perform the sequencing run, including the platform, kit name, version, and product number when available. If the reagent kit was prepared using a custom protocol, enter “Custom”. Example: Illumina; NextSeq 500/550 Hi Output Kit 150 Cycles; v2.5; PN 20024907",
+      "label": "Sequencing reagent kit",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Sequencing reagent kit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001081"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001081"
+        }
+      ]
+    },
+    {
+      "name": "sequencing_read_format",
+      "description": "The number of sequencing cycles for each read and index in the sequencing run, typically reported as a comma-separated list in the order: Read 1, i7 index, i5 index, and Read 2. Example: 50,8,16,50",
+      "label": "Sequencing read format",
+      "type": "string",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "sequencing_batch_id",
+      "description": "A lab-assigned identifier for the sequencing run, such as a chip ID, that enables users to determine which samples were processed together. To avoid ID conflicts across institutions, it is recommended to prefix the ID with the name of the sequencing center. Example: Broad_Chip1234",
+      "label": "Sequencing batch ID",
+      "type": "string",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "capture_batch_id",
+      "description": "A lab-assigned identifier used to indicate which cells or nuclei were captured together in the same run. For example, in a 10X Genomics Chromium Controller workflow, this could be the chip ID used to trace datasets derived from a single capture event. This ID helps users identify samples processed together on the same device. To avoid conflicts across institutions, it is recommended to prefix the ID with the name of the sequencing center. Example: Broad_Batch1234",
+      "label": "Capture batch ID",
+      "type": "string",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "preparation_instrument_vendor",
+      "description": "The company that manufactures the instrument used to prepare the sample (e.g., for staining or other processing steps) prior to the assay. If the instrument was custom-built or developed internally, enter \"In-House\". If no sample preparation occurred, enter \"Not applicable\". Example: 10X Genomics",
+      "label": "Preparation instrument vendor",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Preparation instrument vendor",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000501"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000501"
+        }
+      ]
+    },
+    {
+      "name": "preparation_instrument_model",
+      "description": "The specific model of the instrument used for sample preparation, such as staining. Manufacturers may offer multiple models with varying features or sensitivities, which can influence how the sample is processed and how the resulting data is interpreted. If no sample preparation occurred, enter \"Not applicable\". Example: Chromium X",
+      "label": "Preparation instrument model",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Preparation instrument model",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000511"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000511"
+        }
+      ]
+    },
+    {
+      "name": "preparation_instrument_kit",
+      "description": "The reagent kit used in conjunction with the preparation instrument for sample processing (e.g., staining or labeling). If the reagent kit was prepared using a custom protocol, enter “Custom”. Example: 10X Genomics; Chromium Next GEM Chip G Single Cell Kit, 48 rxns; PN 1000120",
+      "label": "Preparation instrument kit",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Preparation instrument kit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001201"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001201"
+        }
+      ]
+    },
+    {
+      "name": "metadata_schema_id",
+      "description": "The unique string identifier for the metadata specification version, which is easily interpretable by computers for purposes of data validation and processing. Example: 22bc762a-5020-419d-b170-24253ed9e8d9",
+      "label": "Metadata schema ID",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": "944e5fa0-f68b-4bdd-8664-74a3909429a9"
+    }
+  ]
+}

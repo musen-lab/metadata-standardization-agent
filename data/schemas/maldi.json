@@ -1,0 +1,397 @@
+{
+  "type": "template",
+  "name": "MALDI",
+  "children": [
+    {
+      "name": "parent_sample_id",
+      "description": "The unique identifier from HuBMAP or SenNet for the sample (such as a block, section, or suspension) used to perform the assay. For instance, in an RNAseq assay, the parent sample would be the suspension, while in imaging assays, it would be the tissue section. If the assay is derived from multiple parent samples, this field should contain a comma-separated list of identifiers. Example: HBM386.ZGKG.235, HBM672.MKPK.442",
+      "label": "Parent sample ID",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "pattern": "^(?:HBM|SNT)\\d{3}\\.[A-Z]{4}\\.\\d{3}(?:,\\s*(?:HBM|SNT)\\d{3}\\.[A-Z]{4}\\.\\d{3})*$"
+    },
+    {
+      "name": "lab_id",
+      "description": "A locally assigned identifier provided by the data provider for the dataset. It is used to reference an external metadata record that may be maintained independently, enabling traceability and supporting provenance tracking. Example: Visium_9OLC_A4_S1",
+      "label": "Lab ID",
+      "type": "string",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "preparation_protocol_doi",
+      "description": "The DOI for the protocols.io page that details the assay or the procedures used for sample procurement and preparation. For example, in the case of an imaging assay, the protocol may start with tissue section staining and end with the generation of an OME-TIFF file. The documented protocol should also include any image processing steps involved in producing the final OME-TIFF. Example: https://dx.doi.org/10.17504/protocols.io.eq2lyno9qvx9/v1",
+      "label": "Preparation protocol DOI",
+      "type": "link",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "dataset_type",
+      "description": "The specific type of dataset being produced. Example: RNAseq",
+      "label": "Dataset type",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "MALDI",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_0000201"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000361"
+        }
+      ]
+    },
+    {
+      "name": "analyte_class",
+      "description": "The analyte class which is the target molecule that the assay is measuring. Example: DNA",
+      "label": "Analyte class",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Analyte class",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000371"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000371"
+        }
+      ]
+    },
+    {
+      "name": "is_targeted",
+      "description": "Indicates whether a specific molecule or set of molecules is targeted for detection or measurement by the assay. Example: Yes",
+      "label": "Is targeted?",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "permissible_values": [
+        {
+          "type": "literal",
+          "options": [
+            "Yes",
+            "No"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "acquisition_instrument_vendor",
+      "description": "The company that manufactures or supplies the acquisition instrument. An acquisition instrument is a device equipped with signal detection hardware and signal processing software. It captures signals produced by assays, such as variations in light intensity or color, or signals corresponding to molecular mass. If the instrument was custom-built or developed internally, enter \"In-House\". Example: Illumina",
+      "label": "Acquisition instrument vendor",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Acquisition instrument vendor",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000391"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000391"
+        }
+      ]
+    },
+    {
+      "name": "acquisition_instrument_model",
+      "description": "The specific model of the acquisition instrument, as manufacturers often offer various versions with differing features or sensitivities. These differences may be relevant to the processing or interpretation of the data. If the instrument was custom-built or developed internally, enter \"In-House\". If the model is unknown, enter \"Unknown\". Example: HiSeq 4000",
+      "label": "Acquisition instrument model",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Acquisition instrument model",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000401"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000401"
+        }
+      ]
+    },
+    {
+      "name": "source_storage_duration_value",
+      "description": "The length of time the sample was stored prior to processing it. For assays performed on tissue sections, this refers to how long the tissue section (e.g., slide) was stored before the assay began (e.g., imaging). For assays performed on suspensions, such as sequencing, it refers to how long the suspension was stored before library construction started. Example: 12",
+      "label": "Source storage duration value",
+      "type": "decimal",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "source_storage_duration_unit",
+      "description": "The unit of measurement used to specify the source storage duration value. Example: hour",
+      "label": "Source storage duration unit",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Source storage duration unit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000031"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000031"
+        }
+      ]
+    },
+    {
+      "name": "time_since_acquisition_instrument_calibration_value",
+      "description": "The length of time since the acquisition instrument was last serviced or calibrated. This provides a metric for assessing drift in data capture. Example: 10",
+      "label": "Time since acquisition instrument calibration value",
+      "type": "decimal",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "time_since_acquisition_instrument_calibration_unit",
+      "description": "The unit of measurement used to specify the time since acquisition instrument calibration value. Example: month",
+      "label": "Time since acquisition instrument calibration unit",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Time since acquisition instrument calibration unit",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000421"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000421"
+        }
+      ]
+    },
+    {
+      "name": "contributors_path",
+      "description": "The name of the file containing the ORCID IDs for all contributors to this dataset. Example: ./contributors.csv",
+      "label": "Contributors path",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "pattern": "^(?:\\.\\/.*|\\w.*)\\.tsv$"
+    },
+    {
+      "name": "data_path",
+      "description": "The top-level directory containing the raw and/or processed data. For a single dataset upload, this might be represented as \".\", whereas for a data upload containing multiple datasets, this would be the directory name for the respective dataset. For example, if the data is within a directory named \"TEST001-RK\", use the syntax \"./TEST001-RK\" for this field. If there are multiple directory levels, use the format \"./TEST001-RK/Run1/Pass2\", where \"Pass2\" is the subdirectory where the single dataset's data is stored. This is an internal metadata field used solely for data ingestion. Example: ./TEST001-RK",
+      "label": "Data path",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "pattern": "^(?:\\.|\\.\\/.+|\\w.*)$"
+    },
+    {
+      "name": "ms_ionization_technique",
+      "description": "The ionization technique used in imaging mass spectrometry, which refers to the method employed to probe the sample. Example: MALDI",
+      "label": "MS ionization technique",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "MS ionization technique",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001361"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001361"
+        }
+      ]
+    },
+    {
+      "name": "ms_scan_mode",
+      "description": "The mode of mass spectrometry (MS) scanning, which refers to the number of steps involved in the separation of fragments during the analysis. Example: MS1",
+      "label": "MS scan mode",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "MS scan mode",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001431"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001431"
+        }
+      ]
+    },
+    {
+      "name": "mass_analysis_polarity",
+      "description": "The polarity mode used in mass analysis, indicating whether positive or negative ion modes are employed. Example: Positive ion mode",
+      "label": "Mass analysis polarity",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Mass analysis polarity",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001371"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001371"
+        }
+      ]
+    },
+    {
+      "name": "mass_to_charge_range_low_value",
+      "description": "The low value of the scanned mass-to-charge range for MS1. This value is unitless. Example: 100",
+      "label": "Mass-to-charge range low value",
+      "type": "decimal",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "mass_to_charge_range_high_value",
+      "description": "The high value of the scanned mass-to-charge range, for MS1. (unitless)",
+      "label": "Mass-to-charge range high value",
+      "type": "decimal",
+      "required": false,
+      "multivalued": false
+    },
+    {
+      "name": "mass_resolving_power",
+      "description": "The mass resolving power, denoted as m/∆m, where ∆m is defined as the full width at half-maximum (FWHM) for a given peak with a specified mass-to-charge ratio (m/z). This measurement is unitless. Example: 60000",
+      "label": "Mass resolving power",
+      "type": "decimal",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "mass_to_charge_resolving_power",
+      "description": "The peak mass-to-charge ratio (m/z) used to calculate the resolving power. Example: 400.2",
+      "label": "Mass-to-charge resolving power",
+      "type": "decimal",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "ion_mobility",
+      "description": "The specific technology employed for ion mobility spectrometry. Available technologies include Traveling Wave Ion Mobility Spectrometry (TWIMS), Trapped Ion Mobility Spectrometry (TIMS), High Field Asymmetric Waveform Ion Mobility Spectrometry (FAIMS), Drift Tube Ion Mobility Spectrometry (DTIMS), Structures for Lossless Ion Manipulations (SLIM), and cyclic Ion Mobility Spectrometry (cIMS). Example: TIMS",
+      "label": "Ion mobility",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Ion mobility",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001421"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001421"
+        }
+      ]
+    },
+    {
+      "name": "matrix_deposition_method",
+      "description": "The method used for matrix deposition to aid in desorption and ionization in imaging mass spectrometry. Common techniques include robotic spotting, electrospray deposition, and sublimation. Example: Robotic spraying",
+      "label": "Matrix deposition method",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Matrix deposition method",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001441"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001441"
+        }
+      ]
+    },
+    {
+      "name": "preparation_instrument_vendor",
+      "description": "The company that manufactures the instrument used to prepare the sample (e.g., for staining or other processing steps) prior to the assay. If the instrument was custom-built or developed internally, enter \"In-House\". If no sample preparation occurred, enter \"Not applicable\". Example: 10X Genomics",
+      "label": "Preparation instrument vendor",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Preparation instrument vendor",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000501"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000501"
+        }
+      ]
+    },
+    {
+      "name": "preparation_instrument_model",
+      "description": "The specific model of the instrument used for sample preparation, such as staining. Manufacturers may offer multiple models with varying features or sensitivities, which can influence how the sample is processed and how the resulting data is interpreted. If no sample preparation occurred, enter \"Not applicable\". Example: Chromium X",
+      "label": "Preparation instrument model",
+      "type": "string",
+      "required": false,
+      "multivalued": false,
+      "default_value": {
+        "label": "Preparation instrument model",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000511"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000511"
+        }
+      ]
+    },
+    {
+      "name": "preparation_matrix",
+      "description": "The preparation matrix, which is a compound of crystallized molecules that functions as a buffer between the sample and the ionizing probe. This matrix also aids in ionizing the sample, facilitating its movement along the flight tube for detection. Example: DMACA (4-(dimethylamino)cinnamic acid)",
+      "label": "Preparation matrix",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": {
+        "label": "Preparation matrix",
+        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001451"
+      },
+      "permissible_values": [
+        {
+          "type": "branch",
+          "ontology_acronym": "HRAVS",
+          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001451"
+        }
+      ]
+    },
+    {
+      "name": "analysis_protocol_doi",
+      "description": "A DOI to a protocols.io protocol describing the software and database(s) used to process the raw data. Example: https://dx.doi.org/10.17504/protocols.io.bsu5ney6",
+      "label": "Analysis protocol DOI",
+      "type": "link",
+      "required": true,
+      "multivalued": false
+    },
+    {
+      "name": "metadata_schema_id",
+      "description": "The unique string identifier for the metadata specification version, which is easily interpretable by computers for purposes of data validation and processing. Example: 22bc762a-5020-419d-b170-24253ed9e8d9",
+      "label": "Metadata schema ID",
+      "type": "string",
+      "required": true,
+      "multivalued": false,
+      "default_value": "2e35434f-e6ed-4e01-a54a-189ec0706a3d"
+    }
+  ]
+}
