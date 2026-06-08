@@ -7,6 +7,7 @@ import numpy as np
 
 from assays import ASSAY_ORDER
 from data_analysis import apply_metrics
+from significance import bootstrap_ci
 
 
 def plot_grouped_bar_chart(
@@ -16,13 +17,19 @@ def plot_grouped_bar_chart(
     title: str,
     *,
     show_error_bars: bool = True,
+    error_mode: str = "ci",
 ) -> None:
-    """Grouped bar chart (baseline vs experiment) with optional min/max error bars."""
+    """Grouped bar chart (baseline vs experiment) with optional error bars.
+
+    *error_mode* selects what the error bars represent: ``"ci"`` (default) for
+    bootstrap 95% confidence intervals of the mean, or ``"minmax"`` for the
+    per-record min/max range.
+    """
     root = Path(data_root)
 
     # Collect per-assay stats for each condition
     conditions = ["baseline", "experiment"]
-    # assay_key -> condition -> {mean, min, max}
+    # assay_key -> condition -> {mean, low, high}
     stats: dict[str, dict[str, dict[str, float]]] = {}
 
     for assay_key, _ in ASSAY_ORDER:
@@ -41,10 +48,14 @@ def plot_grouped_bar_chart(
                 continue
 
             values = df[metric]
+            if error_mode == "ci":
+                mean, low, high = bootstrap_ci(values.to_numpy())
+            else:
+                mean, low, high = float(values.mean()), float(values.min()), float(values.max())
             stats.setdefault(assay_key, {})[condition] = {
-                "mean": float(values.mean()),
-                "min": float(values.min()),
-                "max": float(values.max()),
+                "mean": mean,
+                "low": low,
+                "high": high,
             }
 
     # Filter to assays that have data for at least one condition
@@ -65,10 +76,10 @@ def plot_grouped_bar_chart(
             "label": label,
         }
         if show_error_bars:
-            mins = np.array([stats[a].get(condition, {}).get("min", 0.0) for a in assays])
-            maxs = np.array([stats[a].get(condition, {}).get("max", 0.0) for a in assays])
-            err_low = np.maximum(means - mins, 0)
-            err_high = np.maximum(maxs - means, 0)
+            lows = np.array([stats[a].get(condition, {}).get("low", 0.0) for a in assays])
+            highs = np.array([stats[a].get(condition, {}).get("high", 0.0) for a in assays])
+            err_low = np.maximum(means - lows, 0)
+            err_high = np.maximum(highs - means, 0)
             bar_kwargs["yerr"] = [err_low, err_high]
             bar_kwargs["capsize"] = 3
 
