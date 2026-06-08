@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import csv
 import json
 import logging
 from typing import TYPE_CHECKING, Any
