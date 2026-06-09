@@ -18,12 +18,14 @@ def plot_grouped_bar_chart(
     *,
     show_error_bars: bool = True,
     error_mode: str = "ci",
+    save_path: str | None = None,
 ) -> None:
     """Grouped bar chart (baseline vs experiment) with optional error bars.
 
     *error_mode* selects what the error bars represent: ``"ci"`` (default) for
     bootstrap 95% confidence intervals of the mean, or ``"minmax"`` for the
-    per-record min/max range.
+    per-record min/max range.  When *save_path* is given, the figure is written
+    there (PNG/PDF inferred from the extension) instead of shown interactively.
     """
     root = Path(data_root)
 
@@ -68,7 +70,7 @@ def plot_grouped_bar_chart(
     fig, ax = plt.subplots(figsize=(7, 4))
     for i, (condition, color) in enumerate([("baseline", "#4472C4"), ("experiment", "#ED7D31")]):
         means = np.array([stats[a].get(condition, {}).get("mean", 0.0) for a in assays])
-        label = "Baseline" if condition == "baseline" else "Our Method"
+        label = "Baseline" if condition == "baseline" else "ARMS"
 
         bar_kwargs: dict[str, object] = {
             "width": width,
@@ -92,4 +94,8 @@ def plot_grouped_bar_chart(
     ax.set_title(title)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.35), ncol=2)
     fig.tight_layout()
-    plt.show()
+    if save_path:
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
