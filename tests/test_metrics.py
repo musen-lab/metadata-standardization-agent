@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from evaluation.metrics import (
+    _get_required_fields,
     compute_all_field_accuracy,
     compute_field_results,
     compute_non_ontology_constrained_field_accuracy,
@@ -157,3 +158,19 @@ class TestComputeFieldResults:
         predicted = {"title": None}
         results = compute_field_results(predicted, gold, schema_path)
         assert results[0][2] is True
+
+
+class TestGetRequiredFields:
+    """Tests for reading the schema's required flag."""
+
+    def test_returns_only_required_true(self, tmp_path: Path) -> None:
+        schema = {
+            "children": [
+                {"name": "a", "required": True},
+                {"name": "b", "required": False},
+                {"name": "c"},  # no required key -> not required
+            ]
+        }
+        path = tmp_path / "s.json"
+        path.write_text(json.dumps(schema))
+        assert _get_required_fields(path) == ["a"]

@@ -309,3 +309,10 @@ def _get_ontology_constrained_fields(schema_path: Path) -> list[str]:
                 fields.append(child["name"])
                 break
     return fields
+
+
+def _get_required_fields(schema_path: Path) -> list[str]:
+    """Return field names that the schema marks as required (``required: true``)."""
+    with open(schema_path) as f:
+        schema = json.load(f)
+    return [child["name"] for child in schema.get("children", []) if child.get("required") is True]

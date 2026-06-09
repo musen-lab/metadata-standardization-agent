@@ -50,6 +50,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from data_analysis import analyze_prediction_errors
+from metrics import _get_required_fields
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -178,15 +179,21 @@ def build_error_detail(
 
     root = Path(data_root)
     input_cache: dict[tuple[str, str], dict[str, Any]] = {}
+    required_cache: dict[str, set[str]] = {}
     causes: list[str] = []
+    required_flags: list[bool] = []
     for _, row in errors.iterrows():
-        key = (row["assay"], row["file"])
+        assay = row["assay"]
+        key = (assay, row["file"])
         if key not in input_cache:
-            input_file = root / row["assay"] / "input" / row["file"]
+            input_file = root / assay / "input" / row["file"]
             input_cache[key] = json.loads(input_file.read_text()) if input_file.exists() else {}
+        if assay not in required_cache:
+            required_cache[assay] = set(_get_required_fields(root / "schemas" / f"{assay}.json"))
         causes.append(classify_cause(row.to_dict(), input_cache[key], empty_terms))
+        required_flags.append(row["field"] in required_cache[assay])
 
-    return errors.assign(cause=causes, run_type=run_type)
+    return errors.assign(cause=causes, run_type=run_type, required=required_flags)
 
 
 def _summarize(detail: pd.DataFrame, key: str) -> pd.DataFrame:
@@ -260,6 +267,13 @@ def main() -> None:
         print(causes.to_string(index=False))
         print("\n-- by error type (surface mechanism) --")
         print(error_types.to_string(index=False))
+        if not detail.empty:
+            missed = detail[detail["error_type"] == "missed_non_null"]
+            missed_required = int(missed["required"].sum())
+            print(
+                f"\n-- of {len(missed)} missed-value errors (gold has a value, prediction blank), "
+                f"{missed_required} are on schema-required fields --"
+            )
         if run_type == "experiment" and args.traces is None:
             print("\nNote: 'missing_ontology_result' not computed (pass --traces to enable it);")
             print("those errors currently fall under 'format_or_variant' or 'other'.")
