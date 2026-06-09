@@ -58,8 +58,12 @@ def create_per_assay_accuracy_summary(
         rows.append(
             {
                 "assay": assay_label,
-                "ontology_constrained_field_accuracy": round(means["ontology_constrained_field_accuracy"], decimal_places),
-                "non_ontology_constrained_field_accuracy": round(means["non_ontology_constrained_field_accuracy"], decimal_places),
+                "ontology_constrained_field_accuracy": round(
+                    means["ontology_constrained_field_accuracy"], decimal_places
+                ),
+                "non_ontology_constrained_field_accuracy": round(
+                    means["non_ontology_constrained_field_accuracy"], decimal_places
+                ),
                 "all_field_accuracy": round(means["all_field_accuracy"], decimal_places),
             }
         )

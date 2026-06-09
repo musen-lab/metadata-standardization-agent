@@ -160,6 +160,45 @@ def compute_overall_accuracy(
     }
 
 
+def compute_field_results(
+    predicted: dict[str, Any],
+    gold: dict[str, Any],
+    schema_path: Path,
+    *,
+    match_case: bool = True,
+    match_whole_word: bool = True,
+) -> list[tuple[str, str, bool]]:
+    """Return the per-field correctness of one predicted/gold record pair.
+
+    Unlike :func:`compute_overall_accuracy`, which returns only aggregate ratios,
+    this function preserves the outcome of *every* gold field.  Each element is a
+    ``(field_name, field_type, is_correct)`` tuple where ``field_type`` is either
+    ``"ontology"`` or ``"non_ontology"``.  A field is correct when both values are
+    missing or both are present and match via :func:`_values_match`.
+
+    This per-field detail is what paired, field-level significance tests (e.g.
+    McNemar's test) require, since they compare baseline vs. agent correctness on
+    the same field of the same record.
+    """
+    ontology_fields = set(_get_ontology_constrained_fields(schema_path))
+    results: list[tuple[str, str, bool]] = []
+    for k in gold:
+        gold_val = gold[k]
+        pred_val = predicted.get(k)
+        gold_missing = _is_missing(gold_val)
+        pred_missing = _is_missing(pred_val)
+        is_correct = (gold_missing and pred_missing) or (
+            not gold_missing
+            and not pred_missing
+            and _values_match(
+                pred_val, gold_val, match_case=match_case, match_whole_word=match_whole_word, field_name=k
+            )
+        )
+        field_type = "ontology" if k in ontology_fields else "non_ontology"
+        results.append((k, field_type, is_correct))
+    return results
+
+
 def _compute_field_counts(
     predicted: dict[str, Any],
     gold: dict[str, Any],
@@ -270,3 +309,10 @@ def _get_ontology_constrained_fields(schema_path: Path) -> list[str]:
                 fields.append(child["name"])
                 break
     return fields
+
+
+def _get_required_fields(schema_path: Path) -> list[str]:
+    """Return field names that the schema marks as required (``required: true``)."""
+    with open(schema_path) as f:
+        schema = json.load(f)
+    return [child["name"] for child in schema.get("children", []) if child.get("required") is True]
