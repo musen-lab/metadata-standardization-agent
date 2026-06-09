@@ -6,7 +6,7 @@ This repository is the **code and supplementary material** for the paper:
 > Josef Hardi, Martin J. O'Connor, Marcos Martínez-Romero, Jean G. Rosario, Stephen A. Fisher, Mark A. Musen.
 > arXiv: https://arxiv.org/abs/2604.08552
 
-ARMS is an LLM agent that standardizes legacy biomedical metadata records into the [CEDAR](https://metadatacenter.org/) template format. Instead of treating ontology constraints as static text in a prompt, the agent calls external services at inference time — fetching the live CEDAR template and querying BioPortal for canonical ontology terms — through [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-protocol) tools. This repository contains the agent, the evaluation framework, the data, and the execution traces used to produce every number and figure in the paper.
+ARMS is an LLM agent that standardizes legacy biomedical metadata records into the [CEDAR](https://metadatacenter.org/) template format. Instead of treating ontology constraints as static text in a prompt, the agent calls external services at inference time — fetching the live CEDAR template and querying BioPortal for canonical ontology terms — through [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-protocol) tools. This repository contains the agent, the evaluation framework, and the data used to produce every number and figure in the paper.
 
 ## Component Source Code
 
@@ -70,11 +70,6 @@ cd evaluation
 
 # Confidence intervals + significance tests (overall and per assay):
 uv run python significance.py --data-root ../data --model gpt5mini
-
-# Error-cause breakdown for both conditions (add --traces to attribute
-# "missing ontology result" errors; this scans the large trace files):
-uv run python error_causes.py --data-root ../data --model gpt5mini \
-    --run-type both --traces ../traces/gpt5mini
 ```
 
 ### Running the ARMS agent experiment (requires API keys)
