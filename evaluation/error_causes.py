@@ -28,11 +28,15 @@ The first three causes are computed from the input/gold/prediction files alone
 (no trace files, no API calls).  ``missing_ontology_result`` is an optional refine
 pass over the (large) experiment trace files; pass ``--traces`` to enable it.
 
+Output is reported separately for the baseline and the tool-use agent (``--run-type
+both``, the default), each with a coarse ``cause`` breakdown and a finer
+``error_type`` breakdown (which separates Boolean and DOI failures).
+
 Run from the ``evaluation/`` directory::
 
     uv run python error_causes.py --data-root ../data --model gpt5mini
     uv run python error_causes.py --data-root ../data --model gpt5mini \
-        --traces ../traces/gpt5mini --csv-dir out/
+        --run-type both --traces ../traces/gpt5mini --csv-dir out/
 """
 
 from __future__ import annotations
@@ -157,22 +161,20 @@ def extract_empty_search_terms(trace_dir: str | Path) -> set[str]:
     return empty - nonempty
 
 
-def build_error_cause_table(
+def build_error_detail(
     data_root: str | Path,
     model: str,
-    run_type: str = "experiment",
+    run_type: str,
     *,
     trace_dir: str | Path | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Return ``(detail, summary)`` DataFrames of per-error causes.
+) -> pd.DataFrame:
+    """Return one row per error with added ``cause`` and ``run_type`` columns.
 
-    ``detail`` has one row per error with an added ``cause`` column; ``summary``
-    aggregates counts by ``field_type`` x ``cause`` plus a percentage of all errors.
+    The trace-derived ``missing_ontology_result`` cause is only meaningful for the
+    tool-using agent, so trace mining is skipped when ``run_type == "baseline"``.
     """
-    import pandas as pd
-
     errors = analyze_prediction_errors(str(data_root), model, run_type)
-    empty_terms = extract_empty_search_terms(trace_dir) if trace_dir else None
+    empty_terms = extract_empty_search_terms(trace_dir) if (trace_dir and run_type == "experiment") else None
 
     root = Path(data_root)
     input_cache: dict[tuple[str, str], dict[str, Any]] = {}
@@ -184,47 +186,91 @@ def build_error_cause_table(
             input_cache[key] = json.loads(input_file.read_text()) if input_file.exists() else {}
         causes.append(classify_cause(row.to_dict(), input_cache[key], empty_terms))
 
-    detail = errors.assign(cause=causes)
+    return errors.assign(cause=causes, run_type=run_type)
+
+
+def _summarize(detail: pd.DataFrame, key: str) -> pd.DataFrame:
+    """Count errors grouped by ``field_type`` and *key*, with a percentage column."""
+    import pandas as pd
 
     if detail.empty:
-        summary = pd.DataFrame(columns=["field_type", "cause", "count", "pct_of_all_errors"])
-        return detail, summary
-
-    summary = detail.groupby(["field_type", "cause"]).size().rename("count").reset_index()
+        return pd.DataFrame(columns=["field_type", key, "count", "pct_of_all_errors"])
+    summary = detail.groupby(["field_type", key]).size().rename("count").reset_index()
     summary["pct_of_all_errors"] = (100 * summary["count"] / len(detail)).round(1)
-    summary = summary.sort_values("count", ascending=False, ignore_index=True)
-    return detail, summary
+    return summary.sort_values("count", ascending=False, ignore_index=True)
+
+
+def summarize_causes(detail: pd.DataFrame) -> pd.DataFrame:
+    """Counts by field type x cause (missing_ontology_result, field_mapping_confusion, ...)."""
+    return _summarize(detail, "cause")
+
+
+def summarize_error_types(detail: pd.DataFrame) -> pd.DataFrame:
+    """Counts by field type x surface error type (boolean_representation, doi_format, ...).
+
+    This finer view separates the specific mechanisms the paper calls out -- e.g.
+    Boolean conversion failures (``boolean_representation``) and DOI reformatting
+    failures (``doi_format``) -- which the coarser ``cause`` view lumps under
+    ``format_or_variant``.
+    """
+    return _summarize(detail, "error_type")
+
+
+def build_error_cause_table(
+    data_root: str | Path,
+    model: str,
+    run_type: str = "experiment",
+    *,
+    trace_dir: str | Path | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Return ``(detail, cause_summary)`` for one condition (kept for convenience)."""
+    detail = build_error_detail(data_root, model, run_type, trace_dir=trace_dir)
+    return detail, summarize_causes(detail)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Quantify prediction-error causes.")
     parser.add_argument("--data-root", default="../data", help="Path to the data/ directory.")
     parser.add_argument("--model", default="gpt5mini", help="Model output sub-directory (e.g. gpt5mini).")
-    parser.add_argument("--run-type", default="experiment", choices=["baseline", "experiment"])
+    parser.add_argument(
+        "--run-type",
+        default="both",
+        choices=["baseline", "experiment", "both"],
+        help="Which condition(s) to analyze; 'both' reports baseline and ARMS separately.",
+    )
     parser.add_argument(
         "--traces",
         default=None,
-        help="Optional path to the model's trace directory (enables missing_ontology_result).",
+        help="Optional path to the model's trace directory (enables missing_ontology_result for ARMS).",
     )
     parser.add_argument("--csv-dir", default=None, help="Optional directory to write CSV tables.")
     args = parser.parse_args()
 
-    if args.traces:
-        print(f"Mining traces in {args.traces} for empty BioPortal searches (this may take a few minutes)...")
-    detail, summary = build_error_cause_table(args.data_root, args.model, args.run_type, trace_dir=args.traces)
+    run_types = ["baseline", "experiment"] if args.run_type == "both" else [args.run_type]
+    for run_type in run_types:
+        if run_type == "experiment" and args.traces:
+            print(f"\nMining traces in {args.traces} for empty BioPortal searches (this may take a few minutes)...")
+        detail = build_error_detail(args.data_root, args.model, run_type, trace_dir=args.traces)
+        causes = summarize_causes(detail)
+        error_types = summarize_error_types(detail)
 
-    print(f"\n=== Error causes for {args.model} ({args.run_type}); {len(detail)} total errors ===")
-    print(summary.to_string(index=False))
-    if args.traces is None:
-        print("\nNote: 'missing_ontology_result' not computed (pass --traces to enable it);")
-        print("those errors currently fall under 'format_or_variant' or 'other'.")
+        label = "Baseline (prompt-only)" if run_type == "baseline" else "ARMS (tool-use)"
+        print(f"\n=== {label}: {len(detail)} total errors ({args.model}) ===")
+        print("\n-- by cause --")
+        print(causes.to_string(index=False))
+        print("\n-- by error type (surface mechanism) --")
+        print(error_types.to_string(index=False))
+        if run_type == "experiment" and args.traces is None:
+            print("\nNote: 'missing_ontology_result' not computed (pass --traces to enable it);")
+            print("those errors currently fall under 'format_or_variant' or 'other'.")
 
-    if args.csv_dir:
-        out = Path(args.csv_dir)
-        out.mkdir(parents=True, exist_ok=True)
-        detail.to_csv(out / f"error_causes_detail_{args.model}_{args.run_type}.csv", index=False)
-        summary.to_csv(out / f"error_causes_summary_{args.model}_{args.run_type}.csv", index=False)
-        print(f"\nWrote CSV tables to {out}/")
+        if args.csv_dir:
+            out = Path(args.csv_dir)
+            out.mkdir(parents=True, exist_ok=True)
+            detail.to_csv(out / f"error_causes_detail_{args.model}_{run_type}.csv", index=False)
+            causes.to_csv(out / f"error_causes_by_cause_{args.model}_{run_type}.csv", index=False)
+            error_types.to_csv(out / f"error_causes_by_type_{args.model}_{run_type}.csv", index=False)
+            print(f"\nWrote CSV tables to {out}/")
 
 
 if __name__ == "__main__":
