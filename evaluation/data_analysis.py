@@ -138,6 +138,81 @@ def create_overall_accuracy_summary(
     )
 
 
+def create_uncorrected_accuracy_summary(
+    data_root: str,
+    *,
+    populated_only: bool = False,
+    decimal_places: int = 2,
+) -> pd.DataFrame:
+    """Accuracy of the raw legacy input records against the gold standard.
+
+    This is the "do-nothing" reference point: each legacy input record in
+    ``data_root/<assay>/input`` is compared directly to its gold counterpart with
+    no model correction, characterizing how far the legacy data starts from the
+    gold standard.  When *populated_only* is ``True``, only gold fields that carry
+    a value are counted, excluding both-empty agreements (the harder, more
+    informative subset).  Returns a single-row DataFrame with the same three
+    accuracy columns as :func:`create_overall_accuracy_summary`.
+    """
+    import pandas as pd
+
+    from assays import ASSAY_ORDER
+
+    ontology_correct = ontology_total = non_ontology_correct = non_ontology_total = 0
+
+    for assay_key, _assay_label in ASSAY_ORDER:
+        schema_path = Path(data_root, "schemas", f"{assay_key}.json")
+        gold_dir = Path(data_root, assay_key, "gold")
+        input_dir = Path(data_root, assay_key, "input")
+        if not (schema_path.exists() and gold_dir.exists()):
+            continue
+        ontology_fields = set(_get_ontology_constrained_fields(schema_path))
+
+        for gold_file in sorted(gold_dir.glob("*.json")):
+            input_file = input_dir / gold_file.name
+            if not input_file.exists():
+                continue
+            with open(gold_file) as f:
+                gold = json.load(f)
+            with open(input_file) as f:
+                legacy = json.load(f)
+
+            for field, gold_val in gold.items():
+                gold_missing = _is_missing(gold_val)
+                if populated_only and gold_missing:
+                    continue
+                pred_val = legacy.get(field)
+                pred_missing = _is_missing(pred_val)
+                correct = (gold_missing and pred_missing) or (
+                    not gold_missing
+                    and not pred_missing
+                    and _values_match(pred_val, gold_val, match_case=True, match_whole_word=True, field_name=field)
+                )
+                if field in ontology_fields:
+                    ontology_total += 1
+                    ontology_correct += int(correct)
+                else:
+                    non_ontology_total += 1
+                    non_ontology_correct += int(correct)
+
+    total_correct = ontology_correct + non_ontology_correct
+    total_fields = ontology_total + non_ontology_total
+
+    return pd.DataFrame(
+        [
+            {
+                "ontology_constrained_accuracy": round(ontology_correct / ontology_total, decimal_places)
+                if ontology_total
+                else 0.0,
+                "non_ontology_constrained_accuracy": round(non_ontology_correct / non_ontology_total, decimal_places)
+                if non_ontology_total
+                else 0.0,
+                "all_field_accuracy": round(total_correct / total_fields, decimal_places) if total_fields else 0.0,
+            }
+        ]
+    )
+
+
 def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: Path) -> pd.DataFrame:
     """Compare predicted outputs in *input_dir* against gold standards in *gold_dir*."""
     import pandas as pd
