@@ -142,7 +142,6 @@ def create_uncorrected_accuracy_summary(
     data_root: str,
     *,
     populated_only: bool = False,
-    decimal_places: int = 2,
 ) -> pd.DataFrame:
     """Accuracy of the raw legacy input records against the gold standard.
 
@@ -152,7 +151,8 @@ def create_uncorrected_accuracy_summary(
     gold standard.  When *populated_only* is ``True``, only gold fields that carry
     a value are counted, excluding both-empty agreements (the harder, more
     informative subset).  Returns a single-row DataFrame with the same three
-    accuracy columns as :func:`create_overall_accuracy_summary`.
+    accuracy columns as :func:`create_overall_accuracy_summary`; values are not
+    rounded, so the caller controls display precision.
     """
     import pandas as pd
 
@@ -201,13 +201,11 @@ def create_uncorrected_accuracy_summary(
     return pd.DataFrame(
         [
             {
-                "ontology_constrained_accuracy": round(ontology_correct / ontology_total, decimal_places)
-                if ontology_total
-                else 0.0,
-                "non_ontology_constrained_accuracy": round(non_ontology_correct / non_ontology_total, decimal_places)
+                "ontology_constrained_accuracy": ontology_correct / ontology_total if ontology_total else 0.0,
+                "non_ontology_constrained_accuracy": non_ontology_correct / non_ontology_total
                 if non_ontology_total
                 else 0.0,
-                "all_field_accuracy": round(total_correct / total_fields, decimal_places) if total_fields else 0.0,
+                "all_field_accuracy": total_correct / total_fields if total_fields else 0.0,
             }
         ]
     )

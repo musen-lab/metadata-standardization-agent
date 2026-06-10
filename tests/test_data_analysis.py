@@ -34,12 +34,12 @@ class TestUncorrectedAccuracy:
     def test_all_fields_counts_both_empty(self, tmp_path: Path) -> None:
         # tissue correct, title wrong, note both-empty (correct) -> 2/3.
         _build_root(tmp_path)
-        df = create_uncorrected_accuracy_summary(str(tmp_path), decimal_places=4)
-        assert abs(df["all_field_accuracy"].iloc[0] - 2 / 3) < 1e-3
+        df = create_uncorrected_accuracy_summary(str(tmp_path))
+        assert abs(df["all_field_accuracy"].iloc[0] - 2 / 3) < 1e-9
         assert df["ontology_constrained_accuracy"].iloc[0] == 1.0  # tissue matches
 
     def test_populated_only_excludes_empty(self, tmp_path: Path) -> None:
         # Only tissue and title are populated in gold; note is excluded -> 1/2.
         _build_root(tmp_path)
-        df = create_uncorrected_accuracy_summary(str(tmp_path), populated_only=True, decimal_places=4)
+        df = create_uncorrected_accuracy_summary(str(tmp_path), populated_only=True)
         assert df["all_field_accuracy"].iloc[0] == 0.5
