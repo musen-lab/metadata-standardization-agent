@@ -8,7 +8,7 @@ This repository is the **code and supplementary material** for the paper:
 
 ARMS is an LLM agent that standardizes legacy biomedical metadata records into the [CEDAR](https://metadatacenter.org/) template format. Instead of treating ontology constraints as static text in a prompt, the agent calls external services at inference time — fetching the live CEDAR template and querying BioPortal for canonical ontology terms — through [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-protocol) tools. This repository contains the agent, the evaluation framework, and the data used to produce every number and figure in the paper.
 
-## Component Source Code
+## Experiment Code and Data Analysis
 
 ### The Agentic Real-Time Metadata Standardization (ARMS) agent
 
