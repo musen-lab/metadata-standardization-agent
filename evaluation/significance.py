@@ -13,8 +13,12 @@ LLM/API calls) and computes:
 * **Paired McNemar test** on per-field correctness (same field of the same record
   under both methods), reporting ``b`` (baseline-only correct), ``c`` (ARMS-only
   correct), and the p-value.
+* **Record-clustered permutation test** on the same discordant outcomes, but with
+  the record as the independent unit (whole-record label swaps).  Unlike the flat
+  McNemar test, this does not treat duplicated or within-record-correlated fields
+  as independent, so it does not overstate significance.
 
-All three are produced for each of the three field categories used in the paper
+All four are produced for each of the three field categories used in the paper
 (``ontology``, ``non_ontology``, ``all``) and both per assay and pooled overall.
 
 Run from the ``evaluation/`` directory (same convention as ``data_analysis`` and
@@ -69,11 +73,16 @@ class PairedData:
     * ``field_outcomes[category]`` is a list of ``(baseline_correct, arms_correct)``
       boolean tuples, one per field of that category across all records.  Used
       for the field-level McNemar test.
+    * ``record_discordant[category]`` is a list of ``(baseline_only_correct,
+      arms_only_correct)`` integer tuples, one per record: the per-record counts
+      of McNemar-discordant fields.  Used for the record-clustered permutation
+      test, which keeps the record (not the field) as the independent unit.
     """
 
     record_acc: dict[str, list[tuple[float, float]]] = field(default_factory=lambda: {c: [] for c in CATEGORIES})
     record_counts: dict[str, list[tuple[int, int, int]]] = field(default_factory=lambda: {c: [] for c in CATEGORIES})
     field_outcomes: dict[str, list[tuple[bool, bool]]] = field(default_factory=lambda: {c: [] for c in CATEGORIES})
+    record_discordant: dict[str, list[tuple[int, int]]] = field(default_factory=lambda: {c: [] for c in CATEGORIES})
 
     def extend(self, other: PairedData) -> None:
         """Accumulate another assay's data into this one (used for the pooled view)."""
@@ -81,6 +90,7 @@ class PairedData:
             self.record_acc[c].extend(other.record_acc[c])
             self.record_counts[c].extend(other.record_counts[c])
             self.field_outcomes[c].extend(other.field_outcomes[c])
+            self.record_discordant[c].extend(other.record_discordant[c])
 
 
 def collect_paired_data(data_root: str | Path, model: str, assay_key: str) -> PairedData:
@@ -111,6 +121,8 @@ def collect_paired_data(data_root: str | Path, model: str, assay_key: str) -> Pa
         # Per-record correct/total counts by category, so a record with no fields
         # in a category is excluded from that category rather than scored 0.
         per_record: dict[str, list[list[int]]] = {c: [[0, 0], [0, 0]] for c in CATEGORIES}
+        # Per-record McNemar-discordant counts: [baseline_only_correct, arms_only_correct].
+        per_record_disc: dict[str, list[int]] = {c: [0, 0] for c in CATEGORIES}
         for fname, ftype, base_ok in base_results:
             arms_ok = arms_correct.get(fname, False)
             data.field_outcomes[ftype].append((base_ok, arms_ok))
@@ -120,11 +132,17 @@ def collect_paired_data(data_root: str | Path, model: str, assay_key: str) -> Pa
                 per_record[cat][0][1] += 1
                 per_record[cat][1][0] += int(arms_ok)
                 per_record[cat][1][1] += 1
+                if base_ok and not arms_ok:
+                    per_record_disc[cat][0] += 1
+                elif arms_ok and not base_ok:
+                    per_record_disc[cat][1] += 1
         for cat in CATEGORIES:
             (b_corr, b_tot), (a_corr, a_tot) = per_record[cat]
             if b_tot > 0:  # category present in this record
                 data.record_acc[cat].append((b_corr / b_tot, a_corr / a_tot))
                 data.record_counts[cat].append((b_corr, a_corr, b_tot))
+                b_only, a_only = per_record_disc[cat]
+                data.record_discordant[cat].append((b_only, a_only))
     return data
 
 
@@ -229,6 +247,49 @@ def paired_mcnemar(outcomes: list[tuple[bool, bool]]) -> dict[str, float]:
     }
 
 
+def paired_permutation(
+    discordant: list[tuple[int, int]],
+    *,
+    n_resamples: int = 10000,
+    seed: int = 0,
+) -> dict[str, float]:
+    """Record-clustered permutation test on McNemar-style discordant counts.
+
+    *discordant* is a list of ``(baseline_only_correct, arms_only_correct)`` integer
+    tuples, one per record.  Each record collapses to a signed net ARMS advantage
+    ``d_i = arms_only - baseline_only`` and the observed statistic is ``S = sum(d_i)``.
+
+    Under the null that baseline and ARMS are interchangeable, swapping a record's
+    two labels flips the sign of its ``d_i``, so the null distribution is generated
+    by assigning each record an independent random ``+/-`` sign.  Because the sign
+    flip acts on the *whole record*, fields within a record -- and the same field
+    repeated across records -- are never treated as independent observations: the
+    record is the unit of analysis, matching :func:`cluster_bootstrap_pooled` and
+    the per-record :func:`paired_wilcoxon`.  This avoids the inflated significance
+    that a flat field-level McNemar test produces on clustered/duplicated fields.
+
+    Returns a dict with ``s_observed`` (net ARMS advantage among discordant fields),
+    ``n_effective`` (records with a non-zero ``d_i`` -- the ones that carry signal),
+    and a two-sided ``pvalue`` (Monte Carlo, using the ``(count + 1) / (n + 1)``
+    convention so it is never exactly zero).  When no record has a non-zero ``d_i``
+    there is nothing to test and ``pvalue`` is ``1.0``.
+    """
+    d = np.array([c - b for b, c in discordant], dtype=float)
+    s_observed = float(d.sum())
+    nonzero = d[d != 0.0]
+    n_effective = int(nonzero.size)
+    if n_effective == 0:
+        return {"s_observed": s_observed, "n_effective": 0, "pvalue": 1.0}
+
+    rng = np.random.default_rng(seed)
+    signs = rng.choice(np.array([-1.0, 1.0]), size=(n_resamples, n_effective))
+    resampled = signs @ nonzero
+    # Float tolerance: the statistic is a sum of small integers represented as floats.
+    count = int((np.abs(resampled) >= abs(s_observed) - 1e-9).sum())
+    pvalue = (count + 1) / (n_resamples + 1)
+    return {"s_observed": s_observed, "n_effective": n_effective, "pvalue": float(pvalue)}
+
+
 def _fmt_ci(mean: float, lo: float, hi: float) -> str:
     if mean != mean:  # nan
         return "-"
@@ -255,6 +316,7 @@ def build_per_assay_table(data_root: str | Path, model: str, category: str = "al
         a_mean, a_lo, a_hi = bootstrap_ci([a for _, a in pairs])
         _, w_p, _ = paired_wilcoxon(pairs)
         mc = paired_mcnemar(data.field_outcomes[category])
+        perm = paired_permutation(data.record_discordant[category])
         rows.append(
             {
                 "assay": assay_label,
@@ -265,6 +327,7 @@ def build_per_assay_table(data_root: str | Path, model: str, category: str = "al
                 "mcnemar_b": mc["b"],
                 "mcnemar_c": mc["c"],
                 "mcnemar_p": _fmt_p(mc["pvalue"]),
+                "perm_p": _fmt_p(perm["pvalue"]),
             }
         )
     return pd.DataFrame(rows)
@@ -275,7 +338,9 @@ def build_overall_table(data_root: str | Path, model: str) -> pd.DataFrame:
 
     Accuracy is reported as *pooled* (field-weighted) accuracy with a record-level
     cluster-bootstrap CI, matching the paper's overall bottom row.  Significance is
-    the paired Wilcoxon (per-record) and McNemar (per-field) tests.
+    the paired Wilcoxon (per-record) and McNemar (per-field) tests, plus a
+    record-clustered permutation test that treats the record -- not the field -- as
+    the independent unit, so duplicated/clustered fields do not inflate the result.
     """
     import pandas as pd
 
@@ -291,6 +356,7 @@ def build_overall_table(data_root: str | Path, model: str) -> pd.DataFrame:
         a_mean, a_lo, a_hi = cluster_bootstrap_pooled(counts, "arms")
         _, w_p, w_n = paired_wilcoxon(pairs)
         mc = paired_mcnemar(pooled.field_outcomes[category])
+        perm = paired_permutation(pooled.record_discordant[category])
         rows.append(
             {
                 "category": CATEGORY_LABELS[category],
@@ -303,6 +369,7 @@ def build_overall_table(data_root: str | Path, model: str) -> pd.DataFrame:
                 "mcnemar_b": mc["b"],
                 "mcnemar_c": mc["c"],
                 "mcnemar_p": _fmt_p(mc["pvalue"]),
+                "perm_p": _fmt_p(perm["pvalue"]),
             }
         )
     return pd.DataFrame(rows)

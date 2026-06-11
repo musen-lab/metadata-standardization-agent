@@ -11,6 +11,7 @@ from significance import (
     cluster_bootstrap_pooled,
     collect_paired_data,
     paired_mcnemar,
+    paired_permutation,
     paired_wilcoxon,
 )
 
@@ -83,6 +84,43 @@ class TestPairedMcnemar:
         assert result["pvalue"] < 0.001
 
 
+class TestPairedPermutation:
+    def test_no_discordant_returns_one(self) -> None:
+        # Every record balanced (d_i = 0): nothing to test.
+        result = paired_permutation([(0, 0), (2, 2), (1, 1)])
+        assert result["n_effective"] == 0
+        assert result["pvalue"] == 1.0
+        assert result["s_observed"] == 0.0
+
+    def test_s_observed_is_net_arms_advantage(self) -> None:
+        # (baseline_only, arms_only) per record -> d_i = arms_only - baseline_only.
+        result = paired_permutation([(0, 3), (1, 2), (1, 1), (1, 0)])
+        assert result["s_observed"] == 3.0  # (3-0)+(2-1)+(1-1)+(0-1)
+        assert result["n_effective"] == 3  # the (1, 1) record has d_i = 0
+
+    def test_strongly_one_sided_is_significant(self) -> None:
+        # 20 records all favouring ARMS by a wide margin.
+        result = paired_permutation([(0, 5)] * 20)
+        assert result["pvalue"] < 0.001
+
+    def test_clustering_is_not_overconfident(self) -> None:
+        # 50 ARMS-wins vs 15 baseline-wins, but bunched into 10 records that each
+        # lean one way (7 pro-ARMS, 3 pro-baseline). A flat field-level McNemar
+        # would call this highly significant; the record-clustered permutation
+        # should not, because the real signal is only "7 vs 3 records".
+        discordant = [(0, 5)] * 7 + [(5, 0)] * 3
+        perm = paired_permutation(discordant)
+        flat = paired_mcnemar([(False, True)] * 35 + [(True, False)] * 15)
+        # Flat McNemar calls it significant; the clustered permutation does not.
+        assert flat["pvalue"] < 0.05
+        assert perm["pvalue"] > 0.05
+        assert perm["pvalue"] > flat["pvalue"]
+
+    def test_reproducible_with_seed(self) -> None:
+        discordant = [(1, 3), (0, 2), (2, 1), (1, 4)]
+        assert paired_permutation(discordant, seed=7)["pvalue"] == paired_permutation(discordant, seed=7)["pvalue"]
+
+
 class TestClusterBootstrapPooled:
     def test_pooled_is_field_weighted(self) -> None:
         # Record A: 1/1 correct; Record B: 1/3 correct. Pooled = 2/4 = 0.5,
@@ -152,3 +190,5 @@ class TestBuildOverallTable:
         # baseline 0/2 correct, ARMS 2/2; McNemar c=2, b=0.
         assert ont["mcnemar_c"] == 2
         assert ont["mcnemar_b"] == 0
+        # The record-clustered permutation column is present for every category.
+        assert "perm_p" in table.columns
