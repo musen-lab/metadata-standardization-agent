@@ -10,6 +10,7 @@ from significance import (
     build_overall_table,
     cluster_bootstrap_pooled,
     collect_paired_data,
+    effective_sample_size,
     paired_mcnemar,
     paired_permutation,
     paired_wilcoxon,
@@ -192,3 +193,38 @@ class TestBuildOverallTable:
         assert ont["mcnemar_b"] == 0
         # The record-clustered permutation column is present for every category.
         assert "perm_p" in table.columns
+
+
+def _build_clustered_root(root: Path) -> None:
+    """3 records sharing the same gold values, so each field forms one cluster:
+    ARMS is right on tissue every time and wrong on title every time."""
+    schema = {
+        "children": [
+            {"name": "tissue", "permissible_values": [{"type": "ontology"}]},
+            {"name": "title", "permissible_values": []},
+        ]
+    }
+    _write_record(root / "schemas" / "atacseq.json", schema)
+    for name in ("r0.json", "r1.json", "r2.json"):
+        _write_record(root / "atacseq" / "gold" / name, {"tissue": "lung", "title": "study"})
+        _write_record(
+            root / "atacseq" / "output" / "gpt5mini" / "experiment" / name, {"tissue": "lung", "title": "WRONG"}
+        )
+
+
+class TestEffectiveSampleSize:
+    def test_perfect_clusters_collapse_to_cluster_count(self, tmp_path: Path) -> None:
+        # Two clusters (tissue=lung, title=study), each with 3 perfectly-correlated
+        # instances -> ICC = 1, so N_eff collapses to the number of clusters (2).
+        _build_clustered_root(tmp_path)
+        e = effective_sample_size(tmp_path, "gpt5mini", "experiment")
+        assert e["n"] == 6
+        assert e["n_clusters"] == 2
+        assert e["icc"] > 0.99
+        assert abs(e["n_effective"] - 2) < 1e-6
+
+    def test_field_type_filter(self, tmp_path: Path) -> None:
+        _build_clustered_root(tmp_path)
+        ont = effective_sample_size(tmp_path, "gpt5mini", "experiment", field_type="ontology")
+        assert ont["n"] == 3
+        assert ont["n_clusters"] == 1  # only the tissue=lung cluster

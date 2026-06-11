@@ -222,6 +222,87 @@ def paired_wilcoxon(pairs: list[tuple[float, float]]) -> tuple[float, float, int
     return (float(result.statistic), float(result.pvalue), n_nonzero)
 
 
+def effective_sample_size(
+    data_root: str | Path,
+    model: str,
+    run_type: str,
+    *,
+    field_type: str | None = None,
+) -> dict[str, float]:
+    """Effective number of independent field observations, given the repetition.
+
+    The corpus repeats the same ``(assay, field, gold-value)`` correction across
+    many records, so the field outcomes are not independent.  This groups every
+    field instance by its ``(assay, field, gold-value)`` key, estimates the
+    intra-cluster correlation (ICC) of the binary correctness outcome via a
+    one-way random-effects ANOVA, and reports the design effect
+    ``DEFF = 1 + (m_bar - 1) * ICC`` and the effective sample size
+    ``n_effective = n / DEFF``.  ``field_type`` filters to ``"ontology"`` or
+    ``"non_ontology"`` (default: all fields).  Returns a dict with ``n``,
+    ``n_clusters``, ``icc``, ``design_effect``, and ``n_effective``.
+    """
+    from collections import defaultdict
+
+    from metrics import _get_ontology_constrained_fields, _is_missing, _values_match
+
+    root = Path(data_root)
+    groups: dict[tuple[str, str, str], list[int]] = defaultdict(lambda: [0, 0])  # key -> [n, n_correct]
+
+    for assay_key, _assay_label in ASSAY_ORDER:
+        schema_path = root / "schemas" / f"{assay_key}.json"
+        gold_dir = root / assay_key / "gold"
+        output_dir = root / assay_key / "output" / model / run_type
+        if not (schema_path.exists() and gold_dir.exists()):
+            continue
+        ontology_fields = set(_get_ontology_constrained_fields(schema_path))
+        for gold_file in sorted(gold_dir.glob("*.json")):
+            pred_file = output_dir / gold_file.name
+            if not pred_file.exists():
+                continue
+            gold = json.loads(gold_file.read_text())
+            predicted = json.loads(pred_file.read_text())
+            for field_name, gold_val in gold.items():
+                is_ont = field_name in ontology_fields
+                if field_type == "ontology" and not is_ont:
+                    continue
+                if field_type == "non_ontology" and is_ont:
+                    continue
+                gold_missing = _is_missing(gold_val)
+                pred_val = predicted.get(field_name)
+                pred_missing = _is_missing(pred_val)
+                correct = (gold_missing and pred_missing) or (
+                    not gold_missing
+                    and not pred_missing
+                    and _values_match(pred_val, gold_val, match_case=True, match_whole_word=True, field_name=field_name)
+                )
+                cell = groups[(assay_key, field_name, json.dumps(gold_val, sort_keys=True))]
+                cell[0] += 1
+                cell[1] += int(correct)
+
+    n = sum(c[0] for c in groups.values())
+    k = len(groups)
+    if k < 2 or n <= k:
+        return {"n": n, "n_clusters": k, "icc": float("nan"), "design_effect": float("nan"), "n_effective": float(n)}
+
+    grand = sum(c[1] for c in groups.values()) / n
+    ss_between = sum(c[0] * ((c[1] / c[0]) - grand) ** 2 for c in groups.values())
+    ss_within = sum(c[1] * (c[0] - c[1]) / c[0] for c in groups.values())  # binary within-SS = m*p*(1-p)
+    ms_between = ss_between / (k - 1)
+    ms_within = ss_within / (n - k)
+    m0 = (n - sum(c[0] ** 2 for c in groups.values()) / n) / (k - 1)
+    denom = ms_between + (m0 - 1) * ms_within
+    icc = max(0.0, (ms_between - ms_within) / denom) if denom > 0 else 0.0
+    m_bar = n / k
+    design_effect = 1 + (m_bar - 1) * icc
+    return {
+        "n": n,
+        "n_clusters": k,
+        "icc": icc,
+        "design_effect": design_effect,
+        "n_effective": n / design_effect,
+    }
+
+
 def paired_mcnemar(outcomes: list[tuple[bool, bool]]) -> dict[str, float]:
     """Paired McNemar test on per-field correctness.
 
@@ -385,6 +466,14 @@ def main() -> None:
     overall = build_overall_table(args.data_root, args.model)
     print("\n=== Overall (pooled across assays) ===")
     print(overall.to_string(index=False))
+
+    print("\n=== Effective sample size (ARMS field outcomes, clustered by (assay, field, value)) ===")
+    for cat, label in [(None, "all"), ("ontology", "ontology"), ("non_ontology", "non_ontology")]:
+        e = effective_sample_size(args.data_root, args.model, "experiment", field_type=cat)
+        print(
+            f"  {label:13s} N={e['n']:.0f} clusters={e['n_clusters']:.0f} "
+            f"ICC={e['icc']:.3f} DEFF={e['design_effect']:.1f} N_eff={e['n_effective']:.0f}"
+        )
 
     per_assay = {cat: build_per_assay_table(args.data_root, args.model, cat) for cat in CATEGORIES}
     for cat in CATEGORIES:
