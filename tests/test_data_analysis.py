@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from data_analysis import (
     create_deduplicated_accuracy_summary,
+    create_frequency_split_accuracy_summary,
     create_uncorrected_accuracy_summary,
 )
 
@@ -79,3 +80,29 @@ class TestDeduplicatedAccuracy:
         # all-fields macro over 4 unique pairs = (1 + 0 + 0 + 0) / 4 = 0.25,
         # which differs from the instance-weighted 3/6 = 0.5.
         assert row["all_field_accuracy"] == 0.25
+
+
+class TestFrequencySplitAccuracy:
+    def test_splits_by_value_frequency(self, tmp_path: Path) -> None:
+        # tissue="lung" recurs in all 3 records (ARMS correct); each title is unique
+        # (ARMS wrong). So recurring -> 3/3 = 1.0, singleton -> 0/3 = 0.0.
+        _build_repetitive_root(tmp_path)
+        df = create_frequency_split_accuracy_summary(str(tmp_path), "gpt5mini", "experiment")
+        rec = df[df["bucket"] == "recurring"].iloc[0]
+        sing = df[df["bucket"] == "singleton"].iloc[0]
+        assert rec["accuracy"] == 1.0
+        assert rec["n_instances"] == 3
+        assert sing["accuracy"] == 0.0
+        assert sing["n_instances"] == 3
+
+    def test_field_type_filter(self, tmp_path: Path) -> None:
+        _build_repetitive_root(tmp_path)
+        # Non-ontology fields are only the unique titles -> all singletons, all wrong.
+        non = create_frequency_split_accuracy_summary(
+            str(tmp_path), "gpt5mini", "experiment", field_type="non_ontology"
+        )
+        sing = non[non["bucket"] == "singleton"].iloc[0]
+        rec = non[non["bucket"] == "recurring"].iloc[0]
+        assert sing["n_instances"] == 3
+        assert sing["accuracy"] == 0.0
+        assert rec["n_instances"] == 0  # no recurring non-ontology values here

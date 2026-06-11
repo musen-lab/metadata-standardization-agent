@@ -300,6 +300,97 @@ def create_deduplicated_accuracy_summary(
     )
 
 
+def create_frequency_split_accuracy_summary(
+    data_root: str,
+    model: str,
+    run_type: str,
+    *,
+    field_type: str | None = None,
+) -> pd.DataFrame:
+    """Instance-weighted accuracy split by how often each value recurs.
+
+    Each field instance is keyed by its unique ``(assay, field, gold-value)`` and
+    bucketed by the frequency of that key across the corpus: ``singleton``
+    (appears once) versus ``recurring`` (appears in two or more records).  Within
+    each bucket the function reports the instance-weighted accuracy, separating
+    the gains on common, repeated values from those on rare, one-off values.
+    ``field_type`` filters to ``"ontology"`` or ``"non_ontology"`` (default: all
+    fields).  Returns a two-row DataFrame with columns ``bucket``, ``accuracy``,
+    and ``n_instances``.
+    """
+    from collections import defaultdict
+
+    import pandas as pd
+
+    from assays import ASSAY_ORDER
+
+    # First pass: frequency of each (assay, field, gold-value) in the gold standard.
+    frequency: dict[tuple[str, str, str], int] = defaultdict(int)
+    for assay_key, _assay_label in ASSAY_ORDER:
+        schema_path = Path(data_root, "schemas", f"{assay_key}.json")
+        gold_dir = Path(data_root, assay_key, "gold")
+        if not (schema_path.exists() and gold_dir.exists()):
+            continue
+        ontology_fields = set(_get_ontology_constrained_fields(schema_path))
+        for gold_file in sorted(gold_dir.glob("*.json")):
+            with open(gold_file) as f:
+                gold = json.load(f)
+            for field, gold_val in gold.items():
+                is_ont = field in ontology_fields
+                if field_type == "ontology" and not is_ont:
+                    continue
+                if field_type == "non_ontology" and is_ont:
+                    continue
+                frequency[(assay_key, field, json.dumps(gold_val, sort_keys=True))] += 1
+
+    # Second pass: instance-weighted correct/total per frequency bucket.
+    buckets = {"singleton": [0, 0], "recurring": [0, 0]}  # bucket -> [correct, total]
+    for assay_key, _assay_label in ASSAY_ORDER:
+        schema_path = Path(data_root, "schemas", f"{assay_key}.json")
+        gold_dir = Path(data_root, assay_key, "gold")
+        output_dir = Path(data_root, assay_key, "output", model, run_type)
+        if not (schema_path.exists() and gold_dir.exists()):
+            continue
+        ontology_fields = set(_get_ontology_constrained_fields(schema_path))
+        for gold_file in sorted(gold_dir.glob("*.json")):
+            pred_file = output_dir / gold_file.name
+            if not pred_file.exists():
+                continue
+            with open(gold_file) as f:
+                gold = json.load(f)
+            with open(pred_file) as f:
+                predicted = json.load(f)
+            for field, gold_val in gold.items():
+                is_ont = field in ontology_fields
+                if field_type == "ontology" and not is_ont:
+                    continue
+                if field_type == "non_ontology" and is_ont:
+                    continue
+                gold_missing = _is_missing(gold_val)
+                pred_val = predicted.get(field)
+                pred_missing = _is_missing(pred_val)
+                correct = (gold_missing and pred_missing) or (
+                    not gold_missing
+                    and not pred_missing
+                    and _values_match(pred_val, gold_val, match_case=True, match_whole_word=True, field_name=field)
+                )
+                key = (assay_key, field, json.dumps(gold_val, sort_keys=True))
+                bucket = "singleton" if frequency[key] == 1 else "recurring"
+                buckets[bucket][1] += 1
+                buckets[bucket][0] += int(correct)
+
+    return pd.DataFrame(
+        [
+            {
+                "bucket": name,
+                "accuracy": correct / total if total else 0.0,
+                "n_instances": total,
+            }
+            for name, (correct, total) in buckets.items()
+        ]
+    )
+
+
 def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: Path) -> pd.DataFrame:
     """Compare predicted outputs in *input_dir* against gold standards in *gold_dir*."""
     import pandas as pd
