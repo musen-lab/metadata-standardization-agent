@@ -211,6 +211,95 @@ def create_uncorrected_accuracy_summary(
     )
 
 
+def create_deduplicated_accuracy_summary(
+    data_root: str,
+    model: str,
+    run_type: str,
+    *,
+    populated_only: bool = False,
+) -> pd.DataFrame:
+    """Accuracy with each unique correction counted once, controlling for repetition.
+
+    The corpus is repetitive: the same ``(field, value)`` correction recurs across
+    many records, so instance-weighted accuracy can be dominated by a few common
+    values.  This function groups field instances by their unique ``(assay, field,
+    gold-value)`` key, averages correctness within each group, then macro-averages
+    over groups (split by ontology vs non-ontology fields).  It complements the
+    instance-weighted summaries by showing performance across *distinct*
+    corrections rather than repeated ones.
+
+    Returns a single-row DataFrame with the three accuracy columns plus the number
+    of unique pairs contributing to each (``n_ontology_pairs``,
+    ``n_non_ontology_pairs``, ``n_unique_pairs``).  When *populated_only* is
+    ``True``, only gold fields that carry a value are counted.
+    """
+    from collections import defaultdict
+
+    import pandas as pd
+
+    from assays import ASSAY_ORDER
+
+    groups: dict[str, dict[tuple[str, str, str], list[int]]] = {
+        "ontology": defaultdict(list),
+        "non_ontology": defaultdict(list),
+    }
+
+    for assay_key, _assay_label in ASSAY_ORDER:
+        schema_path = Path(data_root, "schemas", f"{assay_key}.json")
+        gold_dir = Path(data_root, assay_key, "gold")
+        output_dir = Path(data_root, assay_key, "output", model, run_type)
+        if not (schema_path.exists() and gold_dir.exists()):
+            continue
+        ontology_fields = set(_get_ontology_constrained_fields(schema_path))
+
+        for gold_file in sorted(gold_dir.glob("*.json")):
+            pred_file = output_dir / gold_file.name
+            if not pred_file.exists():
+                continue
+            with open(gold_file) as f:
+                gold = json.load(f)
+            with open(pred_file) as f:
+                predicted = json.load(f)
+
+            for field, gold_val in gold.items():
+                gold_missing = _is_missing(gold_val)
+                if populated_only and gold_missing:
+                    continue
+                pred_val = predicted.get(field)
+                pred_missing = _is_missing(pred_val)
+                correct = (gold_missing and pred_missing) or (
+                    not gold_missing
+                    and not pred_missing
+                    and _values_match(pred_val, gold_val, match_case=True, match_whole_word=True, field_name=field)
+                )
+                key = (assay_key, field, json.dumps(gold_val, sort_keys=True))
+                category = "ontology" if field in ontology_fields else "non_ontology"
+                groups[category][key].append(int(correct))
+
+    def _macro(pairs: dict[tuple[str, str, str], list[int]]) -> tuple[float, int]:
+        if not pairs:
+            return 0.0, 0
+        per_pair = [sum(outcomes) / len(outcomes) for outcomes in pairs.values()]
+        return sum(per_pair) / len(per_pair), len(per_pair)
+
+    ont_acc, ont_n = _macro(groups["ontology"])
+    non_acc, non_n = _macro(groups["non_ontology"])
+    all_acc, all_n = _macro({**groups["ontology"], **groups["non_ontology"]})
+
+    return pd.DataFrame(
+        [
+            {
+                "ontology_constrained_accuracy": ont_acc,
+                "non_ontology_constrained_accuracy": non_acc,
+                "all_field_accuracy": all_acc,
+                "n_ontology_pairs": ont_n,
+                "n_non_ontology_pairs": non_n,
+                "n_unique_pairs": all_n,
+            }
+        ]
+    )
+
+
 def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: Path) -> pd.DataFrame:
     """Compare predicted outputs in *input_dir* against gold standards in *gold_dir*."""
     import pandas as pd
