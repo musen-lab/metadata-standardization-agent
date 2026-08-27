@@ -121,7 +121,7 @@ You can also run standardizations from the command line:
 
 ```bash
 python -m evaluation --input <dir> --target-schema <iri> --output <parent-dir> \
-    (--prompt-only [CONDITION] | --agent-tool [AGENT_NAME]) \
+    --condition CONDITION [--run-name NAME] \
     [--model MODEL] [--concurrent N] [--langfuse-environment NAME] \
     [--debug]
 ```
@@ -130,12 +130,12 @@ python -m evaluation --input <dir> --target-schema <iri> --output <parent-dir> \
 |------|-------------|
 | `--input DIR` | Directory containing input JSON files |
 | `--target-schema IRI` | IRI of the CEDAR template to standardize to |
-| `--output DIR` | Parent directory for the migrated output JSON files. The run writes to `DIR/<run name>/`, where the run name is the value given to the workflow flag |
-| `--prompt-only [CONDITION]` | Use the prompt-only workflow (single LLM call) under the named condition: `baseline` (default: `baseline`) |
-| `--agent-tool [AGENT_NAME]` | Use the agent tool workflow (ReAct agent) under the named agent, e.g. `arms-agent` (default: `arms-agent`) |
+| `--output DIR` | Parent directory for the migrated output JSON files. The run writes to `DIR/<run name>/` |
+| `--condition CONDITION` | Which condition to run. The choices are the modules declared under `conditions/`, so a module dropped in is offered here without this flag changing |
+| `--run-name NAME` | What to call this run: the output subdirectory and the trace tag (default: the condition's own name). Use it to keep a repeat run beside the first |
 | `--model MODEL` | GPT model variant: `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol` (default: `gpt-5.6-terra`) |
 | `--concurrent N` | Max number of concurrent file evaluations (default: `5`) |
 | `--langfuse-environment NAME` | Langfuse tracing environment to file this run under (overrides `.env` setting) |
 | `--debug` | Enable debug logging to stderr |
 
-One of `--prompt-only` or `--agent-tool` is required, and the value it is given names the run: it tags the Langfuse trace and is the subdirectory of `--output` the predictions land in. This will run the standardization workflow on each JSON file in the input directory.
+`--condition` is required and is checked against the declared conditions, so a typo stops before the input is read. The run's name — the condition's own, or whatever `--run-name` says — tags the Langfuse trace and is the subdirectory of `--output` the predictions land in. This will run the standardization workflow on each JSON file in the input directory.

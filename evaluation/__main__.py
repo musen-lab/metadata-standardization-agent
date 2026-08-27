@@ -3,12 +3,15 @@
 Usage::
 
     evaluate --input <dir> --target-schema <iri> --output <parent-dir> \
+        --condition CONDITION [--run-name NAME] \
         [--model MODEL] [--concurrent N] [--langfuse-environment NAME] \
-        (--prompt-only [CONDITION] | --agent-tool [AGENT_NAME]) \
         [--debug]
 
-The value given to ``--prompt-only`` / ``--agent-tool`` names the run: it tags the trace
-and is the subdirectory of ``--output`` the predictions are written to.
+``--condition`` takes any condition declared under ``conditions/``; the list is read
+from there rather than written down here, so a module dropped in is offered without
+this file changing.  The run is named after it, unless ``--run-name`` says otherwise:
+that name tags the trace and is the subdirectory of ``--output`` the predictions are
+written to.
 """
 
 from __future__ import annotations
@@ -29,6 +32,12 @@ load_dotenv(_project_root / ".env", override=True)
 
 def main() -> None:
     """Parse arguments and run the evaluation experiment."""
+    # Read before the parser is built: the conditions are the flag's choices, and its
+    # help text lists them.
+    from conditions import condition_names, get_condition
+
+    known = condition_names()
+
     parser = argparse.ArgumentParser(
         description="Batch-run the migration workflow and evaluate against gold standards.",
     )
@@ -38,28 +47,23 @@ def main() -> None:
         "--output",
         required=True,
         type=Path,
-        help="Parent directory for migrated output files.  The run writes to the subdirectory of it "
-        "named by whichever of --prompt-only / --agent-tool was given.",
+        help="Parent directory for migrated output files.  The run writes to the subdirectory of it named by the run.",
     )
-    # One flag picks the workflow *and* names the run, so the two can never disagree and
-    # neither mode carries a naming option the other silently ignores.  Both default to
-    # None when absent, which is what distinguishes "not given" from "given bare".
-    workflow_group = parser.add_mutually_exclusive_group(required=True)
-    workflow_group.add_argument(
-        "--prompt-only",
-        nargs="?",
-        const="baseline",
-        choices=["baseline"],
-        help="Use the prompt-only call workflow, under the named condition: what the prompt "
-        "spells out of the template -- 'baseline' its field and vocabulary names, and no tools "
-        "(default: baseline).",
+    # The choices are the declared conditions, so a name outside them is refused here --
+    # before the input is read and before anything is spent.
+    parser.add_argument(
+        "--condition",
+        required=True,
+        choices=known,
+        help="The condition to run.  Each is a module under conditions/ that declares itself; "
+        f"the module says which family it belongs to and what keys it needs.  One of: {', '.join(known)}.",
     )
-    workflow_group.add_argument(
-        "--agent-tool",
-        nargs="?",
-        const="arms-agent",
-        metavar="AGENT_NAME",
-        help="Use the agent tool call workflow, under the named agent, e.g. 'arms-agent' (default: arms-agent).",
+    parser.add_argument(
+        "--run-name",
+        metavar="NAME",
+        help="What to call this run: the subdirectory of --output it writes to, and the tag its "
+        "trace carries (default: the condition's own name).  Name a run to hold a repeat of one "
+        "condition beside the first rather than over it.",
     )
     gpt_models = ["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"]
     parser.add_argument(
@@ -92,36 +96,32 @@ def main() -> None:
     if args.langfuse_environment:
         os.environ["LANGFUSE_TRACING_ENVIRONMENT"] = args.langfuse_environment
 
-    from conditions import build_condition
-
-    # --agent-tool names the run rather than choosing one, since ARMS is the only agent:
-    # any name given to it runs ARMS and names the directory it writes to.
-    condition = args.prompt_only if args.prompt_only is not None else "arms-agent"
-    build_workflow, prompt_builder = build_condition(condition)
+    condition = get_condition(args.condition)
     # The template is passed at build time so the answer can be validated against it.
-    workflow_factory = partial(build_workflow, model=args.model, template_iri=args.target_schema)
-    logging.getLogger(__name__).info("Running condition: %s", condition)
+    workflow_factory = partial(condition.build_workflow, model=args.model, template_iri=args.target_schema)
 
     from evaluate import run_experiment
 
-    # Names the on-disk output directory (data/<assay>/output/<model>/<workflow_type>/)
-    # and is matched verbatim by the modules under analysis/: the value given to whichever
-    # of --prompt-only / --agent-tool selected the workflow above.
-    workflow_type = args.prompt_only if args.prompt_only is not None else args.agent_tool
-    output_dir = args.output / workflow_type
+    # Names the on-disk output directory (data/<assay>/output/<model>/<run_name>/) and is
+    # matched verbatim by the modules under analysis/.  It is the condition's name unless
+    # --run-name overrode it, which is how a repeat run is kept beside the first.
+    run_name = args.run_name or condition.name
+    output_dir = args.output / run_name
+    logging.getLogger(__name__).info("Running condition %s as %s", condition.name, run_name)
     logging.getLogger(__name__).info("Writing output to %s", output_dir)
     run_experiment(
         template_iri=args.target_schema,
         input_dir=args.input,
         output_dir=output_dir,
         workflow_factory=workflow_factory,
-        user_prompt_builder=prompt_builder,
+        user_prompt_builder=condition.build_user_prompt,
         max_concurrency=args.concurrent,
         config={
-            "tags": ["evaluation", workflow_type],
+            "tags": ["evaluation", run_name],
             "metadata": {
                 "template_iri": args.target_schema,
-                "workflow_type": workflow_type,
+                "workflow_type": run_name,
+                "condition": condition.name,
             },
         },
     )

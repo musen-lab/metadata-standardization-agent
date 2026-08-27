@@ -17,22 +17,20 @@ import pytest
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# Every workflow the CLI can dispatch to, since each pulls in a different module.  The
-# workflow flag carries the run's name as its value, and both spellings -- bare, taking
-# the default, and with a name -- have to reach argument parsing.
-_WORKFLOWS = [
-    ["--prompt-only"],
-    ["--prompt-only", "baseline"],
-    ["--agent-tool"],
-    ["--agent-tool", "arms-agent"],
+# Every condition the CLI can dispatch to, since each pulls in a different module.  The
+# names are written out rather than read from the registry: a test that asked the code
+# under test what to test would pass just as well with the registry returning nothing.
+_CONDITIONS = [
+    ["--condition", "baseline"],
+    ["--condition", "arms-agent"],
 ]
 
-# --output is the parent; the leaf directory is the run's name.
+# --output is the parent; the leaf directory is the run's name, which is the condition's
+# own name unless --run-name gave it another.
 _RUN_DIRECTORIES = [
-    (["--prompt-only"], "baseline"),
-    (["--prompt-only", "baseline"], "baseline"),
-    (["--agent-tool"], "arms-agent"),
-    (["--agent-tool", "other-agent"], "other-agent"),
+    (["--condition", "baseline"], "baseline"),
+    (["--condition", "arms-agent"], "arms-agent"),
+    (["--condition", "arms-agent", "--run-name", "arms-agent-r2"], "arms-agent-r2"),
 ]
 
 
@@ -60,58 +58,53 @@ def _run_cli(tmp_path: Path, workflow_args: list[str]) -> subprocess.CompletedPr
     return subprocess.run(command, cwd=_PROJECT_ROOT, capture_output=True, text=True, timeout=120, check=False)
 
 
-@pytest.mark.parametrize("workflow_args", _WORKFLOWS, ids=" ".join)
-def test_workflow_imports_resolve(tmp_path: Path, workflow_args: list[str]) -> None:
-    """Each workflow must import cleanly when the package is run as ``python -m evaluation``."""
+@pytest.mark.parametrize("workflow_args", _CONDITIONS, ids=" ".join)
+def test_condition_imports_resolve(tmp_path: Path, workflow_args: list[str]) -> None:
+    """Each condition must import cleanly when the package is run as ``python -m evaluation``."""
     result = _run_cli(tmp_path, workflow_args)
     assert "ModuleNotFoundError" not in result.stderr, result.stderr
     assert result.returncode == 0, result.stderr
 
 
-@pytest.mark.parametrize("workflow_args", _WORKFLOWS, ids=" ".join)
-def test_workflow_reaches_the_runner(tmp_path: Path, workflow_args: list[str]) -> None:
+@pytest.mark.parametrize("workflow_args", _CONDITIONS, ids=" ".join)
+def test_condition_reaches_the_runner(tmp_path: Path, workflow_args: list[str]) -> None:
     """Dispatch must get as far as run_experiment, not exit early for some other reason."""
     result = _run_cli(tmp_path, workflow_args)
     assert "No *.json files found" in result.stderr, result.stderr
 
 
-@pytest.mark.parametrize(("workflow_args", "run_directory"), _RUN_DIRECTORIES)
+@pytest.mark.parametrize(("workflow_args", "run_directory"), _RUN_DIRECTORIES, ids=lambda arg: str(arg))
 def test_output_goes_under_the_run_name(tmp_path: Path, workflow_args: list[str], run_directory: str) -> None:
-    """The run writes to <--output>/<the name the workflow flag was given>, not to --output itself."""
+    """The run writes to <--output>/<run name>, not to --output itself."""
     result = _run_cli(tmp_path, workflow_args)
     assert str(tmp_path / "output" / run_directory) in result.stderr, result.stderr
 
 
-def test_a_workflow_flag_is_required(tmp_path: Path) -> None:
-    """Neither flag given is an error: there is no default workflow to fall back on."""
+def test_a_condition_is_required(tmp_path: Path) -> None:
+    """No condition given is an error: there is no default arm to fall back on."""
     result = _run_cli(tmp_path, [])
     assert result.returncode != 0
-    assert "one of the arguments --prompt-only --agent-tool is required" in result.stderr, result.stderr
+    assert "the following arguments are required: --condition" in result.stderr, result.stderr
 
 
 def test_an_unknown_condition_is_rejected(tmp_path: Path) -> None:
-    """--prompt-only takes a fixed set of conditions; --agent-tool takes any name."""
-    result = _run_cli(tmp_path, ["--prompt-only", "baseline+extra"])
+    """--condition takes the declared conditions and nothing else."""
+    result = _run_cli(tmp_path, ["--condition", "baseline+extra"])
     assert result.returncode != 0
     assert "invalid choice" in result.stderr, result.stderr
-
-
-@pytest.mark.parametrize(
-    "workflow_args",
-    [
-        ["--prompt-only", "--agent-tool"],
-        ["--prompt-only", "baseline", "--agent-tool", "arms-agent"],
-        ["--agent-tool", "arms-agent", "--prompt-only", "baseline"],
-    ],
-    ids=" ".join,
-)
-def test_both_workflow_flags_is_refused(tmp_path: Path, workflow_args: list[str]) -> None:
-    """Both flags given must say so and stop, rather than pick one and run under it.
-
-    The two would name the run differently, so there is no safe way to proceed.
-    """
-    result = _run_cli(tmp_path, workflow_args)
-    assert result.returncode != 0
-    assert "not allowed with argument" in result.stderr, result.stderr
     # Nothing ran: the runner never got as far as reading the input directory.
     assert "No *.json files found" not in result.stderr, result.stderr
+
+
+def test_the_declared_conditions_are_offered(tmp_path: Path) -> None:
+    """The help lists what the registry found, so a dropped-in module is reachable here."""
+    result = _run_cli(tmp_path, ["--help"])
+    assert result.returncode == 0, result.stderr
+    assert "--condition {baseline,arms-agent}" in result.stdout.replace("\n", " ").replace("  ", " "), result.stdout
+
+
+def test_a_run_name_does_not_change_the_condition(tmp_path: Path) -> None:
+    """--run-name names the output; it must not be read as a condition of its own."""
+    result = _run_cli(tmp_path, ["--condition", "baseline", "--run-name", "arms-agent"])
+    assert result.returncode == 0, result.stderr
+    assert "Running condition baseline as arms-agent" in result.stderr, result.stderr
