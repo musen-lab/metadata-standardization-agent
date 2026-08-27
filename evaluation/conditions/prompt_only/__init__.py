@@ -11,5 +11,9 @@ answer is requested and validated exactly as the tool arm's is.
 
 :mod:`conditions.prompt_only.template_spec` builds the template material that prompt is
 assembled from.  It lives here rather than beside the other condition because the tool
-arm has no use for it: it fetches the template through its tools instead.
+arm has no use for it: it fetches the template through its tools instead.  It declares no
+``CONDITION``, which is what tells the registry it is material rather than an arm.
+
+A module dropped in here is another prompt-only condition as soon as it declares one; see
+:mod:`conditions.registry` for what it declares.
 """

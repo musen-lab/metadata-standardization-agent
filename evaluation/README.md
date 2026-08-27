@@ -89,6 +89,32 @@ All three metrics accept two optional parameters that relax string matching:
 
 Both parameters can be combined (e.g. case-insensitive substring matching). With defaults `(True, True)`, behaviour is identical to strict exact match.
 
+## Adding a Condition
+
+A condition is a module under `conditions/prompt_only/` or `conditions/agent_tool/` that declares itself. Drop the file in and the CLI, the sweep and the notebook all see it; no list anywhere needs editing, because no list exists.
+
+```python
+# conditions/prompt_only/schema_vocab.py
+from conditions.registry import Condition
+
+
+def build_schema_vocab_workflow(model: str, template_iri: str | None = None) -> CompiledStateGraph: ...
+def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str: ...
+
+
+CONDITION = Condition(
+    name="schema+vocab",                    # what the CLI takes, and the output directory
+    build_workflow=build_schema_vocab_workflow,
+    build_user_prompt=build_user_prompt,
+    requires_keys=("BIOPORTAL_API_KEY",),   # optional: checked before a sweep spends anything
+    order=20,                               # optional: where it sits in the reported order
+)
+```
+
+The name is declared rather than read off the filename because the two need not agree — `schema+vocab` is not a legal module name. `requires_keys` is declared because only the condition knows what it calls out to; `plan_sweep` collects it from every condition in the sweep and stops on a missing key before any run starts. A module that declares no `CONDITION` is not one: `prompt_only/template_spec.py` is the material the prompts are built from, and the registry passes over it.
+
+A directory added beside `prompt_only/` and `agent_tool/` becomes a third family the same way, with no code change.
+
 ## CLI
 
 You can also run standardizations from the command line:
