@@ -1,0 +1,472 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "VAN0012-RK-103-75",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0012-RK-103-75"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The tissue identifier identifies the section used for this imaging assay, but it does not match the HuBMAP/SenNet identifier pattern."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No legacy field identifies an external dataset metadata record maintained by the provider."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.4srgwd6",
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.4srgwd6"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The section-preparation protocol DOI directly describes sample preparation and was reformatted as a DOI URL."
+  },
+  {
+    "key": "dataset_type",
+    "value": "MALDI",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "No legacy value explicitly supplies the dataset type, so the template default was used."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Lipid",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "lipids"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Lipid",
+      "Saturated lipid",
+      "Unsaturated lipid"
+    ],
+    "reasoning": "The plural legacy value denotes the general controlled term Lipid rather than a saturated or unsaturated subtype."
+  },
+  {
+    "key": "is_targeted",
+    "value": "No",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "FALSE"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "FALSE denotes the permitted option No."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Bruker",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Bruker Daltonics"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Bruker"
+    ],
+    "reasoning": "Bruker Daltonics denotes the controlled vendor label Bruker."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "MALDI timsTOF Flex Prototype",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "MALDI timsTOF Flex Prototype"
+    ],
+    "resolution": "copied",
+    "candidates": [
+      "MALDI timsTOF Flex Prototype",
+      "timsTOF FleX MALDI-2",
+      "timsTOF FleX"
+    ],
+    "reasoning": "The legacy model exactly matches a returned controlled label."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No storage duration before processing is recorded."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No unit for source storage duration is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No elapsed time since instrument servicing or calibration is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No unit for time since acquisition-instrument calibration is recorded."
+  },
+  {
+    "key": "contributors_path",
+    "value": null,
+    "legacy_fields": [
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email"
+    ],
+    "legacy_values": [
+      "Elizabeth K. Neumann",
+      "elizabeth.neumann@vanderbilt.edu",
+      "Jeffrey M. Spraggins",
+      "jeff.spraggins@vanderbilt.edu"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "Contributor names and emails do not provide the required path to a TSV containing ORCID IDs."
+  },
+  {
+    "key": "data_path",
+    "value": "/",
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "/"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The same-named legacy field supplies the data location, although the absolute root path does not match the template path pattern."
+  },
+  {
+    "key": "ms_ionization_technique",
+    "value": "MALDI",
+    "legacy_fields": [
+      "ms_source"
+    ],
+    "legacy_values": [
+      "MALDI"
+    ],
+    "resolution": "copied",
+    "candidates": [
+      "MALDI",
+      "MALDI-2"
+    ],
+    "reasoning": "The legacy MS source directly denotes the MALDI ionization-technique label."
+  },
+  {
+    "key": "ms_scan_mode",
+    "value": null,
+    "legacy_fields": [
+      "assay_type",
+      "assay_category"
+    ],
+    "legacy_values": [
+      "IMS positive",
+      "mass_spectrometry"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "These values establish ion-mobility mass spectrometry and polarity but do not state an MS fragmentation scan mode such as MS1."
+  },
+  {
+    "key": "mass_analysis_polarity",
+    "value": "Positive ion mode",
+    "legacy_fields": [
+      "polarity"
+    ],
+    "legacy_values": [
+      "Positive Ion Mode"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Positive ion mode",
+      "Negative and positive ion mode"
+    ],
+    "reasoning": "The legacy polarity denotes the controlled label Positive ion mode."
+  },
+  {
+    "key": "mass_to_charge_range_low_value",
+    "value": 100,
+    "legacy_fields": [
+      "mz_range_low_value"
+    ],
+    "legacy_values": [
+      "100"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy low m/z range value supplies the requested unitless numeric value."
+  },
+  {
+    "key": "mass_to_charge_range_high_value",
+    "value": 2000,
+    "legacy_fields": [
+      "mz_range_high_value"
+    ],
+    "legacy_values": [
+      "2000"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy high m/z range value supplies the requested unitless numeric value."
+  },
+  {
+    "key": "mass_resolving_power",
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_value",
+      "resolution_x_unit",
+      "resolution_y_value",
+      "resolution_y_unit"
+    ],
+    "legacy_values": [
+      "10",
+      "um",
+      "10",
+      "um"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The recorded micrometre values are spatial resolution, not unitless mass resolving power."
+  },
+  {
+    "key": "mass_to_charge_resolving_power",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No m/z peak at which resolving power was calculated is recorded."
+  },
+  {
+    "key": "ion_mobility",
+    "value": "TIMS",
+    "legacy_fields": [
+      "assay_type",
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "IMS positive",
+      "MALDI timsTOF Flex Prototype"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "TIMS",
+      "DTIMS",
+      "TWIMS"
+    ],
+    "reasoning": "The IMS assay and the timsTOF model together identify trapped ion mobility spectrometry (TIMS)."
+  },
+  {
+    "key": "matrix_deposition_method",
+    "value": "Robotic spraying",
+    "legacy_fields": [
+      "preparation_type",
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      "Sprayed",
+      "M3 TM-Sprayer"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "Robotic spraying",
+      "Electrospray deposition"
+    ],
+    "reasoning": "The stated sprayed preparation and TM-Sprayer instrument denote robotic spraying rather than electrospray deposition."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": "HTX Technologies",
+    "legacy_fields": [
+      "preparation_instrument_vendor"
+    ],
+    "legacy_values": [
+      "HTX Imaging"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "HTX Technologies"
+    ],
+    "reasoning": "HTX Imaging denotes the controlled vendor label HTX Technologies."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": "TM-Sprayer",
+    "legacy_fields": [
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      "M3 TM-Sprayer"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "TM-Sprayer",
+      "M3+ Sprayer"
+    ],
+    "reasoning": "The legacy M3 TM-Sprayer description denotes the available TM-Sprayer model label."
+  },
+  {
+    "key": "preparation_matrix",
+    "value": "DAN (1,5-diaminonapthalene)",
+    "legacy_fields": [
+      "preparation_maldi_matrix"
+    ],
+    "legacy_values": [
+      "1,5-Diaminonaphthalene"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "DAN (1,5-diaminonapthalene)"
+    ],
+    "reasoning": "The legacy chemical name denotes the returned DAN controlled label."
+  },
+  {
+    "key": "analysis_protocol_doi",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No legacy DOI is identified as documenting software or database processing of raw data."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "2e35434f-e6ed-4e01-a54a-189ec0706a3d",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The template supplies its own metadata schema identifier as the default."
+  },
+  {
+    "key": null,
+    "value": true,
+    "legacy_fields": [
+      "_from_metadatatsv"
+    ],
+    "legacy_values": [
+      "true"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This import-status flag has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": "single_metadatatsv",
+    "legacy_fields": [
+      "collectiontype"
+    ],
+    "legacy_values": [
+      "single_metadatatsv"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Collection packaging type has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": "VAN0012",
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "VAN0012"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The donor identifier identifies a person rather than the parent tissue-section sample."
+  },
+  {
+    "key": null,
+    "value": "10/30/19 17:11",
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "10/30/19 17:11"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Assay execution time has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": "/metadata/",
+    "legacy_fields": [
+      "metadata_path"
+    ],
+    "legacy_values": [
+      "/metadata/"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The metadata-file directory has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": "10\\.17504/protocols.io.bfskjncw",
+    "legacy_fields": [
+      "overall_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10\\.17504/protocols.io.bfskjncw"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The overall protocol DOI is not specifically identified as either preparation or analysis processing documentation."
+  },
+  {
+    "key": null,
+    "value": "10.17504/protocols.io.7gdhjs6",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.7gdhjs6"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This unqualified protocol DOI cannot be assigned specifically to the analysis-processing protocol field."
+  }
+]

@@ -4,14 +4,25 @@ Measures the quality of agent-predicted metadata against gold-standard reference
 
 ## Getting Started
 
-The recommended way to run evaluations and explore results is the **`demo.ipynb`** notebook in this directory. It provides an interactive workflow for:
+The recommended way to run evaluations and explore results is the **`experiment.ipynb`** notebook in the repository root. It provides an interactive workflow for:
 
-- Running the method evaluations (baseline and experiment) across all assay types
+- Running the method evaluations (prompt-only and agent-tool) across all assay types
 - Computing per-assay and overall accuracy summaries
-- Plotting grouped bar charts comparing baseline vs experiment
+- Plotting grouped bar charts comparing baseline vs agent-tool
 - Generating error analysis reports
 
-Open the notebook and follow the configuration cells to set your `DATA_ROOT`, `MODEL`, and `RUN_TYPE`.
+Open the notebook and follow the configuration cells to set your `DATA_ROOT`, `MODEL`, `ASSAYS` and `RUN_TYPES`. Run it from the repository root: its setup cell puts this directory on the import path so the modules below can be imported by name.
+
+Running the experiments is two calls, both from [`sweep.py`](sweep.py):
+
+```python
+from sweep import plan_sweep, run_sweep
+
+plan = plan_sweep(DATA_ROOT, MODEL, assays=ASSAYS, run_types=RUN_TYPES)
+run_sweep(plan, dry_run=False)
+```
+
+`plan_sweep` loads the API keys from `.env` and prints what the sweep covers. It raises on an unknown assay, an unknown condition, an assay with no input records, or a missing key — before anything is spent. `run_sweep` then makes the runs, one at a time, every condition of one assay before the next assay starts. It spends nothing while `dry_run` stands, which is its default.
 
 ## Directory Conventions
 
@@ -32,11 +43,11 @@ DATA_ROOT/
 │   │   └── ...
 │   └── output/
 │       └── <MODEL>/              # e.g., "gpt5mini"
-│           ├── baseline/
-│           │   ├── atacseq-<hash>.json   # Prompt-only LLM outputs
+│           ├── baseline/                 # Prompt-only: field and vocabulary names
+│           │   ├── atacseq-<hash>.json
 │           │   └── ...
-│           └── experiment/
-│               ├── atacseq-<hash>.json   # Tool-augmented agent outputs
+│           └── arms-agent/               # Agent tool: named by --agent-name
+│               ├── atacseq-<hash>.json
 │               └── ...
 ├── lcms/
 │   ├── input/ ...
@@ -49,7 +60,7 @@ Gold-standard and output files share the same filenames so that each output can 
 
 ## Metrics
 
-Three accuracy metrics are computed by `metrics.py`:
+Three accuracy metrics are computed by `analysis/metrics/`:
 
 ### Ontology-Constrained Field Accuracy (`ontology_constrained_field_accuracy`)
 
@@ -83,9 +94,9 @@ Both parameters can be combined (e.g. case-insensitive substring matching). With
 You can also run standardizations from the command line:
 
 ```bash
-python -m evaluation --input <dir> --target-schema <iri> --output <dir> \
-    (--baseline | --experiment) \
-    [--model MODEL] [--concurrent N] [--langsmith-project NAME] \
+python -m evaluation --input <dir> --target-schema <iri> --output <parent-dir> \
+    (--prompt-only [CONDITION] | --agent-tool [AGENT_NAME]) \
+    [--model MODEL] [--concurrent N] [--langfuse-environment NAME] \
     [--debug]
 ```
 
@@ -93,12 +104,12 @@ python -m evaluation --input <dir> --target-schema <iri> --output <dir> \
 |------|-------------|
 | `--input DIR` | Directory containing input JSON files |
 | `--target-schema IRI` | IRI of the CEDAR template to standardize to |
-| `--output DIR` | Directory to write migrated output JSON files |
-| `--baseline` | Use the baseline workflow (single LLM call) |
-| `--experiment` | Use the experiment workflow (ReAct agent) |
-| `--model MODEL` | GPT model variant: `gpt-4.1`, `gpt-4.1-mini`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano` (default: `gpt-4.1-mini`) |
+| `--output DIR` | Parent directory for the migrated output JSON files. The run writes to `DIR/<run name>/`, where the run name is the value given to the workflow flag |
+| `--prompt-only [CONDITION]` | Use the prompt-only workflow (single LLM call) under the named condition: `baseline` (default: `baseline`) |
+| `--agent-tool [AGENT_NAME]` | Use the agent tool workflow (ReAct agent) under the named agent, e.g. `arms-agent` (default: `arms-agent`) |
+| `--model MODEL` | GPT model variant: `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol` (default: `gpt-5.6-terra`) |
 | `--concurrent N` | Max number of concurrent file evaluations (default: `5`) |
-| `--langsmith-project NAME` | LangSmith project name (overrides `.env` setting) |
+| `--langfuse-environment NAME` | Langfuse tracing environment to file this run under (overrides `.env` setting) |
 | `--debug` | Enable debug logging to stderr |
 
-One of `--baseline` or `--experiment` is required. This will run the standardization workflow on each JSON file in the input directory and write outputs to the output directory.
+One of `--prompt-only` or `--agent-tool` is required, and the value it is given names the run: it tags the Langfuse trace and is the subdirectory of `--output` the predictions land in. This will run the standardization workflow on each JSON file in the input directory.

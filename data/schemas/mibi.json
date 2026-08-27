@@ -13,7 +13,7 @@
     },
     {
       "name": "lab_id",
-      "description": "A locally assigned identifier provided by the data provider for the dataset. It is used to reference an external metadata record that may be maintained independently, enabling traceability and supporting provenance tracking. Example: Visium_9OLC_A4_S1",
+      "description": "An identifier assigned by the data provider to reference an external metadata record for the dataset. The external record may be maintained independently and can support dataset traceability and provenance tracking. Leave this field empty if no such identifier exists.",
       "label": "Lab ID",
       "type": "string",
       "required": false,
@@ -41,8 +41,66 @@
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000361"
+          "options": [
+            "Visium HD",
+            "4i",
+            "Illumina Spatial ver0",
+            "LC-MS",
+            "Thick section Multiphoton MxIF",
+            "Light Sheet",
+            "ATACseq",
+            "Resolve",
+            "HiFi-Slide",
+            "COMET",
+            "DNA Methylation",
+            "MPLEx",
+            "10X Multiome",
+            "MALDI",
+            "MACSima",
+            "Raman Imaging",
+            "Paired-Tag",
+            "Histology",
+            "Cell DIVE",
+            "FACS",
+            "MS Lipidomics",
+            "Visium (no probes)",
+            "MUSIC",
+            "RNAseq",
+            "GeoMx (NGS)",
+            "GeoMx (nCounter)",
+            "RNAseq (with probes)",
+            "Singular Genomics G4X",
+            "Molecular Cartography",
+            "CosMx Transcriptomics",
+            "MERFISH",
+            "Pixel-seqV2",
+            "2D Imaging Mass Cytometry",
+            "Confocal",
+            "seqFISH",
+            "DART-FISH",
+            "MIBI",
+            "Olink",
+            "Enhanced Stimulated Raman Spectroscopy (SRS)",
+            "DESI",
+            "Xenium",
+            "iCLAP",
+            "CyCIF",
+            "SNARE-seq2",
+            "nanoSPLITS",
+            "STARmap",
+            "Stereo-seq",
+            "Visium (with probes)",
+            "SIMS",
+            "Auto-fluorescence",
+            "CyTOF",
+            "CosMx Proteomics",
+            "Virtual Histology",
+            "DBiT-seq",
+            "PhenoCycler",
+            "CODEX",
+            "Second Harmonic Generation (SHG)",
+            "Seq-Scope"
+          ]
         }
       ]
     },
@@ -53,15 +111,29 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Analyte class",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000371"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000371"
+          "options": [
+            "Nucleic acid + protein",
+            "Lipid + metabolite",
+            "Collagen",
+            "RNA",
+            "Fluorochrome",
+            "DNA",
+            "Metabolite",
+            "DNA + RNA",
+            "Saturated lipid",
+            "Lipid",
+            "Lipid + metabolite + protein",
+            "RNA + protein",
+            "Peptide",
+            "Protein",
+            "Unsaturated lipid",
+            "Endogenous fluorophore",
+            "Chromatin",
+            "Polysaccharide"
+          ]
         }
       ]
     },
@@ -89,15 +161,44 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Acquisition instrument vendor",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000391"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000391"
+          "options": [
+            "Complete Genomics",
+            "Cytek Biosciences",
+            "Thermo Fisher Scientific",
+            "Sciex",
+            "Vizgen",
+            "Leica Microsystems",
+            "Akoya Biosciences",
+            "Keyence",
+            "Andor",
+            "Standard BioTools (Fluidigm)",
+            "Leica Biosystems",
+            "Zeiss Microscopy",
+            "Ionpath",
+            "Motic",
+            "In-House",
+            "Miltenyi Biotec",
+            "Revvity",
+            "Evident Scientific (Olympus)",
+            "GE Healthcare",
+            "Element Biosciences",
+            "Hamamatsu",
+            "Waters",
+            "Bruker",
+            "Illumina",
+            "3DHISTECH",
+            "Singular Genomics",
+            "Huron Digital Pathology",
+            "Resolve Biosciences",
+            "NanoString",
+            "Cytiva",
+            "10x Genomics",
+            "Microscopes International",
+            "BGI Genomics"
+          ]
         }
       ]
     },
@@ -108,15 +209,100 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Acquisition instrument model",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000401"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000401"
+          "options": [
+            "NovaSeq X",
+            "NovaSeq X Plus",
+            "Cytek Northern Lights",
+            "Lightsheet 7",
+            "Resolve Biosciences Molecular Cartography",
+            "timsTOF HT",
+            "timsTOF Pro 2",
+            "timsTOF Pro",
+            "timsTOF Ultra",
+            "timsTOF Ultra 2",
+            "timsTOF SCP",
+            "Axio Scan.Z1",
+            "MALDI timsTOF Flex Prototype",
+            "LSM 710 Confocal Microscope",
+            "CosMx Spatial Molecular Imager",
+            "Unknown",
+            "MERSCOPE Ultra",
+            "Juno System",
+            "timsTOF FleX",
+            "Custom: Multiphoton",
+            "CyTOF XT",
+            "Helios",
+            "EVOS M7000",
+            "Aperio AT2",
+            "Phenocycler-Fusion 2.0",
+            "Orbitrap Astral",
+            "Axio Observer 5",
+            "Axio Observer 7",
+            "Axio Observer 3",
+            "NanoZoomer-SQ",
+            "NanoZoomer S210",
+            "NanoZoomer S60",
+            "NanoZoomer S360",
+            "DM6 B",
+            "MoticEasyScan One",
+            "In-House",
+            "NextSeq 500",
+            "BZ-X710",
+            "MACSima System",
+            "QTRAP 5500",
+            "DMi8",
+            "iScan System",
+            "NextSeq 550",
+            "HiSeq 2500",
+            "HiSeq 4000",
+            "NovaSeq 6000",
+            "Opera Phenix Plus HCS",
+            "SYNAPT G2-Si",
+            "Q Exactive HF",
+            "Orbitrap Fusion Tribrid",
+            "Orbitrap Fusion Lumos Tribrid",
+            "Q Exactive HF-X",
+            "Q Exactive",
+            "VS200 Slide Scanner",
+            "Not applicable",
+            "Orbitrap Eclipse Tribrid",
+            "MIBIscope",
+            "IN Cell Analyzer 2200",
+            "timsTOF FleX MALDI-2",
+            "NextSeq 2000",
+            "BZ-X800",
+            "SCN400",
+            "Zyla 4.2 sCMOS",
+            "AVITI",
+            "NanoZoomer 2.0-HT",
+            "STELLARIS 5",
+            "Q Exactive UHMR",
+            "PhenoImager Fusion",
+            "Aperio CS2",
+            "Pannoramic MIDI II Digital Scanner",
+            "Phenocycler-Fusion 1.0",
+            "NanoZoomer 2.0-RS",
+            "G4X Spatial Sequencer",
+            "Panoramic 150 Digital Scanner",
+            "Digital Spatial Profiler",
+            "Biomark HD",
+            "BZ-X810",
+            "Zeiss LightSheet Z.1",
+            "TissueScope LE Slide Scanner",
+            "Cell DIVE",
+            "Opera Phenix HCS",
+            "Xenium Analyzer",
+            "Hyperion Imaging System",
+            "uScopeHXII-20",
+            "Axio Zoom.V16",
+            "solariX",
+            "MERSCOPE",
+            "CyTOF 2",
+            "DNBSEQ-T7"
+          ]
         }
       ]
     },
@@ -135,15 +321,16 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Source storage duration unit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000031"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000031"
+          "options": [
+            "hour",
+            "month",
+            "day",
+            "minute",
+            "year"
+          ]
         }
       ]
     },
@@ -162,15 +349,14 @@
       "type": "string",
       "required": false,
       "multivalued": false,
-      "default_value": {
-        "label": "Time since acquisition instrument calibration unit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000421"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000421"
+          "options": [
+            "month",
+            "day",
+            "year"
+          ]
         }
       ]
     },
@@ -226,7 +412,7 @@
     },
     {
       "name": "roi_id",
-      "description": "The identification number assigned to each region of interest (ROI) captured on a slide, where multiple images are acquired. The ROI ID is a sequential number ranging from 1 to N, representing each distinct ROI. Example: 1",
+      "description": "Multiple images are acquired from regions of interest (ROI1, ROI2, ROI3, etc) on a slide. The ROI ID is a number from 1 to N representing the ROI captured on a slide. Example: 1",
       "label": "ROI ID",
       "type": "integer",
       "required": true,
@@ -255,15 +441,12 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Area normalized ion dose unit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001851"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001851"
+          "options": [
+            "nA*hr/mm2"
+          ]
         }
       ]
     },
@@ -290,15 +473,12 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Pixel dwell time unit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001881"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001881"
+          "options": [
+            "ms"
+          ]
         }
       ]
     },

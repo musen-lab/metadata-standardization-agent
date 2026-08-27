@@ -1,0 +1,459 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "VAN0025",
+    "legacy_fields": [
+      "donor_id",
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0025",
+      "VAN0025-LK-1"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The donor identifier is the parent of the tissue specimen, whereas tissue_id identifies the current tissue sample."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No legacy field provides a laboratory identifier."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "10.17504/protocols.io.6qpvr61x2vmk/v1",
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.6qpvr61x2vmk/v1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The section-preparation protocol DOI directly identifies the preparation protocol."
+  },
+  {
+    "key": "dataset_type",
+    "value": "Mass Spectrometry Imaging",
+    "legacy_fields": [
+      "assay_category",
+      "assay_type"
+    ],
+    "legacy_values": [
+      "mass_spectrometry_imaging",
+      "MALDI-IMS"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "Mass Spectrometry Imaging",
+      "MALDI Imaging Mass Spectrometry"
+    ],
+    "reasoning": "Both assay fields identify an imaging mass-spectrometry dataset."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Protein"
+    ],
+    "reasoning": "The legacy analyte class denotes the HRAVS label Protein."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Thermo Fisher Scientific",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Thermo"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Thermo Fisher Scientific"
+    ],
+    "reasoning": "Thermo denotes the HRAVS vendor label Thermo Fisher Scientific."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration is recorded."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration unit is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2021-06-28 15:01"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The execution time does not provide an instrument calibration time or elapsed duration."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No elapsed time since instrument calibration is recorded."
+  },
+  {
+    "key": "ms_ionization_technique",
+    "value": "MALDI",
+    "legacy_fields": [
+      "ms_source"
+    ],
+    "legacy_values": [
+      "MALDI"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "MALDI",
+      "DESI"
+    ],
+    "reasoning": "The recorded mass-spectrometry source is MALDI; the DESI fields are empty."
+  },
+  {
+    "key": "mass_analysis_polarity",
+    "value": "Positive ion mode",
+    "legacy_fields": [
+      "polarity"
+    ],
+    "legacy_values": [
+      "positive ion mode"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Positive ion mode"
+    ],
+    "reasoning": "The legacy polarity denotes the HRAVS Positive ion mode label."
+  },
+  {
+    "key": "mass_to_charge_range_low_value",
+    "value": 4500,
+    "legacy_fields": [
+      "mz_range_low_value"
+    ],
+    "legacy_values": [
+      "4500"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy lower m/z range value supplies the lower mass-to-charge value."
+  },
+  {
+    "key": "mass_to_charge_range_high_value",
+    "value": 20000,
+    "legacy_fields": [
+      "mz_range_high_value"
+    ],
+    "legacy_values": [
+      "20000"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy upper m/z range value supplies the upper mass-to-charge value."
+  },
+  {
+    "key": "mass_resolving_power",
+    "value": 34443,
+    "legacy_fields": [
+      "mass_resolving_power"
+    ],
+    "legacy_values": [
+      "34443"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The recorded resolving power was converted from its numeric string representation."
+  },
+  {
+    "key": "mass_to_charge_resolving_power",
+    "value": 11306.38,
+    "legacy_fields": [
+      "mz_resolving_power"
+    ],
+    "legacy_values": [
+      "11306.38"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy m/z resolving-power value supplies this field."
+  },
+  {
+    "key": "ion_mobility",
+    "value": null,
+    "legacy_fields": [
+      "ion_mobility"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy ion-mobility field is empty."
+  },
+  {
+    "key": "matrix_deposition_method",
+    "value": "Robotic spraying",
+    "legacy_fields": [
+      "preparation_type"
+    ],
+    "legacy_values": [
+      "Robotic spraying"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Robotic spraying"
+    ],
+    "reasoning": "The preparation type denotes the HRAVS Robotic spraying method."
+  },
+  {
+    "key": "preparation_matrix",
+    "value": null,
+    "legacy_fields": [
+      "preparation_maldi_matrix"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy MALDI matrix field is empty."
+  },
+  {
+    "key": "analysis_protocol_doi",
+    "value": "10.17504/protocols.io.4r3l2onz4v1y/v1",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.4r3l2onz4v1y/v1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The generic protocol DOI is the available protocol associated with the analysis."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": null,
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "2"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The version number does not identify a metadata schema."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "description"
+    ],
+    "legacy_values": [
+      "kidney glomeruli, medulla, tubules"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The tissue description has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "desi_solvent"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The DESI solvent field has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "desi_solvent_flow_rate"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The DESI solvent flow-rate field has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "desi_solvent_flow_rate_unit"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The DESI solvent flow-rate unit has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "Kevin Zemaitis"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The operator name has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "kevin.zemaitis@pnnl.gov"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The operator email has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "overall_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.q26g74qn8gwz/v1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The overall protocol DOI does not specifically identify preparation or analysis."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "processing_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.4r3l2ode3v1y/v1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The processing protocol DOI has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Ljiljana Pasa-Tolic"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The principal-investigator name has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "Ljiljana.PasaTolic@pnnl.gov"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The principal-investigator email has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_unit"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The x-axis spatial-resolution unit has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_value"
+    ],
+    "legacy_values": [
+      "40"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The x-axis spatial-resolution value has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_y_unit"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The y-axis spatial-resolution unit has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_y_value"
+    ],
+    "legacy_values": [
+      "40"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The y-axis spatial-resolution value has no corresponding template field."
+  }
+]

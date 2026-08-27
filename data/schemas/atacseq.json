@@ -13,7 +13,7 @@
     },
     {
       "name": "lab_id",
-      "description": "A locally assigned identifier provided by the data provider for the dataset. It is used to reference an external metadata record that may be maintained independently, enabling traceability and supporting provenance tracking. Example: Visium_9OLC_A4_S1",
+      "description": "An identifier assigned by the data provider to reference an external metadata record for the dataset. The external record may be maintained independently and can support dataset traceability and provenance tracking. Leave this field empty if no such identifier exists.",
       "label": "Lab ID",
       "type": "string",
       "required": false,
@@ -41,8 +41,66 @@
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000361"
+          "options": [
+            "Visium HD",
+            "4i",
+            "Illumina Spatial ver0",
+            "LC-MS",
+            "Thick section Multiphoton MxIF",
+            "Light Sheet",
+            "ATACseq",
+            "Resolve",
+            "HiFi-Slide",
+            "COMET",
+            "DNA Methylation",
+            "MPLEx",
+            "10X Multiome",
+            "MALDI",
+            "MACSima",
+            "Raman Imaging",
+            "Paired-Tag",
+            "Histology",
+            "Cell DIVE",
+            "FACS",
+            "MS Lipidomics",
+            "Visium (no probes)",
+            "MUSIC",
+            "RNAseq",
+            "GeoMx (NGS)",
+            "GeoMx (nCounter)",
+            "RNAseq (with probes)",
+            "Singular Genomics G4X",
+            "Molecular Cartography",
+            "CosMx Transcriptomics",
+            "MERFISH",
+            "Pixel-seqV2",
+            "2D Imaging Mass Cytometry",
+            "Confocal",
+            "seqFISH",
+            "DART-FISH",
+            "MIBI",
+            "Olink",
+            "Enhanced Stimulated Raman Spectroscopy (SRS)",
+            "DESI",
+            "Xenium",
+            "iCLAP",
+            "CyCIF",
+            "SNARE-seq2",
+            "nanoSPLITS",
+            "STARmap",
+            "Stereo-seq",
+            "Visium (with probes)",
+            "SIMS",
+            "Auto-fluorescence",
+            "CyTOF",
+            "CosMx Proteomics",
+            "Virtual Histology",
+            "DBiT-seq",
+            "PhenoCycler",
+            "CODEX",
+            "Second Harmonic Generation (SHG)",
+            "Seq-Scope"
+          ]
         }
       ]
     },
@@ -53,15 +111,29 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Analyte class",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000371"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000371"
+          "options": [
+            "Nucleic acid + protein",
+            "Lipid + metabolite",
+            "Collagen",
+            "RNA",
+            "Fluorochrome",
+            "DNA",
+            "Metabolite",
+            "DNA + RNA",
+            "Saturated lipid",
+            "Lipid",
+            "Lipid + metabolite + protein",
+            "RNA + protein",
+            "Peptide",
+            "Protein",
+            "Unsaturated lipid",
+            "Endogenous fluorophore",
+            "Chromatin",
+            "Polysaccharide"
+          ]
         }
       ]
     },
@@ -89,15 +161,44 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Acquisition instrument vendor",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000391"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000391"
+          "options": [
+            "Complete Genomics",
+            "Cytek Biosciences",
+            "Thermo Fisher Scientific",
+            "Sciex",
+            "Vizgen",
+            "Leica Microsystems",
+            "Akoya Biosciences",
+            "Keyence",
+            "Andor",
+            "Standard BioTools (Fluidigm)",
+            "Leica Biosystems",
+            "Zeiss Microscopy",
+            "Ionpath",
+            "Motic",
+            "In-House",
+            "Miltenyi Biotec",
+            "Revvity",
+            "Evident Scientific (Olympus)",
+            "GE Healthcare",
+            "Element Biosciences",
+            "Hamamatsu",
+            "Waters",
+            "Bruker",
+            "Illumina",
+            "3DHISTECH",
+            "Singular Genomics",
+            "Huron Digital Pathology",
+            "Resolve Biosciences",
+            "NanoString",
+            "Cytiva",
+            "10x Genomics",
+            "Microscopes International",
+            "BGI Genomics"
+          ]
         }
       ]
     },
@@ -108,15 +209,100 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Acquisition instrument model",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000401"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000401"
+          "options": [
+            "NovaSeq X",
+            "NovaSeq X Plus",
+            "Cytek Northern Lights",
+            "Lightsheet 7",
+            "Resolve Biosciences Molecular Cartography",
+            "timsTOF HT",
+            "timsTOF Pro 2",
+            "timsTOF Pro",
+            "timsTOF Ultra",
+            "timsTOF Ultra 2",
+            "timsTOF SCP",
+            "Axio Scan.Z1",
+            "MALDI timsTOF Flex Prototype",
+            "LSM 710 Confocal Microscope",
+            "CosMx Spatial Molecular Imager",
+            "Unknown",
+            "MERSCOPE Ultra",
+            "Juno System",
+            "timsTOF FleX",
+            "Custom: Multiphoton",
+            "CyTOF XT",
+            "Helios",
+            "EVOS M7000",
+            "Aperio AT2",
+            "Phenocycler-Fusion 2.0",
+            "Orbitrap Astral",
+            "Axio Observer 5",
+            "Axio Observer 7",
+            "Axio Observer 3",
+            "NanoZoomer-SQ",
+            "NanoZoomer S210",
+            "NanoZoomer S60",
+            "NanoZoomer S360",
+            "DM6 B",
+            "MoticEasyScan One",
+            "In-House",
+            "NextSeq 500",
+            "BZ-X710",
+            "MACSima System",
+            "QTRAP 5500",
+            "DMi8",
+            "iScan System",
+            "NextSeq 550",
+            "HiSeq 2500",
+            "HiSeq 4000",
+            "NovaSeq 6000",
+            "Opera Phenix Plus HCS",
+            "SYNAPT G2-Si",
+            "Q Exactive HF",
+            "Orbitrap Fusion Tribrid",
+            "Orbitrap Fusion Lumos Tribrid",
+            "Q Exactive HF-X",
+            "Q Exactive",
+            "VS200 Slide Scanner",
+            "Not applicable",
+            "Orbitrap Eclipse Tribrid",
+            "MIBIscope",
+            "IN Cell Analyzer 2200",
+            "timsTOF FleX MALDI-2",
+            "NextSeq 2000",
+            "BZ-X800",
+            "SCN400",
+            "Zyla 4.2 sCMOS",
+            "AVITI",
+            "NanoZoomer 2.0-HT",
+            "STELLARIS 5",
+            "Q Exactive UHMR",
+            "PhenoImager Fusion",
+            "Aperio CS2",
+            "Pannoramic MIDI II Digital Scanner",
+            "Phenocycler-Fusion 1.0",
+            "NanoZoomer 2.0-RS",
+            "G4X Spatial Sequencer",
+            "Panoramic 150 Digital Scanner",
+            "Digital Spatial Profiler",
+            "Biomark HD",
+            "BZ-X810",
+            "Zeiss LightSheet Z.1",
+            "TissueScope LE Slide Scanner",
+            "Cell DIVE",
+            "Opera Phenix HCS",
+            "Xenium Analyzer",
+            "Hyperion Imaging System",
+            "uScopeHXII-20",
+            "Axio Zoom.V16",
+            "solariX",
+            "MERSCOPE",
+            "CyTOF 2",
+            "DNBSEQ-T7"
+          ]
         }
       ]
     },
@@ -135,15 +321,16 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Source storage duration unit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000031"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000031"
+          "options": [
+            "hour",
+            "month",
+            "day",
+            "minute",
+            "year"
+          ]
         }
       ]
     },
@@ -162,15 +349,14 @@
       "type": "string",
       "required": false,
       "multivalued": false,
-      "default_value": {
-        "label": "Time since acquisition instrument calibration unit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000421"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000421"
+          "options": [
+            "month",
+            "day",
+            "year"
+          ]
         }
       ]
     },
@@ -204,13 +390,15 @@
           "type": "literal",
           "options": [
             "0",
+            "1",
             "8",
             "20",
+            "0,14",
             "1,27",
             "0,38,76",
             "10,48,78",
             "10,48,86",
-            "0,20-23,41-44",
+            "0,20-23,51-54",
             "Not applicable"
           ]
         }
@@ -223,15 +411,14 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Barcode read",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001031"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001031"
+          "options": [
+            "Read 2 (R2)",
+            "Not applicable",
+            "Read 1 (R1)"
+          ]
         }
       ]
     },
@@ -249,8 +436,10 @@
             "14",
             "16",
             "40",
-            "8,8,8",
             "8,6",
+            "10,10",
+            "8,8,8",
+            "14-17,14,14",
             "Not applicable"
           ]
         }
@@ -282,15 +471,14 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "UMI read",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001061"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001061"
+          "options": [
+            "Read 2 (R2)",
+            "Not applicable",
+            "Read 1 (R1)"
+          ]
         }
       ]
     },
@@ -321,15 +509,16 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Assay input entity",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001181"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001181"
+          "options": [
+            "tissue (bulk)",
+            "area of interest",
+            "single cell",
+            "single nucleus",
+            "spot"
+          ]
         }
       ]
     },
@@ -372,15 +561,13 @@
       "type": "string",
       "required": false,
       "multivalued": false,
-      "default_value": {
-        "label": "Library input amount unit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000881"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000881"
+          "options": [
+            "ng",
+            "ul"
+          ]
         }
       ]
     },
@@ -399,15 +586,13 @@
       "type": "string",
       "required": false,
       "multivalued": false,
-      "default_value": {
-        "label": "Library output amount unit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000901"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000901"
+          "options": [
+            "ng",
+            "ul"
+          ]
         }
       ]
     },
@@ -426,15 +611,14 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Library concentration unit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000921"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000921"
+          "options": [
+            "pg/ul",
+            "nM",
+            "ng/ul"
+          ]
         }
       ]
     },
@@ -445,15 +629,13 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Library layout",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000931"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000931"
+          "options": [
+            "paired-end",
+            "single-end"
+          ]
         }
       ]
     },
@@ -472,15 +654,51 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Library preparation kit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000961"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000961"
+          "options": [
+            "10X Genomics; Chromium Next GEM Single Cell 5' Kit v2, 16 rxns; PN 1000263",
+            "10x Genomics; Chromium Next GEM Single Cell Fixed RNA Sample Preparation Kit, 16 rxns; PN 1000414",
+            "10x Genomics; Chromium Next GEM Single Cell ATAC Library & Gel Bead Kit, 16 rxns; PN 1000175",
+            "10X Genomics; Visium CytAssist Spatial Gene Expression for FFPE, Human Transcriptome, 11 mm, 2 reactions; PN 1000522",
+            "10X Genomics; Visium CytAssist Spatial Gene Expression for FFPE, Human Transcriptome, 6.5mm, 4 reactions; PN 1000520",
+            "10X Genomics; Chromium NextGem Single Cell Multiome ATAC + Gene Expression Reagent Bundle, 4 rxn; PN 1000285",
+            "10x Genomics; Chromium GEM-X Single Cell 5' Kit v3, 16 rxns; PN 1000699",
+            "Parse Biosciences; Evercode WT Mini v2 Kit, 12 rxns; PN ECW02010",
+            "10X Genomics; Visium Spatial Gene Expression Slide and Reagent Kit, 4 slides, 16 reactions; PN 1000184",
+            "10X Genomics; Chromium Next GEM Single Cell 3' HT Kit v3.1, 48 rxns; PN 1000348",
+            "10X Genomics; Chromium Single Cell 3' GEM, Library & Gel Bead Kit v3, 4 rxns; PN 1000092",
+            "10X Genomics; Visium Spatial for FFPE Gene Expression Kit, Human Transcriptome, 1 slides, 4 reactions; PN 1000338",
+            "10X Genomics; Chromium Next GEM Single Cell Fixed RNA Hybridization & Library Kit, 4 rxns; PN 1000415",
+            "10X Genomics; Chromium Next GEM Single Cell 3' Kit v3.1, 4 rxns; PN 1000269",
+            "10X Genomics; Automated Library Construction Kit, 24 rxns; PN 1000428",
+            "Parse Biosciences; Evercode WT v2 Kit, 48 rxns; PN ECW02030",
+            "10x Genomics; Library Construction Kit C, 16 rxns; PN 1000694",
+            "10x Genomics; Chromium Single Cell 3ʹ GEM, Library & Gel Bead Kit v3, 16 rxns; PN 1000075",
+            "10x Genomics; Library Construction Kit, 16 rxns; PN 1000190",
+            "10x Genomics; Chromium Next GEM Single Cell 5' HT Kit v2, 48 rxns; PN 1000356",
+            "10X Genomics; Chromium Single Cell 3' Library & Gel Bead Kit, 4 rxns; PN 120267",
+            "Illumina; TruSeq Stranded mRNA Library Prep (96 samples); PN 20020595",
+            "10x Genomics; GEM-X Flex GEM & Library Kit, 4 rxns; PN 1000782",
+            "10X Genomics; Chromium Next GEM Automated Single Cell 5' Kit v2, 4 rxns; PN 1000298",
+            "10X Genomics; Chromium Next GEM Automated Single Cell 5' Kit v2, 24 rxns; PN 1000290",
+            "10X Genomics; Chromium Next GEM Single Cell 3' GEM, Library & Gel Bead Kit v3.1, 16 rxns; PN 1000121",
+            "10X Genomics; Visium Spatial for FFPE Gene Expression Kit, Mouse Transcriptome, 4 rxns; PN 1000339",
+            "10X Genomics; Chromium NextGem Single Cell Multiome ATAC + Gene Expression Reagent Bundle, 16 rxn; PN 1000283",
+            "10X Genomics; Chromium Next GEM Single Cell 3' HT Kit v3.1, 8 rxns; PN 1000370",
+            "Epigenome Technologies; Multiplex Droplet Paired-Tag 16 Reaction Kit; PN MDP16101",
+            "Illumina; TruSeq Stranded mRNA Library Prep (48 samples); PN 20020594",
+            "Custom",
+            "10X Genomics; Chromium Next GEM Single Cell 3' Kit v3.1, 16 rxns; PN 1000268",
+            "10x Genomics; Visium CytAssist Spatial Gene Expression for FFPE, Mouse Transcriptome, 6.5mm, 4 rxns; PN 1000521",
+            "10X Genomics; Chromium Next GEM Single Cell 5' Kit v2, 4 rxns; PN 1000265",
+            "10X Genomics; Visium Spatial Gene Expression Slide and Reagent Kit, 1 slides, 4 reactions; PN 1000187",
+            "10x Genomics; Library Construction Kit C, 4 rxns; PN 1000689",
+            "New England BioLabs; NEBNext Ultra II RNA Library Prep Kit for Illumina; PN E7770",
+            "10x Genomics; Chromium Next GEM Single Cell 5' HT Kit v2, 8 rxns; PN 1000374",
+            "10x Genomics; Chromium Single Cell ATAC Library & Gel Bead Kit, 16 rxns; PN 1000110"
+          ]
         }
       ]
     },
@@ -491,15 +709,30 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Sample indexing kit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000971"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000971"
+          "options": [
+            "10X Genomics; Single Index Kit N, Set A (96 rxn); PN 1000212",
+            "Parse Biosciences; Fragmentation Reagents; PN WX100",
+            "Illumina; TruSeq RNA Single Indexes Set A (12 Indexes, 48 Samples); PN 20020492",
+            "Parse Biosciences; UDI Plate - WT; PN UDI1001",
+            "Illumina; TruSeq RNA Single Indexes Set B (12 Indexes, 48 Samples); PN 20020493",
+            "Illumina; IDT for Illumina - TruSeq RNA UD Indexes v2 (96 Indexes, 96 Samples); PN 20040871",
+            "10X Genomics; Dual Index Kit TS, Set A; PN 1000251",
+            "Illumina; TruSeq RNA CD Index Plate (96 Indexes, 96 Samples); PN 20019792",
+            "Not applicable",
+            "Integrated DNA Technologies: Custom DNA Oligos",
+            "10x Genomics; Chromium i7 Multiplex Kit N, Set A, 96 rxn; PN 1000084",
+            "10X Genomics; Dual Index Kit TT, Set A (96 rxn); PN 1000215",
+            "NanoString Technologies; GeoMx Seq Code Pack; PN GMX-NGS-SEQ-EF",
+            "NanoString Technologies; GeoMx Seq Code Pack; PN GMX-NGS-SEQ-CD",
+            "Custom",
+            "10x Genomics; Chromium i7 Multiplex Kit, 96 rxns; PN 120262",
+            "NanoString Technologies; GeoMx Seq Code Pack; PN GMX-NGS-SEQ-GH",
+            "10X Genomics; Chromium i7 Sample Index Plate (96 rxn); PN 220103",
+            "NanoString Technologies; GeoMx Seq Code Pack; PN GMX-NGS-SEQ-AB"
+          ]
         }
       ]
     },
@@ -543,15 +776,40 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Sequencing reagent kit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001081"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001081"
+          "options": [
+            "Illumina; NovaSeq 6000 S1 Reagent v1.5 Kit (300 Cycles); PN 20028317",
+            "Illumina; NovaSeq X Series 25B Reagent Kit (100 Cycle); PN 20125967",
+            "Illumina; NextSeq 2000 P3 Reagent Kit (300 Cycles); PN 20040561",
+            "Illumina; NextSeq 1000/2000 P2 Reagent v3 Kit (200 Cycles); PN 20046812",
+            "Illumina; NovaSeq 6000 S1 Reagent Kit (200 Cycles); PN 20012864",
+            "Illumina; NextSeq 1000/2000 P2 Reagent v3 Kit (300 Cycles); PN 20046813",
+            "Illumina; NovaSeq 6000 S1 Reagent v1.5 Kit (200 Cycles); PN 20028318",
+            "Illumina; NovaSeq 6000 S4 Reagent Kit v1.5 (300 cycles); PN 20028312",
+            "Illumina; NovaSeq 6000 S2 Reagent v1.5 Kit (100 Cycles); PN 20028316",
+            "Illumina; NovaSeq X Series 10B Reagent Kit (200 Cycle); PN 20085595",
+            "Illumina; NovaSeq X Series 10B Reagent Kit (100 Cycle); PN 20085596",
+            "Illumina; NovaSeq X Series 25B Reagent Kit (200 Cycle); PN 20125968",
+            "Illumina; NovaSeq X Series 1.5B Reagent Kit (100 Cycle); PN 20104703",
+            "Illumina; NovaSeq 6000 S4 Reagent v1.5 Kit (200 Cycles); PN 20028313",
+            "Illumina; NextSeq 500/550 Hi Output Kit 75 Cycles v2.5; PN 20024906",
+            "Illumina; NovaSeq 6000 SP Reagent v1.5 Kit (100 Cycles); PN 20028401",
+            "Illumina; NovaSeq X Series 1.5B Reagent Kit (200 Cycle); PN 20104704",
+            "Illumina; NovaSeq 6000 SP Reagent v1.5 Kit (300 Cycles); PN 20028400",
+            "Illumina; NovaSeq X Series 10B Reagent Kit (300 Cycle); PN 20085594",
+            "Illumina; NextSeq 1000/2000 P2 Reagent v3 Kit (100 Cycles); PN 20046811",
+            "Element Biosciences; AVITI 2x75 Sequencing Kit Cloudbreak FS High Output (184 Cycles); PN 860-00015",
+            "Illumina; NovaSeq 6000 S1 Reagent v1.5 Kit (100 Cycles); PN 20028319",
+            "Custom",
+            "Illumina; HiSeq 3000/4000 PE Cluster Kit PE-410-1001; PN 1000283",
+            "Illumina; NextSeq 500/550 Mid Output Kit 150 Cycles v2.5; PN 20024904",
+            "Illumina; NextSeq 2000 P3 Reagents Kit (100 Cycles); PN 20040559",
+            "Illumina; NextSeq 500/550 Hi Output Kit 150 Cycles; v2.5; PN 20024907",
+            "Illumina; NovaSeq X Series 25B Reagent Kit (300 Cycle); PN 20104706",
+            "Illumina; NovaSeq X Series 1.5B Reagent Kit (300 Cycle); PN 20104705"
+          ]
         }
       ]
     },
@@ -570,15 +828,18 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Transposition reagent kit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001101"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001101"
+          "options": [
+            "10x Genomics; Chromium Next GEM Single Cell ATAC Library & Gel Bead Kit, 16 rxns; PN 1000175",
+            "10X Genomics; Chromium NextGem Single Cell Multiome ATAC + Gene Expression Reagent Bundle, 4 rxn; PN 1000285",
+            "Illumina; Illumina Tagment DNA TDE1 Enzyme and Buffer Small Kit; PN 20034197",
+            "Not applicable",
+            "10X Genomics; Chromium NextGem Single Cell Multiome ATAC + Gene Expression Reagent Bundle, 16 rxn; PN 1000283",
+            "Custom",
+            "10x Genomics; Chromium Single Cell ATAC Library & Gel Bead Kit, 16 rxns; PN 1000110"
+          ]
         }
       ]
     },
@@ -589,15 +850,15 @@
       "type": "string",
       "required": true,
       "multivalued": false,
-      "default_value": {
-        "label": "Transposition method",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001111"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001111"
+          "options": [
+            "bulkATACseq",
+            "sciATACseq",
+            "Custom",
+            "scATACseq"
+          ]
         }
       ]
     },
@@ -624,15 +885,22 @@
       "type": "string",
       "required": false,
       "multivalued": false,
-      "default_value": {
-        "label": "Preparation instrument vendor",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000501"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000501"
+          "options": [
+            "Thermo Fisher Scientific",
+            "SunChrom",
+            "Akoya Biosciences",
+            "Leica Biosystems",
+            "Ionpath",
+            "Roche Diagnostics",
+            "In-House",
+            "Not applicable",
+            "Hamamatsu",
+            "HTX Technologies",
+            "10x Genomics"
+          ]
         }
       ]
     },
@@ -643,15 +911,30 @@
       "type": "string",
       "required": false,
       "multivalued": false,
-      "default_value": {
-        "label": "Preparation instrument model",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000511"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1000511"
+          "options": [
+            "AutoStainer XL",
+            "ST5020 Multistainer",
+            "Visium CytAssist",
+            "SunCollect Sprayer",
+            "Chromium X",
+            "Chromium iX",
+            "EVOS M7000",
+            "NanoZoomer S210",
+            "NanoZoomer S60",
+            "NanoZoomer S360",
+            "Discovery Ultra",
+            "Sublimator",
+            "Not applicable",
+            "TM-Sprayer",
+            "M5 Sprayer",
+            "M3+ Sprayer",
+            "Chromium Controller",
+            "Chromium Connect",
+            "Custom"
+          ]
         }
       ]
     },
@@ -662,15 +945,31 @@
       "type": "string",
       "required": false,
       "multivalued": false,
-      "default_value": {
-        "label": "Preparation instrument kit",
-        "iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001201"
-      },
       "permissible_values": [
         {
           "type": "branch",
-          "ontology_acronym": "HRAVS",
-          "branch_iri": "https://purl.humanatlas.io/vocab/hravs#HRAVS_1001201"
+          "options": [
+            "10X Genomics; Chromium NextGem Single Cell Multiome ATAC + Gene Expression Reagent Bundle, 4 rxn; PN 1000285",
+            "10x Genomics; Visium HD, Human Transcriptome, 6.5 mm, 4 runs; PN 1000675",
+            "10X Genomics; Chromium Next GEM Chip K Single Cell Kit, 48 rxns; PN 1000286",
+            "10x Genomics; GEM-X Flex Gene Expression Chip Kit, 4 chips; PN 1000791",
+            "10X Genomics; Chromium Next GEM Chip K Automated Single Cell Kit, 48 rxns; PN 1000289",
+            "10x Genomics; Visium HD, Mouse Transcriptome, 11 mm, 4 runs; PN 1001038",
+            "10x Genomics; Chromium Next GEM Chip J Single Cell Kit, 48 rxns; PN 1000234",
+            "10x Genomics; Chromium Next GEM Chip J Single Cell Kit, 16 rxns; PN 1000230",
+            "10X Genomics; Chromium Next GEM Chip K Single Cell Kit, 16 rxns; PN 1000287",
+            "10X Genomics; Visium FFPE Reagent Kit v2-Small, PN 1000436",
+            "10x Genomics; Visium HD, Human Transcriptome, 11 mm, 4 runs; PN 1001037",
+            "10x Genomics; Chromium GEM-X Single Cell 3' Kit v4, 16 rxns; PN 1000691",
+            "10X Genomics; Chromium NextGem Single Cell Multiome ATAC + Gene Expression Reagent Bundle, 16 rxn; PN 1000283",
+            "10x Genomics; Chromium Chip E Single Cell ATAC Kit, 48 rxns; PN 1000155",
+            "10x Genomics; Visium HD, Mouse Transcriptome, 6.5 mm, 4 runs; PN 1000676",
+            "10x Genomics; Chromium Single Cell B Chip Kit, 16 rxns; PN 1000074",
+            "Custom",
+            "10X Genomics; Chromium Next GEM Chip G Single Cell Kit, 48 rxns; PN 1000120",
+            "10X Genomics; Chromium Next GEM Chip Q Single Cell Kit, 16 rxns; PN 1000422",
+            "10X Genomics; Chromium Next GEM Chip G Single Cell Kit, 16 rxns; PN 1000127"
+          ]
         }
       ]
     },

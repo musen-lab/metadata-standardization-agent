@@ -1,0 +1,62 @@
+[project]
+name = "arms-agent"
+version = "0.1.0"
+description = "An ontology-constrained LLM agent that standardizes legacy biomedical metadata into CEDAR templates"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "BSD-2-Clause"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Josef Hardi" },
+]
+keywords = ["metadata", "cedar", "ontology", "biomedical", "langgraph", "llm-agent"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+dependencies = [
+    "langchain>=1.2,<2.0",
+    "langgraph>=1.0,<2.0",
+    "langchain-openai>=1.0,<2.0",
+    "langchain-core>=1.2,<2.0",
+    "pydantic>=2.0,<3.0",
+    "cedar-mcp>=1.3.0",
+    "python-dotenv>=1.2.1",
+    "langfuse>=4.14,<5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/musen-lab/metadata-standardization-agent"
+Repository = "https://github.com/musen-lab/metadata-standardization-agent"
+Paper = "https://arxiv.org/abs/2604.08552"
+
+[project.scripts]
+arms-migrate = "arms_agent.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/arms_agent"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/arms_agent", "tests", "README.md", "LICENSE", "pyproject.toml"]
+
+# Lint and format rules come from the workspace root, so the package and the
+# evaluation code are held to one standard.
+[tool.ruff]
+extend = "../pyproject.toml"
+src = ["src", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# The system prompt is authored as Markdown; long lines and intentional
+# trailing-space line breaks are part of the prompt text.
+"src/arms_agent/prompts.py" = ["E501", "W291"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

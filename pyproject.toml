@@ -1,23 +1,16 @@
 [project]
 name = "metadata-standardization-agent"
 version = "0.1.0"
-description = "A LangGraph agent for migrating legacy metadata records to CEDAR metadata template format"
+description = "Evaluation harness and supplementary material for the ARMS metadata standardization agent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-license = { text = "MIT" }
+license = { text = "BSD-2-Clause" }
 authors = [
     { name = "Josef Hardi" },
 ]
 
 dependencies = [
-    "langchain>=1.2,<2.0",
-    "langgraph>=1.0,<2.0",
-    "langchain-openai>=1.0,<2.0",
-    "langchain-core>=1.2,<2.0",
-    "pydantic>=2.0,<3.0",
-    "cedar-mcp>=1.0.0",
-    "python-dotenv>=1.2.1",
-    "langsmith>=0.7.7",
+    "arms-agent",
 ]
 
 [project.optional-dependencies]
@@ -27,20 +20,22 @@ dev = [
     "ruff>=0.9",
 ]
 
-[project.scripts]
-migrate = "metadata_standardization_agent.__main__:main"
+# The harness is not a distribution.  Its code lives in evaluation/, which the
+# notebook, the CLI, and the tests put on sys.path by directory rather than
+# import as an installed package.
+[tool.uv]
+package = false
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[tool.uv.workspace]
+members = ["arms-agent"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/metadata_standardization_agent"]
+[tool.uv.sources]
+arms-agent = { workspace = true }
 
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-src = ["src", "tests", "evaluation"]
+src = ["evaluation", "tests"]
 
 [tool.ruff.lint]
 select = [
@@ -56,25 +51,25 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# The system prompt is authored as Markdown; long lines and intentional
-# trailing-space line breaks are part of the prompt text.
-"src/metadata_standardization_agent/prompts.py" = ["E501", "W291"]
-
+# Each condition's prompt copies shared blocks verbatim from the agent's system
+# prompt and must not be rewrapped.
+"evaluation/conditions/prompt_only/prompts/*.py" = ["E501", "W291"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["metadata_standardization_agent"]
+known-first-party = ["arms_agent"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["src"]
+# The whole suite from the root; arms-agent/pyproject.toml runs its half on its own.
+testpaths = ["tests", "arms-agent/tests"]
 addopts = "-v --tb=short"
 
 [dependency-groups]
 dev = [
+    "ipykernel>=7.3.0",
     "matplotlib>=3.10.8",
+    "nbconvert>=7.17.1",
     "numpy>=2.4.2",
     "pandas>=3.0.1",
     "scipy>=1.17.1",
     "statsmodels>=0.14.6",
 ]
-

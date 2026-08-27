@@ -1,0 +1,605 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0040-LK-4-90"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The tissue identifier is not stated to be a HuBMAP or SenNet parent-sample identifier and does not match the required identifier form."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "VAN0040"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The donor identifier does not identify an external dataset metadata record."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://doi.org/10.17504/protocols.io.bmwnk7de",
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bmwnk7de"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The section-preparation DOI is the relevant preparation protocol and was reformatted as a DOI URL."
+  },
+  {
+    "key": "dataset_type",
+    "value": "DESI",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "NanoDESI"
+    ],
+    "resolution": "defaulted",
+    "candidates": [
+      "DESI"
+    ],
+    "reasoning": "NanoDESI is not an available dataset-type label, so the template default was used."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Lipid",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "lipids"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Lipid",
+      "Lipid + metabolite"
+    ],
+    "reasoning": "The plural legacy value denotes the controlled label Lipid rather than a multi-analyte class."
+  },
+  {
+    "key": "is_targeted",
+    "value": "No",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "False"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "False denotes the permitted option No."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Thermo Fisher Scientific",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Thermo Scientific"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Thermo Fisher Scientific"
+    ],
+    "reasoning": "Thermo Scientific denotes the controlled vendor label Thermo Fisher Scientific."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "Orbitrap Fusion Tribrid",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "Orbitrap Fusion Tribrid"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Orbitrap Fusion Tribrid",
+      "Orbitrap Fusion Lumos Tribrid"
+    ],
+    "reasoning": "The legacy model exactly denotes the controlled Orbitrap Fusion Tribrid label."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source-storage duration is recorded."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source-storage duration unit is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No time since acquisition-instrument calibration is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No unit for time since acquisition-instrument calibration is recorded."
+  },
+  {
+    "key": "ms_ionization_technique",
+    "value": "nanoDESI",
+    "legacy_fields": [
+      "ms_source"
+    ],
+    "legacy_values": [
+      "nanoDESI"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "nanoDESI"
+    ],
+    "reasoning": "The recorded MS source directly identifies the controlled nanoDESI ionization technique."
+  },
+  {
+    "key": "ms_scan_mode",
+    "value": "MS1",
+    "legacy_fields": [
+      "ms_scan_mode"
+    ],
+    "legacy_values": [
+      "MS"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "MS1",
+      "MS2"
+    ],
+    "reasoning": "MS denotes single-stage mass analysis, corresponding to the controlled MS1 label."
+  },
+  {
+    "key": "mass_analysis_polarity",
+    "value": "Positive ion mode",
+    "legacy_fields": [
+      "polarity"
+    ],
+    "legacy_values": [
+      "positive ion mode"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "Positive ion mode",
+      "Negative ion mode"
+    ],
+    "reasoning": "The recorded polarity denotes the controlled Positive ion mode label."
+  },
+  {
+    "key": "mass_to_charge_range_low_value",
+    "value": 133,
+    "legacy_fields": [
+      "mz_range_low_value"
+    ],
+    "legacy_values": [
+      "133"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy low m/z-range value supplies this field and was converted to a decimal."
+  },
+  {
+    "key": "mass_to_charge_range_high_value",
+    "value": 1999,
+    "legacy_fields": [
+      "mz_range_high_value"
+    ],
+    "legacy_values": [
+      "1999"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy high m/z-range value supplies this field and was converted to a decimal."
+  },
+  {
+    "key": "mass_resolving_power",
+    "value": 60000,
+    "legacy_fields": [
+      "mass_resolving_power"
+    ],
+    "legacy_values": [
+      "60000"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The recorded resolving-power value was converted to a decimal."
+  },
+  {
+    "key": "mass_to_charge_resolving_power",
+    "value": null,
+    "legacy_fields": [
+      "mz_resolving_power"
+    ],
+    "legacy_values": [
+      "60000"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy value is resolving power, not the m/z peak at which resolving power was calculated."
+  },
+  {
+    "key": "ion_mobility",
+    "value": null,
+    "legacy_fields": [
+      "ion_mobility"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The ion-mobility field is empty, which does not establish a technology."
+  },
+  {
+    "key": "matrix_deposition_method",
+    "value": null,
+    "legacy_fields": [
+      "preparation_type"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The preparation-type field is empty and supplies no matrix-deposition method."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": null,
+    "legacy_fields": [
+      "preparation_instrument_vendor"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The preparation-instrument vendor field is empty."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": null,
+    "legacy_fields": [
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The preparation-instrument model field is empty."
+  },
+  {
+    "key": "preparation_matrix",
+    "value": null,
+    "legacy_fields": [
+      "preparation_maldi_matrix"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy preparation-matrix field is empty."
+  },
+  {
+    "key": "desorption_solvent",
+    "value": "Methanol:Water (MeOH:H2O)",
+    "legacy_fields": [
+      "desi_solvent"
+    ],
+    "legacy_values": [
+      "MeOH/H20 9/1"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "Methanol:Water (MeOH:H2O)"
+    ],
+    "reasoning": "The solvent composition denotes the controlled Methanol:Water label despite the legacy H20 spelling and ratio notation."
+  },
+  {
+    "key": "desorption_solvent_flow_rate_value",
+    "value": 1.3,
+    "legacy_fields": [
+      "desi_solvent_flow_rate"
+    ],
+    "legacy_values": [
+      "1.3"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy DESI solvent flow-rate value was converted to a decimal."
+  },
+  {
+    "key": "desorption_solvent_flow_rate_unit",
+    "value": "uL/min",
+    "legacy_fields": [
+      "desi_solvent_flow_rate_unit"
+    ],
+    "legacy_values": [
+      "uL/minute"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "uL/min"
+    ],
+    "reasoning": "uL/minute denotes the controlled uL/min unit."
+  },
+  {
+    "key": "analysis_protocol_doi",
+    "value": "https://doi.org/10.17504/protocols.io.bmwik7ce",
+    "legacy_fields": [
+      "processing_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bmwik7ce"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The processing protocol DOI describes raw-data analysis and was reformatted as a DOI URL."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "01d909d8-84a8-4362-9e42-782bc4da0eec",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The template supplies this metadata schema identifier as its default."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "mass_spectrometry_imaging"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This general assay category has no separate field in the DESI template."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "description"
+    ],
+    "legacy_values": [
+      "nanoDESI MSI"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The free-text description has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "VAN0040"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The donor identifier is not a template field and does not qualify as a lab ID."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2022-03-27 00:00"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template contains no assay execution datetime field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "mz_resolving_power"
+    ],
+    "legacy_values": [
+      "60000"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This is another resolving-power value, not the required peak m/z value."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "Xiangtang Li"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no operator field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "li3298@purdue.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no operator email field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "overall_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bmwik7ce"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The more specific section-preparation and processing protocol fields were used instead."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Julia Laskin"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no principal-investigator field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "jlaskin@purdue.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no principal-investigator email field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bmwik7ce"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This generic protocol DOI is superseded by the more specifically mapped processing protocol DOI."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_unit"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no spatial-resolution field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_value"
+    ],
+    "legacy_values": [
+      "25"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no spatial-resolution field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_y_unit"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no spatial-resolution field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_y_value"
+    ],
+    "legacy_values": [
+      "25"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no spatial-resolution field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0040-LK-4-90"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This local tissue identifier cannot be placed in the required HuBMAP or SenNet parent-sample ID field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "2"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The legacy version has no corresponding DESI template field."
+  }
+]
