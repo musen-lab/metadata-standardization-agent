@@ -1,0 +1,147 @@
+# Publishes arms-agent to PyPI through trusted publishing (OpenID Connect), so no
+# API token is stored anywhere. The `pypi` environment holds the approval gate; the
+# short-lived OIDC credential is minted per run by the publish job alone.
+#
+# arms-agent is the only distribution here; the root is the evaluation harness and
+# is never published, so a plain version tag is unambiguous. The tag must agree
+# with the version in arms-agent/pyproject.toml, which is what stops an unrelated
+# version tag from shipping a release nobody meant to cut.
+#
+# One-time setup on PyPI: Publishing -> Add a pending publisher
+#   Project name:    arms-agent
+#   Owner:           musen-lab
+#   Repository:      metadata-standardization-agent
+#   Workflow name:   release.yml
+#   Environment:     pypi
+# Then create the `pypi` environment under Settings -> Environments in GitHub.
+
+name: Release arms-agent
+
+on:
+  push:
+    tags:
+      # e.g. v0.1.0.  Anchored on a digit so a tag like "verified-run" cannot fire.
+      - "v[0-9]*"
+  # Builds and tests on demand without publishing; only a tag can publish.
+  workflow_dispatch:
+
+# Least privilege by default. The publish job asks for what it needs.
+permissions: {}
+
+env:
+  # The version the harness is pinned to, and the floor of the package's range.
+  DEFAULT_PYTHON: "3.12"
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build the wheel and sdist
+        run: uv build --package arms-agent --out-dir dist
+
+      - name: Check the tag against the declared version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          declared=$(python -c "import tomllib,pathlib; print(tomllib.loads(pathlib.Path('arms-agent/pyproject.toml').read_text())['project']['version'])")
+          tagged="${GITHUB_REF_NAME#v}"
+          if [ "$declared" != "$tagged" ]; then
+            echo "::error::tag $GITHUB_REF_NAME wants $tagged but arms-agent/pyproject.toml declares $declared"
+            exit 1
+          fi
+          echo "Publishing arms-agent $declared"
+
+      - name: Validate the metadata and README rendering
+        run: uvx twine check --strict dist/*
+
+      - name: Confirm no stray files are in the artifacts
+        run: |
+          # A leaked .env, credential, or build cache must never reach PyPI.
+          if tar tzf dist/*.tar.gz | grep -Ei '(^|/)(\.env|\.venv|__pycache__|\.pytest_cache|\.ruff_cache)(/|$)'; then
+            echo "::error::unexpected file in the sdist"
+            exit 1
+          fi
+          if unzip -l dist/*.whl | grep -Ei '(\.env|__pycache__|\.pyc)'; then
+            echo "::error::unexpected file in the wheel"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  test:
+    name: Test the built wheel (Python ${{ matrix.python-version }})
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both ends of the package's requires-python range.
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Install the wheel with its tracing extra
+        # Installing the artifact rather than the source tree means the tests run
+        # against exactly what PyPI would serve.
+        run: |
+          uv venv
+          uv pip install "arms_agent[tracing] @ $(ls dist/*.whl)" pytest
+
+      - name: Run the package suite
+        working-directory: arms-agent
+        run: ../.venv/bin/python -m pytest tests -q
+
+  lint:
+    name: Lint and format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: ${{ env.DEFAULT_PYTHON }}
+
+      - run: uv sync --all-extras
+      - run: uv run ruff check arms-agent/ tests/ evaluation/
+      - run: uv run ruff format --check arms-agent/ tests/ evaluation/
+
+  publish:
+    name: Publish to PyPI
+    needs: [build, test, lint]
+    # Only a tag publishes. A manual run stops after build, test, and lint.
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/arms-agent
+    permissions:
+      # Mints the OIDC token PyPI exchanges for a short-lived upload credential.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
