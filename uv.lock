@@ -65,10 +65,14 @@ dependencies = [
     { name = "langchain" },
     { name = "langchain-core" },
     { name = "langchain-openai" },
-    { name = "langfuse" },
     { name = "langgraph" },
     { name = "pydantic" },
     { name = "python-dotenv" },
+]
+
+[package.optional-dependencies]
+tracing = [
+    { name = "langfuse" },
 ]
 
 [package.metadata]
@@ -77,11 +81,12 @@ requires-dist = [
     { name = "langchain", specifier = ">=1.2,<2.0" },
     { name = "langchain-core", specifier = ">=1.2,<2.0" },
     { name = "langchain-openai", specifier = ">=1.0,<2.0" },
-    { name = "langfuse", specifier = ">=4.14,<5.0" },
+    { name = "langfuse", marker = "extra == 'tracing'", specifier = ">=4.14,<5.0" },
     { name = "langgraph", specifier = ">=1.0,<2.0" },
     { name = "pydantic", specifier = ">=2.0,<3.0" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
 ]
+provides-extras = ["tracing"]
 
 [[package]]
 name = "asttokens"
@@ -1176,7 +1181,7 @@ name = "metadata-standardization-agent"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "arms-agent" },
+    { name = "arms-agent", extra = ["tracing"] },
 ]
 
 [package.optional-dependencies]
@@ -1199,7 +1204,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "arms-agent", editable = "arms-agent" },
+    { name = "arms-agent", extras = ["tracing"], editable = "arms-agent" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9" },

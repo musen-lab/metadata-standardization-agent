@@ -25,6 +25,12 @@ dependencies = [
     "pydantic>=2.0,<3.0",
     "cedar-mcp>=1.3.0",
     "python-dotenv>=1.2.1",
+]
+
+[project.optional-dependencies]
+# Every Langfuse import is function-local and gated on tracing_enabled(), so the
+# agent runs without it.  Only projects that trace pay for the SDK.
+tracing = [
     "langfuse>=4.14,<5.0",
 ]
 

@@ -22,7 +22,23 @@ CEDAR_API_KEY=...        # fetching CEDAR templates
 BIOPORTAL_API_KEY=...    # ontology term lookups
 ```
 
-Optional: set `OPENAI_BASE_URL` to route LLM calls through an OpenAI-compatible gateway. Set `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` to trace each LLM call, tool call, and agent step to [Langfuse](https://langfuse.com/); tracing stays off until both are set.
+Optional: set `OPENAI_BASE_URL` to route LLM calls through an OpenAI-compatible gateway.
+
+To trace each LLM call, tool call, and agent step to [Langfuse](https://langfuse.com/), install the extra and
+set both keys:
+
+```bash
+pip install 'arms-agent[tracing]'
+```
+
+```
+LANGFUSE_PUBLIC_KEY=...
+LANGFUSE_SECRET_KEY=...
+LANGFUSE_HOST=...       # optional, defaults to Langfuse Cloud
+```
+
+Tracing stays off until both keys are set, and `LANGFUSE_TRACING_ENABLED=false` switches it off while leaving
+the keys in place.
 
 ## Command line
 

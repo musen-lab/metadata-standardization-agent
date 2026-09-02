@@ -9,16 +9,37 @@ from __future__ import annotations
 
 import logging
 import os
+from functools import cache
+from importlib.util import find_spec
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
+@cache
+def _langfuse_installed() -> bool:
+    """Return True when the Langfuse SDK is importable.
+
+    Langfuse ships in the ``tracing`` extra, so credentials alone do not mean the
+    SDK is there.  Checking here keeps the four import sites unguarded and warns
+    once, rather than raising ImportError in the middle of a run.
+    """
+    if find_spec("langfuse") is not None:
+        return True
+    logger.warning(
+        "Langfuse credentials are set but the SDK is not installed, so nothing will be traced; "
+        "install it with: pip install 'arms-agent[tracing]'"
+    )
+    return False
+
+
 def tracing_enabled() -> bool:
-    """Return True when Langfuse credentials are present and tracing is not switched off."""
+    """Return True when Langfuse is installed, credentialed, and not switched off."""
     if os.environ.get("LANGFUSE_TRACING_ENABLED", "true").lower() == "false":
         return False
-    return bool(os.environ.get("LANGFUSE_PUBLIC_KEY")) and bool(os.environ.get("LANGFUSE_SECRET_KEY"))
+    if not (os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY")):
+        return False
+    return _langfuse_installed()
 
 
 def recording_client(what: str) -> Any | None:

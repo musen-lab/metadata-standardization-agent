@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -321,3 +322,35 @@ class TestFlushTracing:
 
         monkeypatch.setattr("langfuse.get_client", lambda: _Client())
         tracing.flush_tracing()
+
+
+def test_tracing_off_when_langfuse_is_not_installed(monkeypatch, caplog):
+    """Credentials alone must not enable tracing; the SDK ships in an extra."""
+    from arms_agent.tracing import client
+
+    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
+    monkeypatch.delenv("LANGFUSE_TRACING_ENABLED", raising=False)
+    monkeypatch.setattr(client, "find_spec", lambda name: None)
+    client._langfuse_installed.cache_clear()
+    try:
+        with caplog.at_level(logging.WARNING):
+            assert client.tracing_enabled() is False
+        assert "arms-agent[tracing]" in caplog.text
+    finally:
+        client._langfuse_installed.cache_clear()
+
+
+def test_langfuse_installed_warns_once(monkeypatch, caplog):
+    """The missing-SDK warning is cached, so a long run logs it a single time."""
+    from arms_agent.tracing import client
+
+    monkeypatch.setattr(client, "find_spec", lambda name: None)
+    client._langfuse_installed.cache_clear()
+    try:
+        with caplog.at_level(logging.WARNING):
+            assert client._langfuse_installed() is False
+            assert client._langfuse_installed() is False
+        assert caplog.text.count("arms-agent[tracing]") == 1
+    finally:
+        client._langfuse_installed.cache_clear()

@@ -10,7 +10,8 @@ authors = [
 ]
 
 dependencies = [
-    "arms-agent",
+    # The harness traces its sweeps to Langfuse, so it takes the tracing extra.
+    "arms-agent[tracing]",
 ]
 
 [project.optional-dependencies]
