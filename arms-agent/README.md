@@ -2,7 +2,7 @@
 
 An LLM agent that standardizes legacy biomedical metadata records into the [CEDAR](https://metadatacenter.org/) template format.
 
-It fetches the live CEDAR template and queries BioPortal for canonical terms through [Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)tools, so the constraints it applies are the ones the template holds right now.
+It fetches the live CEDAR template and queries BioPortal for canonical terms through [Model Context Protocol](https://www.anthropic.com/news/model-context-protocol) tools, so the constraints it applies are the ones the template holds right now.
 
 This is the agent described in *Automated Standardization of Legacy Biomedical Metadata Using an Ontology-Constrained LLM Agent* ([arXiv:2604.08552](https://arxiv.org/abs/2604.08552)). The evaluation harness, the 839-record dataset, and the code for every figure in the paper live in the [project repository](https://github.com/musen-lab/metadata-standardization-agent).
 
@@ -50,7 +50,9 @@ arms-migrate \
   --model gpt-5-mini
 ```
 
-`--output` takes a file or a directory. Given a directory, the filename comes from the input. Add `--debug` for step-by-step logging on stderr.
+`--output` takes a file or a directory. Given a directory, the filename comes from the input; left out, the
+result lands in your temp directory. `--model` defaults to `gpt-5.6-terra`. Add `--debug` for step-by-step
+logging on stderr.
 
 ## Python
 
@@ -100,6 +102,16 @@ The agent answers against a JSON schema built from the template, so the result c
 ## Caching
 
 CEDAR template and BioPortal term responses are cached in SQLite for 24 hours, to keep repeated runs fast and off the rate limits. Override with `ARMS_CACHE_DIR` and `ARMS_CACHE_TTL_SECONDS`.
+
+## Other settings
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `OPENAI_EXTRACTION_MODEL` | `gpt-4.1-mini` | The model that parses a reply into an object when the main model answers without one. |
+| `OPENAI_COST_MULTIPLIER` | `1.0` | Scales the reported cost when your endpoint charges a fraction of OpenAI's list prices. |
+| `OPENAI_COST_CACHE_DISCOUNT` | `true` | Whether the endpoint discounts cached input tokens. |
+
+Costs are local estimates from provider-reported token counts, not billed amounts.
 
 ## License
 
