@@ -45,12 +45,33 @@ packages = ["src/arms_agent"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src/arms_agent", "tests", "README.md", "LICENSE", "pyproject.toml"]
+# Hatchling always ships the nearest VCS ignore file and cannot be told not to,
+# so arms-agent/.gitignore exists to be that file.  Without it the workspace's own
+# ignore list is published, naming internal paths no installer needs.
 
-# Lint and format rules come from the workspace root, so the package and the
-# evaluation code are held to one standard.
+# These rules mirror the workspace root, kept inline rather than extended from it.
+# The sdist ships this file without its parent, so an `extend` there resolves to
+# nothing and every ruff run inside an unpacked sdist fails.
 [tool.ruff]
-extend = "../pyproject.toml"
+target-version = "py312"
+line-length = 120
 src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "TCH",  # flake8-type-checking
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["arms_agent"]
 
 [tool.ruff.lint.per-file-ignores]
 # The system prompt is authored as Markdown; long lines and intentional
