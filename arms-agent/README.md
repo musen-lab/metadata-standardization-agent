@@ -1,10 +1,10 @@
 # ARMS Agent
 
-An LLM agent that standardizes legacy biomedical metadata records into the [CEDAR](https://metadatacenter.org/) template format.
+An LLM agent that standardizes legacy biomedical metadata records to adhere to the [CEDAR](https://metadatacenter.org/) template.
 
 It fetches the live CEDAR template and queries BioPortal for canonical terms through [Model Context Protocol](https://www.anthropic.com/news/model-context-protocol) tools, so the constraints it applies are the ones the template holds right now.
 
-This is the agent described in *Automated Standardization of Legacy Biomedical Metadata Using an Ontology-Constrained LLM Agent* ([arXiv:2604.08552](https://arxiv.org/abs/2604.08552)). The evaluation harness, the 839-record dataset, and the code for every figure in the paper live in the [project repository](https://github.com/musen-lab/metadata-standardization-agent).
+This is the agent described in *Automated Standardization of Legacy Biomedical Metadata Using an Ontology-Constrained LLM Agent* ([arXiv:2604.08552](https://arxiv.org/abs/2604.08552)). The evaluation harness, the experiment dataset, and the code for the data analysis between baseline vs ARMS agent in the [project repository](https://github.com/musen-lab/metadata-standardization-agent).
 
 ## Install
 
@@ -44,17 +44,17 @@ the keys in place.
 
 ```bash
 arms-migrate \
-  --input legacy-record.json \
-  --target-schema https://repo.metadatacenter.org/templates/dd5e8653-81cf-470b-b71b-15cab421bb84 \
-  --output migrated.json \
+  --input legacy-metadata.json \
+  --target-schema https://repo.metadatacenter.org/templates/[CEDAR-TEMPLATE-UUID] \
+  --output standardized-metadata.json \
   --model gpt-5-mini
 ```
 
-`--output` takes a file or a directory. Given a directory, the filename comes from the input; left out, the
-result lands in your temp directory. `--model` defaults to `gpt-5.6-terra`. Add `--debug` for step-by-step
+`--output` takes a file or a directory. Given a directory, the filename comes from the input (default: the
+system's temp directory. `--model` defaults to `gpt-5.6-terra`. Add `--debug` for step-by-step
 logging on stderr.
 
-## Python
+## Integration in Python
 
 ```python
 import asyncio, json
@@ -66,8 +66,8 @@ from arms_agent.prompts import SYSTEM_PROMPT
 from arms_agent.tools import all_tools
 from arms_agent.workflow import build_workflow
 
-template_iri = "https://repo.metadatacenter.org/templates/dd5e8653-81cf-470b-b71b-15cab421bb84"
-legacy = json.load(open("legacy-record.json"))
+template_iri = "https://repo.metadatacenter.org/templates/[CEDAR-TEMPLATE-UUID]"
+legacy = json.load(open("legacy-metadata.json"))
 
 agent = build_migration_agent(
     model="gpt-5-mini",
@@ -83,7 +83,7 @@ result = asyncio.run(
             "messages": [
                 HumanMessage(
                     content=(
-                        "Migrate the following legacy metadata record to the CEDAR template.\n\n"
+                        "Standarize the legacy metadata record to adhere to the CEDAR template.\n\n"
                         f"CEDAR Template IRI: {template_iri}\n\n"
                         f"Legacy metadata:\n```json\n{json.dumps(legacy, indent=2)}\n```"
                     )
@@ -101,7 +101,7 @@ The agent answers against a JSON schema built from the template, so the result c
 
 ## Caching
 
-CEDAR template and BioPortal term responses are cached in SQLite for 24 hours, to keep repeated runs fast and off the rate limits. Override with `ARMS_CACHE_DIR` and `ARMS_CACHE_TTL_SECONDS`.
+CEDAR template and BioPortal term responses are cached in SQLite for 24 hours, to keep repeated runs fast and off the rate limits. Override with `ARMS_CACHE_DIR` and `ARMS_CACHE_TTL_SECONDS` in the .env file. 
 
 ## Other settings
 
