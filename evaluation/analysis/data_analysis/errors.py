@@ -47,6 +47,7 @@ def analyze_prediction_errors(
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Return a DataFrame of field-level prediction errors.
 
@@ -68,6 +69,8 @@ def analyze_prediction_errors(
         Whether string comparison is case-sensitive.
     match_whole_word:
         Whether to require exact match (``True``) or substring containment.
+    run:
+        Which run of *condition* to read: ``run-<run>`` under its directory.
     """
     import pandas as pd
 
@@ -78,7 +81,7 @@ def analyze_prediction_errors(
             continue
         ontology_fields = assay.ontology_fields()
 
-        for gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition)):
+        for gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition, run=run)):
             if predicted is None:
                 continue
             for field, gold_val in gold.items():
@@ -116,6 +119,7 @@ def create_error_report(
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Aggregate field-level prediction errors into a summary report.
 
@@ -135,6 +139,7 @@ def create_error_report(
         condition,
         match_case=match_case,
         match_whole_word=match_whole_word,
+        run=run,
     )
 
     if errors_df.empty:

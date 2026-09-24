@@ -43,11 +43,11 @@ def _fmt_p(p: float) -> str:
     return "<0.001" if p < 0.001 else f"{p:.3f}"
 
 
-def _pooled_data(data_root: str | Path, model: str, baseline: str, system: str) -> PairedData:
+def _pooled_data(data_root: str | Path, model: str, baseline: str, system: str, *, run: int = 1) -> PairedData:
     """Paired outcomes for every assay, accumulated into one :class:`PairedData`."""
     pooled = PairedData()
     for assay in iter_assays(data_root):
-        pooled.extend(collect_paired_data(data_root, model, assay.key, baseline=baseline, system=system))
+        pooled.extend(collect_paired_data(data_root, model, assay.key, baseline=baseline, system=system, run=run))
     return pooled
 
 
@@ -57,6 +57,7 @@ def build_precision_recall_table(
     *,
     baseline: str = "baseline",
     system: str = "arms-agent",
+    run: int = 1,
 ) -> pd.DataFrame:
     """Precision, recall and F1 with cluster-bootstrap CIs, pooled across assays.
 
@@ -67,7 +68,7 @@ def build_precision_recall_table(
     """
     import pandas as pd
 
-    pooled = _pooled_data(data_root, model, baseline, system)
+    pooled = _pooled_data(data_root, model, baseline, system, run=run)
 
     rows = []
     for category in CATEGORIES:
@@ -89,7 +90,7 @@ def build_precision_recall_table(
     return pd.DataFrame(rows)
 
 
-def build_single_condition_table(data_root: str | Path, model: str, condition: str) -> pd.DataFrame:
+def build_single_condition_table(data_root: str | Path, model: str, condition: str, *, run: int = 1) -> pd.DataFrame:
     """Accuracy and micro precision/recall/F1 with bootstrap CIs, for one condition alone.
 
     One row per field category.  Needing no comparison condition, this covers every
@@ -102,7 +103,7 @@ def build_single_condition_table(data_root: str | Path, model: str, condition: s
     """
     import pandas as pd
 
-    data = collect_single_condition_data(data_root, model, condition)
+    data = collect_single_condition_data(data_root, model, condition, run=run)
 
     rows = []
     for category in CATEGORIES:
@@ -130,6 +131,7 @@ def build_per_assay_precision_recall_table(
     alpha: float = 0.05,
     baseline: str = "baseline",
     system: str = "arms-agent",
+    run: int = 1,
 ) -> pd.DataFrame:
     """Per-assay precision and recall: ARMS against baseline, with a corrected p-value.
 
@@ -137,7 +139,7 @@ def build_per_assay_precision_recall_table(
     paired difference with its interval, the record-clustered permutation p-value, and
     that p-value corrected over every row of the table.
 
-    *baseline* and *system* name the two conditions compared, so the same
+    *baseline* and *system* name the two conditions compared, both read from run *run*, so the same
     table answers "does ARMS beat baseline" or "does ARMS beat an ablation"
     without changing anything else.  Every difference is system minus baseline,
     and the two estimate columns are named after the conditions.
@@ -159,7 +161,7 @@ def build_per_assay_precision_recall_table(
 
     rows = []
     for assay in iter_assays(data_root):
-        data = collect_paired_data(data_root, model, assay.key, baseline=baseline, system=system)
+        data = collect_paired_data(data_root, model, assay.key, baseline=baseline, system=system, run=run)
         for category in CATEGORIES:
             confusion = data.record_confusion[category]
             if not confusion:

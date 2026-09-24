@@ -73,6 +73,7 @@ def collect_deduplicated_outcomes(
     *,
     baseline: str,
     system: str,
+    run: int = 1,
 ) -> DeduplicatedOutcomes:
     """Collect both conditions' outcomes, keyed the two ways the paired tests need.
 
@@ -86,7 +87,7 @@ def collect_deduplicated_outcomes(
         if not assay.has_gold:
             continue
         ontology_fields = assay.ontology_fields()
-        directories = {condition: assay.output_dir(model, condition) for condition in conditions}
+        directories = {condition: assay.output_dir(model, condition, run=run) for condition in conditions}
 
         for gold_file, gold in iter_records(assay.gold_dir):
             paths = {condition: directory / gold_file.name for condition, directory in directories.items()}
@@ -175,6 +176,7 @@ def deduplicated_paired_tests(
     system: str,
     n_resamples: int = N_RESAMPLES,
     seed: int = SEED,
+    run: int = 1,
 ) -> list[dict[str, Any]]:
     """Condition both paired tests for every field category, and return one row per test.
 
@@ -182,7 +184,7 @@ def deduplicated_paired_tests(
     items stood behind it, both conditions' means, and the difference with its interval and
     p-value.  Formatting and thresholding are left to the caller: this returns numbers.
     """
-    outcomes = collect_deduplicated_outcomes(data_root, model, baseline=baseline, system=system)
+    outcomes = collect_deduplicated_outcomes(data_root, model, baseline=baseline, system=system, run=run)
     both_asserted = sorted(key for key, conditions in outcomes.asserted_by_field.items() if len(conditions) == 2)
     conditions = (baseline, system)
 

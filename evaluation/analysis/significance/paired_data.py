@@ -135,6 +135,7 @@ def collect_paired_data(
     *,
     baseline: str = "baseline",
     system: str = "arms-agent",
+    run: int = 1,
 ) -> PairedData:
     """Collect paired outcomes for a single assay from saved outputs.
 
@@ -148,8 +149,8 @@ def collect_paired_data(
     paired, so an unmatched record would put them on different denominators.
     """
     assay = get_assay(data_root, assay_key)
-    baseline_dir = assay.output_dir(model, baseline)
-    system_dir = assay.output_dir(model, system)
+    baseline_dir = assay.output_dir(model, baseline, run=run)
+    system_dir = assay.output_dir(model, system, run=run)
 
     data = PairedData()
     if not assay.has_gold:

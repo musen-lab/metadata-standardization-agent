@@ -281,6 +281,7 @@ def plot_pr_space(
     no_color: bool = False,
     title: str | None = None,
     save_path: str | None = None,
+    run: int = 1,
 ) -> None:
     """Operating points in precision/recall space.
 
@@ -344,7 +345,7 @@ def plot_pr_space(
     if assays:
         frames = {
             (condition, field_type): create_per_assay_precision_recall_summary(
-                data_root, model, condition, category=field_type
+                data_root, model, condition, category=field_type, run=run
             ).set_index("assay")
             for condition in conditions
             for field_type in field_types
@@ -366,7 +367,9 @@ def plot_pr_space(
         n_records = {row: int(first.loc[row, "n_records"]) for row in rows}
     else:
         summaries = {
-            condition: create_overall_precision_recall_summary(data_root, model, condition).set_index("category")
+            condition: create_overall_precision_recall_summary(data_root, model, condition, run=run).set_index(
+                "category"
+            )
             for condition in conditions
         }
         rows = [POOLED_LABEL]

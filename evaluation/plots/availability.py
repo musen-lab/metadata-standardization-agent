@@ -109,6 +109,7 @@ def plot_availability_difficulty(
     *,
     title: str | None = None,
     save_path: str | None = None,
+    run: int = 1,
 ) -> None:
     """How often the run gets a field right, by field type and by where gold's value was.
 
@@ -125,7 +126,7 @@ def plot_availability_difficulty(
     A hollow mark is a group of fewer than :data:`MIN_TRUSTED_CELL` values, where the rate
     is too thin to argue with; an assay with no fields of a kind is absent from its panel.
     """
-    summary = create_availability_summary(data_root, model, condition)
+    summary = create_availability_summary(data_root, model, condition, run=run)
     if summary.empty:
         raise ValueError(f"no predictions on disk for {condition!r} under {model!r}")
 

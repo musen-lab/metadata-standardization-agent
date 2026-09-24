@@ -79,6 +79,8 @@ def collect_single_condition_data(
     model: str,
     condition: str,
     assay_key: str | None = None,
+    *,
+    run: int = 1,
 ) -> SingleConditionData:
     """Collect one condition's per-record outcomes, for *assay_key* or pooled across all assays.
 
@@ -91,7 +93,7 @@ def collect_single_condition_data(
     for assay in assays:
         if not assay.has_gold:
             continue
-        output_dir = assay.output_dir(model, condition)
+        output_dir = assay.output_dir(model, condition, run=run)
         for gold_file, gold in iter_records(assay.gold_dir):
             prediction = output_dir / gold_file.name
             if not prediction.exists():

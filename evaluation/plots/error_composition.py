@@ -228,6 +228,7 @@ def plot_error_composition(
     field_type: str | None = None,
     title: str | None = None,
     save_path: str | None = None,
+    run: int = 1,
 ) -> None:
     """What each assay's errors are made of.
 
@@ -241,7 +242,7 @@ def plot_error_composition(
     segments and not at seven, and the category is the confusion case, which is the split a
     reader already knows from the precision/recall tables.
     """
-    errors = collect_field_errors(data_root, model, condition)
+    errors = collect_field_errors(data_root, model, condition, run=run)
     if errors.empty:
         raise ValueError(f"no predictions on disk for {condition!r} under {model!r}")
 
@@ -277,6 +278,7 @@ def plot_corpus_error_composition(
     no_color: bool = False,
     title: str | None = None,
     save_path: str | None = None,
+    run: int = 1,
 ) -> None:
     """The whole corpus in one bar: every counted error, at one level of the taxonomy.
 
@@ -307,7 +309,7 @@ def plot_corpus_error_composition(
     single unbroken span to brace.  Every error appears once: the category is the confusion
     case, so a substitution carries one label rather than one per side.
     """
-    errors = collect_field_errors(data_root, model, condition)
+    errors = collect_field_errors(data_root, model, condition, run=run)
     if errors.empty:
         raise ValueError(f"no predictions on disk for {condition!r} under {model!r}")
     if apply_dedup:

@@ -25,7 +25,8 @@ run_sweep(plan, n_repeat=5, dry_run=False) # the whole plan five times, into run
 
 `plan_sweep` loads the API keys from `.env` and prints what the sweep covers. It raises on an unknown assay, an unknown condition, an assay with no input records, or a missing key — before anything is spent. `run_sweep` then runs the jobs (one job is one assay under one condition), one at a time, every condition of one assay before the next assay starts. It spends nothing while `dry_run` stands, which is its default.
 With `n_repeat=N` it makes N runs of the whole plan, finishing each run before starting the next, and writes run *n* to `<condition>/run-<n>/`.
-The CLI has no repeats: its one run always lands in `run-1/`, which is also the run the analyses read.
+The CLI has no repeats: its one run always lands in `run-1/`.
+Every analysis function reads `run-1/` too, unless given `run=<n>`, for example `create_overall_precision_recall_summary(DATA_ROOT, MODEL, "arms-agent", run=2)`.
 
 ## Directory Conventions
 

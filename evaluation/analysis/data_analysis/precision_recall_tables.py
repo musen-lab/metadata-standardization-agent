@@ -36,6 +36,8 @@ def _accumulate_confusion(
     assays: Iterable[Assay],
     model: str,
     condition: str,
+    *,
+    run: int = 1,
 ) -> tuple[dict[str, dict[str, int]], int, int]:
     """Pool confusion counts over every gold/predicted pair in *assays*.
 
@@ -55,7 +57,7 @@ def _accumulate_confusion(
         if not assay.has_gold:
             continue
 
-        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition)):
+        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition, run=run)):
             if predicted is None:
                 n_skipped += 1
                 continue
@@ -98,6 +100,7 @@ def create_overall_precision_recall_summary(
     condition: str,
     *,
     decimal_places: int = 3,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Pool precision, recall and F1 across all assays, one row per field category.
 
@@ -107,7 +110,7 @@ def create_overall_precision_recall_summary(
     """
     import pandas as pd
 
-    counts, n_pairs, _ = _accumulate_confusion(iter_assays(data_root), model, condition)
+    counts, n_pairs, _ = _accumulate_confusion(iter_assays(data_root), model, condition, run=run)
 
     return pd.DataFrame(
         [
@@ -124,6 +127,7 @@ def create_per_assay_precision_recall_summary(
     *,
     category: str = "all",
     decimal_places: int = 3,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Precision, recall and F1 per assay, micro-averaged within each assay.
 
@@ -138,7 +142,7 @@ def create_per_assay_precision_recall_summary(
 
     rows: list[dict[str, Any]] = []
     for assay in iter_assays(data_root):
-        counts, n_pairs, _ = _accumulate_confusion([assay], model, condition)
+        counts, n_pairs, _ = _accumulate_confusion([assay], model, condition, run=run)
         if not n_pairs:
             continue
         rows.append({"assay": assay.label, **_scores_row(counts[category], n_pairs, decimal_places)})

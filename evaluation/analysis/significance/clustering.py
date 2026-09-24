@@ -28,6 +28,7 @@ def effective_sample_size(
     condition: str,
     *,
     field_type: str | None = None,
+    run: int = 1,
 ) -> dict[str, float]:
     """Effective number of independent field observations, given the repetition.
 
@@ -49,7 +50,7 @@ def effective_sample_size(
             continue
         ontology_fields = assay.ontology_fields()
 
-        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition)):
+        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition, run=run)):
             if predicted is None:
                 continue
             for field_name, gold_val in gold.items():

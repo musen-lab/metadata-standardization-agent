@@ -564,3 +564,36 @@ class TestRoleSelector:
         counts = [(1, 2, 3), (2, 2, 4)]
         assert cluster_bootstrap_pooled(counts, "baseline")[0] == 3 / 7
         assert cluster_bootstrap_pooled(counts, "system")[0] == 4 / 7
+
+
+class TestRunSelection:
+    """``run`` picks which ``run-<n>`` directory every reader scores; the default is run 1."""
+
+    @staticmethod
+    def _add_run_2(root: Path) -> None:
+        """A second run in which baseline catches up with ARMS on the ontology field."""
+        for name in ("r1.json", "r2.json"):
+            for condition in ("baseline", "arms-agent"):
+                _write_record(
+                    root / "atacseq" / "output" / "gpt5mini" / condition / "run-2" / name,
+                    {"tissue": "lung", "title": "study"},
+                )
+
+    def test_paired_data_reads_the_run_asked_for(self, tmp_path: Path) -> None:
+        _build_mini_data_root(tmp_path)
+        self._add_run_2(tmp_path)
+        assert collect_paired_data(tmp_path, "gpt5mini", "atacseq").field_outcomes["ontology"][0] == (False, True)
+        second = collect_paired_data(tmp_path, "gpt5mini", "atacseq", run=2)
+        assert second.field_outcomes["ontology"][0] == (True, True)
+
+    def test_summary_tables_read_the_run_asked_for(self, tmp_path: Path) -> None:
+        _build_mini_data_root(tmp_path)
+        self._add_run_2(tmp_path)
+        first = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "baseline").set_index("category")
+        second = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "baseline", run=2)
+        assert first.loc["ontology", "precision"] == 0.0
+        assert second.set_index("category").loc["ontology", "precision"] == 1.0
+
+    def test_a_run_that_was_never_made_has_nothing_to_pair(self, tmp_path: Path) -> None:
+        _build_mini_data_root(tmp_path)
+        assert collect_paired_data(tmp_path, "gpt5mini", "atacseq", run=2).record_acc["all"] == []

@@ -32,6 +32,7 @@ def plot_grouped_bar_chart(
     show_error_bars: bool = True,
     error_mode: str = "ci",
     save_path: str | None = None,
+    run: int = 1,
 ) -> None:
     """Grouped bar chart (baseline vs experiment) with optional error bars.
 
@@ -57,7 +58,7 @@ def plot_grouped_bar_chart(
             continue
 
         for condition in conditions:
-            input_dir = get_assay(root, assay_key).output_dir(model, condition)
+            input_dir = get_assay(root, assay_key).output_dir(model, condition, run=run)
             if not input_dir.exists():
                 continue
 

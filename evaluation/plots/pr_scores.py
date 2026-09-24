@@ -34,6 +34,8 @@ def _pr_scores(
     conditions: tuple[str, ...],
     field_type: str,
     assays: tuple[str, ...],
+    *,
+    run: int = 1,
 ) -> tuple[list[str], dict[tuple[str, str], tuple[float, float]]]:
     """The (recall, precision) of every condition for every row.
 
@@ -49,7 +51,9 @@ def _pr_scores(
 
     if not assays:
         summaries = {
-            condition: create_overall_precision_recall_summary(data_root, model, condition).set_index("category")
+            condition: create_overall_precision_recall_summary(data_root, model, condition, run=run).set_index(
+                "category"
+            )
             for condition in conditions
         }
         scores = {
@@ -60,7 +64,7 @@ def _pr_scores(
 
     frames = {
         condition: create_per_assay_precision_recall_summary(
-            data_root, model, condition, category=field_type
+            data_root, model, condition, category=field_type, run=run
         ).set_index("assay")
         for condition in conditions
     }

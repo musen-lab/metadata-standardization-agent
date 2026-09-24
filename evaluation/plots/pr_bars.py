@@ -26,6 +26,7 @@ def plot_pr_bar_chart(
     systems: tuple[str, ...] = ("arms-agent",),
     field_type: str = "all",
     save_path: str | None = None,
+    run: int = 1,
 ) -> None:
     """Precision above, recall below, one bar per condition within each assay.
 
@@ -48,7 +49,7 @@ def plot_pr_bar_chart(
     """
     _check_pr_arguments(baselines, systems, (field_type,))
     conditions = (*baselines, *systems)
-    rows, scores = _pr_scores(data_root, model, conditions, field_type, assays)
+    rows, scores = _pr_scores(data_root, model, conditions, field_type, assays, run=run)
 
     colours = [
         *_condition_colours(len(baselines), LADDER_BLUES, CONDITION_COLOURS[0]),

@@ -46,6 +46,7 @@ def create_availability_summary(
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
+    run: int = 1,
 ) -> pd.DataFrame:
     """How often *condition* gets a field right, by field type and by where gold's value was.
 
@@ -66,7 +67,7 @@ def create_availability_summary(
         if not assay.has_gold:
             continue
         ontology_fields = assay.ontology_fields()
-        output_dir = assay.output_dir(model, condition)
+        output_dir = assay.output_dir(model, condition, run=run)
 
         for gold_path in sorted(assay.gold_dir.glob("*.json")):
             predicted_path = output_dir / gold_path.name
