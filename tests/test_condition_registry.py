@@ -97,17 +97,20 @@ def drop_in() -> Iterator[object]:
 
 
 class TestWhatIsAlreadyThere:
-    def test_both_shipped_conditions_are_found(self) -> None:
-        assert condition_names() == ("baseline", "arms-agent")
+    def test_every_shipped_condition_is_found_in_reported_order(self) -> None:
+        assert condition_names() == ("baseline", "template-tool", "term-tool", "arms-agent")
 
     def test_each_carries_the_family_it_was_found_in(self) -> None:
         assert get_condition("baseline").family == "prompt_only"
-        assert get_condition("arms-agent").family == "agent_tool"
+        for name in ("template-tool", "term-tool", "arms-agent"):
+            assert get_condition(name).family == "agent_tool", name
 
-    def test_only_arms_declares_a_vocabulary_key(self) -> None:
+    def test_only_the_arms_that_search_declare_a_vocabulary_key(self) -> None:
         """The key check in plan_sweep reads this, so a wrong answer costs a failed run."""
-        assert get_condition("arms-agent").requires_keys == {"BIOPORTAL_API_KEY"}
-        assert get_condition("baseline").requires_keys == frozenset()
+        for name in ("term-tool", "arms-agent"):
+            assert get_condition(name).requires_keys == {"BIOPORTAL_API_KEY"}, name
+        for name in ("baseline", "template-tool"):
+            assert get_condition(name).requires_keys == frozenset(), name
 
     def test_a_helper_module_is_not_a_condition(self) -> None:
         """template_spec sits beside the conditions and declares nothing, so it is passed over."""
@@ -146,7 +149,7 @@ class TestDroppingOneIn:
     def test_order_decides_where_it_is_reported(self, drop_in: object) -> None:
         """Reported order is the module's to declare, since the tables read left to right."""
         drop_in("prompt_only", "dropped_in", name="dropped-in", order=10)
-        assert condition_names() == ("baseline", "dropped-in", "arms-agent")
+        assert condition_names() == ("baseline", "dropped-in", "template-tool", "term-tool", "arms-agent")
 
     def test_taking_it_out_again_removes_it(self, drop_in: object) -> None:
         drop_in("prompt_only", "dropped_in", name="dropped-in")
@@ -174,7 +177,8 @@ class TestRefusals:
             discover(refresh=True)
 
     def test_an_unknown_name_says_what_it_expected(self) -> None:
-        with pytest.raises(ValueError, match="Unknown run type 'schema'; expected one of baseline, arms-agent"):
+        expected = "Unknown run type 'schema'; expected one of baseline, template-tool, term-tool, arms-agent"
+        with pytest.raises(ValueError, match=expected):
             get_condition("schema")
 
 

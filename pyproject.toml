@@ -52,8 +52,8 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 # Each condition's prompt copies shared blocks verbatim from the agent's system
-# prompt and must not be rewrapped.
-"evaluation/conditions/prompt_only/prompts/*.py" = ["E501", "W291"]
+# prompt and must not be rewrapped.  Every family keeps its prompts in the same place.
+"evaluation/conditions/*/prompts/*.py" = ["E501", "W291"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["arms_agent"]

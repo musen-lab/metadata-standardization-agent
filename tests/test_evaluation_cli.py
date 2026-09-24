@@ -22,6 +22,8 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # under test what to test would pass just as well with the registry returning nothing.
 _CONDITIONS = [
     ["--condition", "baseline"],
+    ["--condition", "template-tool"],
+    ["--condition", "term-tool"],
     ["--condition", "arms-agent"],
 ]
 
@@ -100,7 +102,8 @@ def test_the_declared_conditions_are_offered(tmp_path: Path) -> None:
     """The help lists what the registry found, so a dropped-in module is reachable here."""
     result = _run_cli(tmp_path, ["--help"])
     assert result.returncode == 0, result.stderr
-    assert "--condition {baseline,arms-agent}" in result.stdout.replace("\n", " ").replace("  ", " "), result.stdout
+    usage = " ".join(result.stdout.split())
+    assert "--condition {baseline,template-tool,term-tool,arms-agent}" in usage, result.stdout
 
 
 def test_a_run_name_does_not_change_the_condition(tmp_path: Path) -> None:

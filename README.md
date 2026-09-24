@@ -31,6 +31,7 @@ The agent is a standalone package under `arms-agent/`, published to PyPI as [arm
 | Legacy input records | `data/<assay>/input/`|
 | Baseline output | `data/<assay>/output/<model>/baseline/` |
 | ARMS output | `data/<assay>/output/<model>/arms-agent/` |
+| Ablation outputs (template tool only, term search only) | `data/<assay>/output/<model>/{template-tool,term-tool}/` |
 | CEDAR template specifications (one per assay) | `data/schemas/<assay>.json` |
 | Sampling function (stratified, per-assay random sample) | `data/sampling.py` |
 
