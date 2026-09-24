@@ -156,9 +156,8 @@ def compute_field_results(
     missing or both are present and match via
     :func:`~analysis.metrics.matching._values_match`.
 
-    This per-field detail is what paired, field-level significance tests (e.g.
-    McNemar's test) require, since they compare baseline vs. agent correctness on
-    the same field of the same record.
+    This per-field detail is what a paired comparison needs, since it scores two
+    conditions on the same field of the same record.
     """
     ontology_fields = set(_get_ontology_constrained_fields(schema_path))
     return [

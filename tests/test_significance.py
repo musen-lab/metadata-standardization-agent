@@ -12,21 +12,16 @@ from analysis.significance import (
     _prf_from_sums,
     adjust_pvalues,
     bootstrap_ci,
-    bootstrap_pooled_accuracy,
     bootstrap_prf,
     build_per_assay_precision_recall_table,
     build_precision_recall_table,
     build_single_condition_table,
-    cluster_bootstrap_pooled,
     cluster_bootstrap_prf,
     cluster_bootstrap_prf_delta,
     collect_paired_data,
     collect_single_condition_data,
     effective_sample_size,
-    paired_mcnemar,
-    paired_permutation,
     paired_permutation_prf,
-    paired_wilcoxon,
 )
 
 if TYPE_CHECKING:
@@ -56,97 +51,6 @@ class TestBootstrapCI:
     def test_reproducible_with_seed(self) -> None:
         values = [0.1, 0.3, 0.9, 0.5, 0.7]
         assert bootstrap_ci(values, seed=42) == bootstrap_ci(values, seed=42)
-
-
-class TestPairedWilcoxon:
-    def test_all_improve_is_significant(self) -> None:
-        pairs = [(0.5, 0.9)] * 10
-        _stat, p, n = paired_wilcoxon(pairs)
-        assert n == 10
-        assert p < 0.05
-
-    def test_no_difference_returns_one(self) -> None:
-        pairs = [(0.6, 0.6)] * 8
-        _stat, p, n = paired_wilcoxon(pairs)
-        assert n == 0
-        assert p == 1.0
-
-    def test_empty_returns_one(self) -> None:
-        _stat, p, n = paired_wilcoxon([])
-        assert p == 1.0
-        assert n == 0
-
-
-class TestPairedMcnemar:
-    def test_known_counts(self) -> None:
-        # 9 ARMS-only correct, 1 baseline-only correct, plus ties.
-        outcomes = [(False, True)] * 9 + [(True, False)] * 1 + [(True, True)] * 5 + [(False, False)] * 5
-        result = paired_mcnemar(outcomes)
-        assert result["c"] == 9
-        assert result["b"] == 1
-        assert result["n_discordant"] == 10
-
-    def test_no_discordant_pairs(self) -> None:
-        outcomes = [(True, True)] * 4 + [(False, False)] * 4
-        result = paired_mcnemar(outcomes)
-        assert result["n_discordant"] == 0
-        assert result["pvalue"] == 1.0
-
-    def test_strongly_lopsided_is_significant(self) -> None:
-        outcomes = [(False, True)] * 50 + [(True, False)] * 2
-        result = paired_mcnemar(outcomes)
-        assert result["pvalue"] < 0.001
-
-
-class TestPairedPermutation:
-    def test_no_discordant_returns_one(self) -> None:
-        # Every record balanced (d_i = 0): nothing to test.
-        result = paired_permutation([(0, 0), (2, 2), (1, 1)])
-        assert result["n_effective"] == 0
-        assert result["pvalue"] == 1.0
-        assert result["s_observed"] == 0.0
-
-    def test_s_observed_is_net_arms_advantage(self) -> None:
-        # (baseline_only, arms_only) per record -> d_i = arms_only - baseline_only.
-        result = paired_permutation([(0, 3), (1, 2), (1, 1), (1, 0)])
-        assert result["s_observed"] == 3.0  # (3-0)+(2-1)+(1-1)+(0-1)
-        assert result["n_effective"] == 3  # the (1, 1) record has d_i = 0
-
-    def test_strongly_one_sided_is_significant(self) -> None:
-        # 20 records all favouring ARMS by a wide margin.
-        result = paired_permutation([(0, 5)] * 20)
-        assert result["pvalue"] < 0.001
-
-    def test_clustering_is_not_overconfident(self) -> None:
-        # 50 ARMS-wins vs 15 baseline-wins, but bunched into 10 records that each
-        # lean one way (7 pro-ARMS, 3 pro-baseline). A flat field-level McNemar
-        # would call this highly significant; the record-clustered permutation
-        # should not, because the real signal is only "7 vs 3 records".
-        discordant = [(0, 5)] * 7 + [(5, 0)] * 3
-        perm = paired_permutation(discordant)
-        flat = paired_mcnemar([(False, True)] * 35 + [(True, False)] * 15)
-        # Flat McNemar calls it significant; the clustered permutation does not.
-        assert flat["pvalue"] < 0.05
-        assert perm["pvalue"] > 0.05
-        assert perm["pvalue"] > flat["pvalue"]
-
-    def test_reproducible_with_seed(self) -> None:
-        discordant = [(1, 3), (0, 2), (2, 1), (1, 4)]
-        assert paired_permutation(discordant, seed=7)["pvalue"] == paired_permutation(discordant, seed=7)["pvalue"]
-
-
-class TestClusterBootstrapPooled:
-    def test_pooled_is_field_weighted(self) -> None:
-        # Record A: 1/1 correct; Record B: 1/3 correct. Pooled = 2/4 = 0.5,
-        # which differs from the record-mean (1.0 + 0.333)/2 = 0.667.
-        counts = [(1, 1, 1), (1, 1, 3)]
-        point, lo, hi = cluster_bootstrap_pooled(counts, "baseline")
-        assert abs(point - 0.5) < 1e-9
-        assert lo <= point <= hi
-
-    def test_empty_returns_nan(self) -> None:
-        point, lo, hi = cluster_bootstrap_pooled([], "system")
-        assert point != point  # nan
 
 
 def _write_record(path: Path, record: dict) -> None:
@@ -182,15 +86,16 @@ class TestCollectPairedData:
         _build_mini_data_root(tmp_path)
         data = collect_paired_data(tmp_path, "gpt5mini", "atacseq")
         # 2 records, each with 1 ontology + 1 non-ontology field.
-        assert len(data.record_acc["all"]) == 2
-        assert len(data.field_outcomes["ontology"]) == 2
-        assert len(data.field_outcomes["non_ontology"]) == 2
+        assert len(data.record_confusion["all"]) == 2
+        assert len(data.record_confusion["ontology"]) == 2
+        assert len(data.record_confusion["non_ontology"]) == 2
         # Ontology field: baseline wrong, ARMS right.
-        assert data.field_outcomes["ontology"][0] == (False, True)
+        # (baseline TP, FP, FN, system TP, FP, FN): baseline asserted a wrong value, ARMS the right one.
+        assert data.record_confusion["ontology"][0] == (0, 1, 1, 1, 0, 0)
 
     def test_missing_assay_returns_empty(self, tmp_path: Path) -> None:
         data = collect_paired_data(tmp_path, "gpt5mini", "atacseq")
-        assert data.record_acc["all"] == []
+        assert data.record_confusion["all"] == []
 
 
 def _build_clustered_root(root: Path) -> None:
@@ -373,9 +278,6 @@ class TestSingleConditionIntervals:
         for condition, which in (("baseline", "baseline"), ("arms-agent", "system")):
             single = collect_single_condition_data(tmp_path, "gpt5mini", condition, "atacseq")
             for category in ("ontology", "non_ontology", "all"):
-                assert bootstrap_pooled_accuracy(single.record_counts[category]) == cluster_bootstrap_pooled(
-                    paired.record_counts[category], which
-                ), (condition, category)
                 assert bootstrap_prf(single.record_confusion[category]) == cluster_bootstrap_prf(
                     paired.record_confusion[category], which
                 ), (condition, category)
@@ -514,16 +416,16 @@ class TestConditionAgnosticComparison:
         self._add_condition(tmp_path, "term-tool", {"tissue": "lung", "title": "study"})
 
         data = collect_paired_data(tmp_path, "gpt5mini", "atacseq", baseline="template-tool", system="term-tool")
-        assert len(data.record_acc["all"]) == 2
+        assert len(data.record_confusion["all"]) == 2
         # template-tool gets the title wrong, term-tool gets it right.
-        assert data.field_outcomes["non_ontology"][0] == (False, True)
+        assert data.record_confusion["non_ontology"][0] == (0, 1, 1, 1, 0, 0)
 
     def test_swapping_the_conditions_swaps_the_arms(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
         forward = collect_paired_data(tmp_path, "gpt5mini", "atacseq")
         reverse = collect_paired_data(tmp_path, "gpt5mini", "atacseq", baseline="arms-agent", system="baseline")
-        assert forward.field_outcomes["ontology"][0] == (False, True)
-        assert reverse.field_outcomes["ontology"][0] == (True, False)
+        assert forward.record_confusion["ontology"][0] == (0, 1, 1, 1, 0, 0)
+        assert reverse.record_confusion["ontology"][0] == (1, 0, 0, 0, 1, 1)
 
     def test_swapping_the_conditions_flips_the_sign_of_the_difference(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
@@ -546,24 +448,21 @@ class TestConditionAgnosticComparison:
     def test_default_still_compares_baseline_against_arms(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
         explicit = collect_paired_data(tmp_path, "gpt5mini", "atacseq", baseline="baseline", system="arms-agent")
-        assert collect_paired_data(tmp_path, "gpt5mini", "atacseq").record_acc == explicit.record_acc
+        assert collect_paired_data(tmp_path, "gpt5mini", "atacseq").record_confusion == explicit.record_confusion
 
 
 class TestRoleSelector:
     def test_unknown_selector_raises_rather_than_silently_picking_the_other_role(self) -> None:
         """A condition name passed where a role belongs must fail loudly, not select the wrong side."""
-        counts = [(1, 2, 3), (2, 2, 4)]
         for bad in ("arms-agent", "template-tool", "arms", ""):
-            with pytest.raises(ValueError, match="baseline"):
-                cluster_bootstrap_pooled(counts, bad)
             with pytest.raises(ValueError, match="baseline"):
                 cluster_bootstrap_prf([(1, 2, 3, 4, 5, 6)], bad)
 
     def test_the_two_roles_are_accepted(self) -> None:
-        # (baseline_correct, system_correct, total) per record, pooled over both records.
-        counts = [(1, 2, 3), (2, 2, 4)]
-        assert cluster_bootstrap_pooled(counts, "baseline")[0] == 3 / 7
-        assert cluster_bootstrap_pooled(counts, "system")[0] == 4 / 7
+        # (baseline TP, FP, FN, system TP, FP, FN) per record, summed over both records.
+        confusion = [(1, 1, 0, 2, 0, 0), (1, 0, 0, 1, 0, 0)]
+        assert cluster_bootstrap_prf(confusion, "baseline")["precision"][0] == 2 / 3
+        assert cluster_bootstrap_prf(confusion, "system")["precision"][0] == 1.0
 
 
 class TestRunSelection:
@@ -582,9 +481,16 @@ class TestRunSelection:
     def test_paired_data_reads_the_run_asked_for(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
         self._add_run_2(tmp_path)
-        assert collect_paired_data(tmp_path, "gpt5mini", "atacseq").field_outcomes["ontology"][0] == (False, True)
+        assert collect_paired_data(tmp_path, "gpt5mini", "atacseq").record_confusion["ontology"][0] == (
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+        )
         second = collect_paired_data(tmp_path, "gpt5mini", "atacseq", run=2)
-        assert second.field_outcomes["ontology"][0] == (True, True)
+        assert second.record_confusion["ontology"][0] == (1, 0, 0, 1, 0, 0)
 
     def test_summary_tables_read_the_run_asked_for(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
@@ -596,4 +502,4 @@ class TestRunSelection:
 
     def test_a_run_that_was_never_made_has_nothing_to_pair(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
-        assert collect_paired_data(tmp_path, "gpt5mini", "atacseq", run=2).record_acc["all"] == []
+        assert collect_paired_data(tmp_path, "gpt5mini", "atacseq", run=2).record_confusion["all"] == []

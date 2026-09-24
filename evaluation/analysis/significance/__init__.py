@@ -18,20 +18,18 @@ much of the gap between the two approaches could be an artifact of which records
 happened to be sampled.  It reads the prediction files already on disk (no LLM/API
 calls) and computes:
 
-* **Bootstrap 95% confidence intervals** on per-record accuracy, for the prompt-only
-  condition and ARMS separately.
-* **Paired Wilcoxon signed-rank test** on per-record accuracy (same record under
-  both conditions).
-* **Paired McNemar test** on per-field correctness (same field of the same record
-  under both conditions), reporting ``b`` (only the prompt-only condition correct), ``c`` (only
-  ARMS correct), and the p-value.
-* **Record-clustered permutation test** on the same discordant outcomes, but with
-  the record as the independent unit (whole-record label swaps).  Unlike the flat
-  McNemar test, this does not treat duplicated or within-record-correlated fields
-  as independent, so it does not overstate significance.
+* **Bootstrap 95% confidence intervals** on micro precision, recall and F1, for each
+  condition and for the paired difference, resampling whole records.
+* **Record-clustered permutation test** on the difference in precision and recall,
+  swapping whole records between the two conditions, with the per-assay p-values
+  corrected over the table (Holm or Benjamini-Hochberg).
+* **Deduplicated paired tests**, taking the distinct value (recall) or the field
+  (precision) as the unit, so values the corpus repeats are counted once.
+* **Single-condition intervals** on accuracy and precision/recall/F1, for a condition
+  measured on its own.
 
-All four are produced for each of the three field categories used in the paper
-(``ontology``, ``non_ontology``, ``all``) and both per assay and pooled overall.
+Each is produced for the three field categories used in the paper (``ontology``,
+``non_ontology``, ``all``).
 
 Everything is paired -- a record counts only when both conditions produced it -- and the
 record, not the field, is the unit of resampling, because the corpus repeats the same
@@ -43,8 +41,8 @@ The modules follow that pipeline:
 * :mod:`~analysis.significance.paired_data` -- one pass over the predictions producing
   every paired view the estimators need.
 * :mod:`~analysis.significance.bootstrap` -- confidence intervals, resampling records.
-* :mod:`~analysis.significance.hypothesis_tests` -- Wilcoxon, McNemar and the
-  record-clustered permutation test.
+* :mod:`~analysis.significance.hypothesis_tests` -- the record-clustered permutation
+  test and the multiple-testing correction.
 * :mod:`~analysis.significance.clustering` -- how much independent evidence the
   repeated corpus actually holds.
 * :mod:`~analysis.significance.tables` -- the reported tables.
@@ -64,7 +62,6 @@ from analysis.significance.bootstrap import (
     bootstrap_ci,
     bootstrap_pooled_accuracy,
     bootstrap_prf,
-    cluster_bootstrap_pooled,
     cluster_bootstrap_prf,
     cluster_bootstrap_prf_delta,
 )
@@ -77,10 +74,7 @@ from analysis.significance.deduplicated import (
 )
 from analysis.significance.hypothesis_tests import (
     adjust_pvalues,
-    paired_mcnemar,
-    paired_permutation,
     paired_permutation_prf,
-    paired_wilcoxon,
 )
 from analysis.significance.paired_data import CATEGORIES, CATEGORY_LABELS, PairedData, collect_paired_data
 from analysis.significance.single_condition import SingleConditionData, collect_single_condition_data
@@ -104,7 +98,6 @@ __all__ = [
     "build_per_assay_precision_recall_table",
     "build_precision_recall_table",
     "build_single_condition_table",
-    "cluster_bootstrap_pooled",
     "cluster_bootstrap_prf",
     "cluster_bootstrap_prf_delta",
     "collect_deduplicated_outcomes",
@@ -113,8 +106,5 @@ __all__ = [
     "deduplicated_paired_tests",
     "effective_sample_size",
     "paired_cluster_test",
-    "paired_mcnemar",
-    "paired_permutation",
     "paired_permutation_prf",
-    "paired_wilcoxon",
 ]

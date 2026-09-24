@@ -94,30 +94,6 @@ def bootstrap_pooled_accuracy(
     return (point, lo, hi)
 
 
-def cluster_bootstrap_pooled(
-    counts: list[tuple[int, int, int]],
-    which: str,
-    *,
-    n_resamples: int = 10000,
-    alpha: float = 0.05,
-    seed: int = 0,
-) -> Interval:
-    """Bootstrap CI for *pooled* (field-weighted) accuracy of one arm of a pair.
-
-    *counts* is a list of ``(baseline_correct, system_correct, total)`` per record.
-    ``which`` is ``"baseline"`` or ``"system"``.  Selects that condition's column and hands
-    it to :func:`bootstrap_pooled_accuracy`, so a paired arm and the same condition
-    measured on its own cannot come out differently.
-    """
-    col = _run_index(which)
-    return bootstrap_pooled_accuracy(
-        [(record[col], record[2]) for record in counts],
-        n_resamples=n_resamples,
-        alpha=alpha,
-        seed=seed,
-    )
-
-
 def _prf_from_sums(
     true_positives: np.ndarray,
     false_positives: np.ndarray,
