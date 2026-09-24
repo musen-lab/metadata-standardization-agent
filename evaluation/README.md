@@ -4,7 +4,7 @@ Measures the quality of agent-predicted metadata against gold-standard reference
 
 ## Getting Started
 
-The recommended way to run evaluations and explore results is the **`experiment.ipynb`** notebook in the repository root. It provides an interactive workflow for:
+The recommended way to run evaluations and explore results is the `experiment.ipynb` notebook in the repository root. It provides an interactive workflow for:
 
 - Running the method evaluations (prompt-only and agent-tool) across all assay types
 - Computing per-assay and overall accuracy summaries
@@ -13,7 +13,7 @@ The recommended way to run evaluations and explore results is the **`experiment.
 
 Open the notebook and follow the configuration cells to set your `DATA_ROOT`, `MODEL`, `ASSAYS` and `RUN_TYPES`. Run it from the repository root: its setup cell puts this directory on the import path so the modules below can be imported by name.
 
-Running the experiments is two calls, both from [`sweep.py`](sweep.py):
+Running the experiments is two calls, both from `[sweep.py](sweep.py)`:
 
 ```python
 from sweep import plan_sweep, run_sweep
@@ -74,14 +74,6 @@ Accuracy restricted to fields whose values must come from a controlled ontology 
 
 Accuracy restricted to free-text and other fields that are **not** ontology-constrained. This is the complement of the ontology-constrained subset.
 
-### All-Field Accuracy (`all_field_accuracy`)
-
-Record-level agreement across all fields in the gold standard. Two fields agree when both values are missing (`null`), or both are non-missing and match. The denominator is all keys present in gold.
-
-```
-accuracy = |{k ∈ gold : agree(predicted[k], gold[k])}| / |gold|
-```
-
 ### Match Parameters
 
 All three metrics accept two optional parameters that relax string matching:
@@ -95,29 +87,46 @@ Both parameters can be combined (e.g. case-insensitive substring matching). With
 
 ## Adding a Condition
 
-A condition is a module under `conditions/prompt_only/` or `conditions/agent_tool/` that declares itself. Drop the file in and the CLI, the sweep and the notebook all see it; no list anywhere needs editing, because no list exists.
+A condition is a Python module that declares a `CONDITION`. Put it in any folder under `conditions/`. The CLI, the sweep and the notebook find it automatically; there is no list to edit.
+
+This is `conditions/agent_tool/arms.py`, shortened:
 
 ```python
-# conditions/prompt_only/schema_vocab.py
-from conditions.registry import Condition
+def build_agent_tool_workflow(model: str, template_iri: str | None = None) -> CompiledStateGraph:
+    return build_workflow(
+        build_migration_agent(
+            model=model,
+            system_prompt=SYSTEM_PROMPT,
+            response_format=build_response_format(template_iri) if template_iri else None,
+            tools=all_tools,
+            reasoning_effort="high",
+            reasoning_mode="standard",
+        )
+    )
 
-
-def build_schema_vocab_workflow(model: str, template_iri: str | None = None) -> CompiledStateGraph: ...
-def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str: ...
-
+def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str:
+    return f"Metadata template IRI: {template_iri}\n\nLegacy metadata record:\n{json.dumps(legacy_metadata)}"
 
 CONDITION = Condition(
-    name="schema+vocab",                    # what the CLI takes, and the output directory
-    build_workflow=build_schema_vocab_workflow,
+    name="arms-agent",
+    build_workflow=build_agent_tool_workflow,
     build_user_prompt=build_user_prompt,
-    requires_keys=("BIOPORTAL_API_KEY",),   # optional: checked before a sweep spends anything
-    order=20,                               # optional: where it sits in the reported order
+    requires_keys=("BIOPORTAL_API_KEY",),
+    order=100,
 )
 ```
 
-The name is declared rather than read off the filename because the two need not agree — `schema+vocab` is not a legal module name. `requires_keys` is declared because only the condition knows what it calls out to; `plan_sweep` collects it from every condition in the sweep and stops on a missing key before any run starts. A module that declares no `CONDITION` is not one: `prompt_only/template_spec.py` is the material the prompts are built from, and the registry passes over it.
+The parameters of `Condition`:
 
-A directory added beside `prompt_only/` and `agent_tool/` becomes a third family the same way, with no code change.
+- `name`: what `--condition` and `RUN_TYPES` take, and the name of the output directory. It must be unique across all conditions.
+- `build_workflow`: a function taking `model` and `template_iri` that returns the compiled graph to run.
+- `build_user_prompt`: a function taking the legacy record and the template IRI that returns the user message. It may be imported from another condition.
+- `requires_keys` (optional): environment variables the condition needs beyond `OPENAI_API_KEY` and `CEDAR_API_KEY`. `plan_sweep` stops before any run if one is missing.
+- `order` (optional): where the condition appears in tables and plots. The shipped conditions use 0, 40, 60 and 100.
+
+Put a new system prompt in the family's `prompts/` directory, and add it to `PROMPTS` in `tests/test_condition_prompts.py` so the tests check it keeps the shared policy.
+
+In a notebook kernel that is already running, call `discover(refresh=True)` from `conditions` after adding a module.
 
 ## CLI
 
@@ -141,5 +150,3 @@ python -m evaluation --input <dir> --target-schema <iri> --output <parent-dir> \
 | `--concurrent N` | Max number of concurrent file evaluations (default: `5`) |
 | `--langfuse-environment NAME` | Langfuse tracing environment to file this run under (overrides `.env` setting) |
 | `--debug` | Enable debug logging to stderr |
-
-`--condition` is required and is checked against the declared conditions, so a typo stops before the input is read. The run's name — the condition's own, or whatever `--run-name` says — tags the Langfuse trace and is the subdirectory of `--output` the predictions land in. This will run the standardization workflow on each JSON file in the input directory.
