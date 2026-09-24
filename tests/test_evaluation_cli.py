@@ -27,8 +27,8 @@ _CONDITIONS = [
     ["--condition", "arms-agent"],
 ]
 
-# --output is the parent; the leaf directory is the run's name, which is the condition's
-# own name unless --run-name gave it another.
+# --output is the parent; below it is the run's name, which is the condition's own name
+# unless --run-name gave it another, and below that run-1: the CLI makes one run.
 _RUN_DIRECTORIES = [
     (["--condition", "baseline"], "baseline"),
     (["--condition", "arms-agent"], "arms-agent"),
@@ -77,9 +77,9 @@ def test_condition_reaches_the_runner(tmp_path: Path, workflow_args: list[str]) 
 
 @pytest.mark.parametrize(("workflow_args", "run_directory"), _RUN_DIRECTORIES, ids=lambda arg: str(arg))
 def test_output_goes_under_the_run_name(tmp_path: Path, workflow_args: list[str], run_directory: str) -> None:
-    """The run writes to <--output>/<run name>, not to --output itself."""
+    """The run writes to <--output>/<run name>/run-1, not to --output itself."""
     result = _run_cli(tmp_path, workflow_args)
-    assert str(tmp_path / "output" / run_directory) in result.stderr, result.stderr
+    assert str(tmp_path / "output" / run_directory / "run-1") in result.stderr, result.stderr
 
 
 def test_a_condition_is_required(tmp_path: Path) -> None:

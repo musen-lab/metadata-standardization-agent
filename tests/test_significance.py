@@ -168,10 +168,12 @@ def _build_mini_data_root(root: Path) -> None:
         _write_record(root / "atacseq" / "gold" / name, gold)
         # baseline gets the ontology field wrong; ARMS gets everything right.
         _write_record(
-            root / "atacseq" / "output" / "gpt5mini" / "baseline" / name, {"tissue": "WRONG", "title": "study"}
+            root / "atacseq" / "output" / "gpt5mini" / "baseline" / "run-1" / name,
+            {"tissue": "WRONG", "title": "study"},
         )
         _write_record(
-            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / name, {"tissue": "lung", "title": "study"}
+            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "run-1" / name,
+            {"tissue": "lung", "title": "study"},
         )
 
 
@@ -204,7 +206,8 @@ def _build_clustered_root(root: Path) -> None:
     for name in ("r0.json", "r1.json", "r2.json"):
         _write_record(root / "atacseq" / "gold" / name, {"tissue": "lung", "title": "study"})
         _write_record(
-            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / name, {"tissue": "lung", "title": "WRONG"}
+            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "run-1" / name,
+            {"tissue": "lung", "title": "WRONG"},
         )
 
 
@@ -392,7 +395,7 @@ class TestSingleRunIntervals:
         # A third run, which collect_paired_data has no notion of.
         for name in ("r1.json", "r2.json"):
             _write_record(
-                tmp_path / "atacseq" / "output" / "gpt5mini" / "baseline-r2" / name,
+                tmp_path / "atacseq" / "output" / "gpt5mini" / "baseline-r2" / "run-1" / name,
                 {"tissue": "lung", "title": "WRONG"},
             )
         table = build_single_run_table(tmp_path, "gpt5mini", "baseline-r2")
@@ -503,7 +506,7 @@ class TestConditionAgnosticComparison:
     @staticmethod
     def _add_condition(root: Path, run_type: str, record: dict) -> None:
         for name in ("r1.json", "r2.json"):
-            _write_record(root / "atacseq" / "output" / "gpt5mini" / run_type / name, record)
+            _write_record(root / "atacseq" / "output" / "gpt5mini" / run_type / "run-1" / name, record)
 
     def test_any_two_conditions_can_be_paired(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)

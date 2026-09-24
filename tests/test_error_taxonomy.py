@@ -71,7 +71,7 @@ def _case(root: Path, name: str, *, gold: dict, predicted: dict, legacy: dict) -
     _write(root / "schemas" / "atacseq.json", SCHEMA)
     _write(root / "atacseq" / "gold" / f"{name}.json", gold)
     _write(root / "atacseq" / "input" / f"{name}.json", legacy)
-    _write(root / "atacseq" / "output" / "m" / "sys" / f"{name}.json", predicted)
+    _write(root / "atacseq" / "output" / "m" / "sys" / "run-1" / f"{name}.json", predicted)
 
 
 def _one(root: Path) -> dict:
@@ -289,7 +289,7 @@ class TestBookkeeping:
     def test_the_run_s_own_reasoning_is_attached_when_kept(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": "kidney"}, legacy={})
         _write(
-            tmp_path / "atacseq" / "output" / "m" / "sys" / "decisions" / "r.json",
+            tmp_path / "atacseq" / "output" / "m" / "sys" / "run-1" / "decisions" / "r.json",
             [{"key": "tissue", "resolution": "harmonized", "reasoning": "picked the nearest term"}],
         )
         row = _one(tmp_path)

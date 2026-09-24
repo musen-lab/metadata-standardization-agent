@@ -10,8 +10,8 @@ Usage::
 ``--condition`` takes any condition declared under ``conditions/``; the list is read
 from there rather than written down here, so a module dropped in is offered without
 this file changing.  The run is named after it, unless ``--run-name`` says otherwise:
-that name tags the trace and is the subdirectory of ``--output`` the predictions are
-written to.
+that name tags the trace, and the predictions are written to ``<--output>/<name>/run-1/``.
+The CLI always makes one run; repeats are a sweep's business (``sweep.run_sweep``).
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ def main() -> None:
         "--output",
         required=True,
         type=Path,
-        help="Parent directory for migrated output files.  The run writes to the subdirectory of it named by the run.",
+        help="Parent directory for migrated output files.  The run writes to <output>/<run name>/run-1/.",
     )
     # The choices are the declared conditions, so a name outside them is refused here --
     # before the input is read and before anything is spent.
@@ -102,11 +102,12 @@ def main() -> None:
 
     from evaluate import run_experiment
 
-    # Names the on-disk output directory (data/<assay>/output/<model>/<run_name>/) and is
-    # matched verbatim by the modules under analysis/.  It is the condition's name unless
-    # --run-name overrode it, which is how a repeat run is kept beside the first.
+    # Names the on-disk output directory (data/<assay>/output/<model>/<run_name>/run-1/) and
+    # is matched verbatim by the modules under analysis/.  It is the condition's name unless
+    # --run-name overrode it.  The CLI makes one run, so it always writes run-1, the run
+    # the analyses read by default.
     run_name = args.run_name or condition.name
-    output_dir = args.output / run_name
+    output_dir = args.output / run_name / "run-1"
     logging.getLogger(__name__).info("Running condition %s as %s", condition.name, run_name)
     logging.getLogger(__name__).info("Writing output to %s", output_dir)
     run_experiment(

@@ -26,9 +26,9 @@ The agent is a standalone package under `arms-agent/`, published to PyPI as [arm
 |---|---|
 | Expert-curated gold standard | `data/<assay>/gold/` |
 | Legacy input records | `data/<assay>/input/`|
-| Baseline output | `data/<assay>/output/<model>/baseline/` |
-| ARMS output | `data/<assay>/output/<model>/arms-agent/` |
-| Ablation outputs (template tool only, term search only) | `data/<assay>/output/<model>/{template-tool,term-tool}/` |
+| Baseline output | `data/<assay>/output/<model>/baseline/run-<n>/` |
+| ARMS output | `data/<assay>/output/<model>/arms-agent/run-<n>/` |
+| Ablation outputs (template tool only, term search only) | `data/<assay>/output/<model>/{template-tool,term-tool}/run-<n>/` |
 
 The evaluation set is 839 records across 12 assay types, sampled independently within each assay (up to 100 per assay; assays with fewer curated records included in full). See `data/sampling.py` for the exact procedure.
 

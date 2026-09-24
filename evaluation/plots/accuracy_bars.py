@@ -13,6 +13,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from analysis.corpus import get_assay
 from analysis.data_analysis import apply_metrics
 from analysis.significance import bootstrap_ci
 from assays import ASSAY_ORDER
@@ -56,7 +57,7 @@ def plot_grouped_bar_chart(
             continue
 
         for condition in conditions:
-            input_dir = root / assay_key / "output" / model / condition
+            input_dir = get_assay(root, assay_key).output_dir(model, condition)
             if not input_dir.exists():
                 continue
 

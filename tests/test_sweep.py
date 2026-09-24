@@ -70,7 +70,9 @@ def test_plan_reads_and_writes_where_the_cli_does(data_root: Path, keys: None) -
     """The directories the analysis section reads back."""
     plan = plan_sweep(data_root, "test-model", assays=["atacseq"], run_types=["arms-agent"])
 
-    assert plan.output_dir("atacseq", "arms-agent") == data_root / "atacseq" / "output" / "test-model" / "arms-agent"
+    condition_dir = data_root / "atacseq" / "output" / "test-model" / "arms-agent"
+    assert plan.output_dir("atacseq", "arms-agent") == condition_dir / "run-1"
+    assert plan.output_dir("atacseq", "arms-agent", 3) == condition_dir / "run-3"
     assert [path.name for path in plan.input_records("atacseq")] == ["atacseq-0.json", "atacseq-1.json"]
 
 
@@ -161,7 +163,52 @@ def test_run_sweep_runs_every_run_in_order(
     ]
     assert [call["max_concurrency"] for call in calls] == [3, 3]
     assert [call["config"]["metadata"]["run_type"] for call in calls] == ["baseline", "baseline"]
-    assert "[1/2] atacseq | baseline | 2 record(s)" in capsys.readouterr().out
+    assert "[1/2] atacseq | baseline | run 1 | 2 record(s)" in capsys.readouterr().out
+
+
+def test_repeats_run_the_whole_plan_again_into_their_own_directories(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The repeat is the outer loop: every run of the plan finishes once before any runs twice."""
+    calls = _record_runs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], run_types=["baseline"])
+    capsys.readouterr()
+
+    run_sweep(plan, n_repeat=2, dry_run=False)
+
+    assert [call["output_dir"] for call in calls] == [
+        plan.output_dir("atacseq", "baseline", 1),
+        plan.output_dir("lcms", "baseline", 1),
+        plan.output_dir("atacseq", "baseline", 2),
+        plan.output_dir("lcms", "baseline", 2),
+    ]
+    assert [call["config"]["metadata"]["run"] for call in calls] == [1, 1, 2, 2]
+    assert "[4/4] lcms | baseline | run 2 | 2 record(s)" in capsys.readouterr().out
+
+
+def test_a_dry_run_lists_every_repeat(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The dry run shows what the repeats would cost, and still spends nothing."""
+    calls = _record_runs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], run_types=["baseline"])
+    capsys.readouterr()
+
+    run_sweep(plan, n_repeat=3)
+
+    out = capsys.readouterr().out
+    assert calls == []
+    assert out.count("would run") == 3
+    assert "run-3" in out
+
+
+@pytest.mark.parametrize("n_repeat", [0, -1])
+def test_fewer_than_one_repeat_is_refused(data_root: Path, keys: None, n_repeat: int) -> None:
+    """A sweep that would run nothing says so rather than quietly doing nothing."""
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], run_types=["baseline"])
+
+    with pytest.raises(ValueError, match="n_repeat"):
+        run_sweep(plan, n_repeat=n_repeat)
 
 
 def test_each_assay_is_traced_under_its_own_environment(

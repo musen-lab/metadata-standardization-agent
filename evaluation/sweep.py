@@ -77,9 +77,9 @@ class SweepPlan:
         """Every legacy record of *assay*: what one run of it migrates."""
         return sorted(get_assay(self.data_root, assay).input_dir.glob("*.json"))
 
-    def output_dir(self, assay: str, run_type: str) -> Path:
-        """Where one (assay, condition) run writes, named as the CLI names it."""
-        return get_assay(self.data_root, assay).output_dir(self.model, run_type)
+    def output_dir(self, assay: str, run_type: str, run: int = 1) -> Path:
+        """Where one (assay, condition) writes in run *run*; the CLI's one run is ``run-1``."""
+        return get_assay(self.data_root, assay).output_dir(self.model, run_type, run=run)
 
     def __str__(self) -> str:
         return (
@@ -155,26 +155,48 @@ def plan_sweep(
     print(f"  model      {plan.model}")
     print(f"  assays     {', '.join(plan.assays)}")
     print(f"  conditions {', '.join(plan.run_types)}")
-    print(f"  writing to {plan.data_root}/<assay>/output/{plan.model}/<condition>/")
+    print(f"  writing to {plan.data_root}/<assay>/output/{plan.model}/<condition>/run-<n>/")
     return plan
 
 
-def run_sweep(plan: SweepPlan, *, dry_run: bool = True, max_concurrency: int = DEFAULT_CONCURRENCY) -> None:
-    """Run every run in *plan*, in order, printing each one as it starts.
+def run_sweep(
+    plan: SweepPlan,
+    *,
+    n_repeat: int = 1,
+    dry_run: bool = True,
+    max_concurrency: int = DEFAULT_CONCURRENCY,
+) -> None:
+    """Run every run in *plan*, *n_repeat* times over, printing each one as it starts.
 
     The only function here that spends money, and it spends nothing while *dry_run*
     stands: it lists what it would run and stops.  That is the default, so a cell run by
     accident costs nothing.
 
+    Repeat *n* writes to ``<condition>/run-<n>/``.  The repeat is the outermost loop, so
+    the whole plan finishes once before any of it runs again, and stopping early leaves
+    every assay and condition with the same number of complete repeats.  The CLI has no
+    repeats: its one run is ``run-1``.
+
     Args:
         plan: A plan from :func:`plan_sweep`.
+        n_repeat: How many times to run the whole plan, into ``run-1`` to ``run-<n_repeat>``.
         dry_run: While true, list the runs instead of making them.
         max_concurrency: How many of one run's records are migrated at a time.
+
+    Raises:
+        ValueError: If *n_repeat* is less than 1.
     """
+    if n_repeat < 1:
+        raise ValueError(f"n_repeat must be at least 1, not {n_repeat}.")
+    runs = [(run, assay, run_type) for run in range(1, n_repeat + 1) for assay, run_type in plan.runs]
+
     if dry_run:
-        for position, (assay, run_type) in enumerate(plan.runs, start=1):
-            print(f"would run  {_describe(plan, position, assay, run_type)}")
-        print(f"\nDry run: nothing was run, nothing was spent ({plan}).")
+        for position, (run, assay, run_type) in enumerate(runs, start=1):
+            print(f"would run  {_describe(plan, position, len(runs), run, assay, run_type)}")
+        print(
+            f"\nDry run: nothing was run, nothing was spent ({plan}; x {n_repeat} repeat(s) = "
+            f"{len(runs)} run(s), {plan.migrations * n_repeat} record migration(s))."
+        )
         print("Pass dry_run=False to run the sweep above.")
         return
 
@@ -183,34 +205,34 @@ def run_sweep(plan: SweepPlan, *, dry_run: bool = True, max_concurrency: int = D
     # the tracing context is a context variable, so it is entered inside that thread.
     # One worker, so the sweep waits for each run to finish before starting the next.
     with ThreadPoolExecutor(max_workers=1) as pool:
-        for position, (assay, run_type) in enumerate(plan.runs, start=1):
-            print(_describe(plan, position, assay, run_type))
-            pool.submit(_run_one, plan, assay, run_type, max_concurrency).result()
+        for position, (run, assay, run_type) in enumerate(runs, start=1):
+            print(_describe(plan, position, len(runs), run, assay, run_type))
+            pool.submit(_run_one, plan, run, assay, run_type, max_concurrency).result()
 
 
-def _describe(plan: SweepPlan, position: int, assay: str, run_type: str) -> str:
+def _describe(plan: SweepPlan, position: int, total: int, run: int, assay: str, run_type: str) -> str:
     """One line saying which run this is, how big it is, and where it lands."""
     return (
-        f"[{position}/{len(plan.runs)}] {assay} | {run_type} | "
-        f"{len(plan.input_records(assay))} record(s) -> {plan.output_dir(assay, run_type)}"
+        f"[{position}/{total}] {assay} | {run_type} | run {run} | "
+        f"{len(plan.input_records(assay))} record(s) -> {plan.output_dir(assay, run_type, run)}"
     )
 
 
-def _run_one(plan: SweepPlan, assay: str, run_type: str, max_concurrency: int) -> None:
-    """Migrate every record of one assay under one condition."""
+def _run_one(plan: SweepPlan, run: int, assay: str, run_type: str, max_concurrency: int) -> None:
+    """Migrate every record of one assay under one condition, as its *run*-th repeat."""
     build_workflow, build_user_prompt = build_condition(run_type)
     schema_iri = ASSAY_SCHEMAS[assay]
     with _traced_as(f"experiment-{assay}"):
         run_experiment(
             template_iri=schema_iri,
             input_dir=get_assay(plan.data_root, assay).input_dir,
-            output_dir=plan.output_dir(assay, run_type),
+            output_dir=plan.output_dir(assay, run_type, run),
             workflow_factory=partial(build_workflow, model=plan.model, template_iri=schema_iri),
             user_prompt_builder=build_user_prompt,
             max_concurrency=max_concurrency,
             config={
                 "tags": ["experiment", run_type],
-                "metadata": {"assay": assay, "run_type": run_type, "template_iri": schema_iri},
+                "metadata": {"assay": assay, "run_type": run_type, "run": run, "template_iri": schema_iri},
             },
         )
 
