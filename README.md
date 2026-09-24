@@ -19,11 +19,8 @@ The agent is a standalone package under `arms-agent/`, published to PyPI as [arm
 | Agent graph (ReAct, LangGraph) | `arms-agent/src/arms_agent/agent.py` |
 | The three MCP tools (`get_cedar_template`, `term_search_from_ontology`, `term_search_from_branch`) | `arms-agent/src/arms_agent/tools.py` |
 | ARMS system prompt | `arms-agent/src/arms_agent/prompts.py` |
-| Baseline system prompts | `evaluation/conditions/prompt_only/prompts/baseline.py` |
-| ARMS agent | `evaluation/conditions/agent_tool/arms.py` |
-| Baseline agent | `evaluation/conditions/prompt_only/baseline.py` |
 
-### The experiment dataset
+### ARMS Evaluation
 
 | Component | Location |
 |---|---|
@@ -32,8 +29,6 @@ The agent is a standalone package under `arms-agent/`, published to PyPI as [arm
 | Baseline output | `data/<assay>/output/<model>/baseline/` |
 | ARMS output | `data/<assay>/output/<model>/arms-agent/` |
 | Ablation outputs (template tool only, term search only) | `data/<assay>/output/<model>/{template-tool,term-tool}/` |
-| CEDAR template specifications (one per assay) | `data/schemas/<assay>.json` |
-| Sampling function (stratified, per-assay random sample) | `data/sampling.py` |
 
 The evaluation set is 839 records across 12 assay types, sampled independently within each assay (up to 100 per assay; assays with fewer curated records included in full). See `data/sampling.py` for the exact procedure.
 
