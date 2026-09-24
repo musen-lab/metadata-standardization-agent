@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -143,8 +144,7 @@ class TestTermSearchFromBranch:
         first = self._invoke()
         second = self._invoke()
         assert calls == 1
-        assert first["labels"] == second["labels"]
-        assert second["_cached"] is True
+        assert second == first, "a cache hit must look exactly like the fresh answer"
 
     def test_empty_result_is_not_cached(self, monkeypatch: pytest.MonkeyPatch) -> None:
         calls = 0
@@ -214,8 +214,7 @@ class TestTermSearchFromOntology:
         first = self._invoke()
         second = self._invoke()
         assert calls == 1
-        assert first["labels"] == second["labels"]
-        assert second["_cached"] is True
+        assert second == first, "a cache hit must look exactly like the fresh answer"
 
     def test_empty_result_is_not_cached(self, monkeypatch: pytest.MonkeyPatch) -> None:
         calls = 0
@@ -244,3 +243,54 @@ class TestTermSearchFromOntology:
 
         monkeypatch.setattr(tools, "async_search_terms_from_ontology", fake_search)
         assert self._invoke() == {"labels": ["Axio Scan.Z1", "Axio Zoom.V16"], "source": "term_search_from_ontology"}
+
+
+class TestCacheHitsLookFresh:
+    """A cached answer reaches the model exactly as the fresh one did.
+
+    The cache marks a hit with ``_cached`` and ``_cache_age_seconds``.  Left in, they
+    would make the first run of a record see different tool output from every later
+    run, and the age alone changes on every call.
+    """
+
+    TOOL_CALL = {
+        "name": "term_search_from_ontology",
+        "args": {"search_string": "AxioScan.Z1", "ontology_acronym": "NCIT"},
+        "id": "call-1",
+        "type": "tool_call",
+    }
+
+    def test_the_tool_message_is_identical_on_a_cache_hit(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        calls = 0
+
+        async def fake_search(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            nonlocal calls
+            calls += 1
+            return SEARCH_RESPONSE
+
+        monkeypatch.setattr(tools, "async_search_terms_from_ontology", fake_search)
+        first = asyncio.run(tools.term_search_from_ontology.ainvoke(self.TOOL_CALL))
+        second = asyncio.run(tools.term_search_from_ontology.ainvoke(self.TOOL_CALL))
+        assert calls == 1, "the second call must be served from the cache"
+        assert second.content == first.content
+        assert "_cached" not in second.content
+
+    def test_a_cached_template_carries_no_cache_keys(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("CEDAR_API_KEY", "test-key")
+        monkeypatch.setattr(tools, "get_template", lambda *_args: {"raw": True})
+        monkeypatch.setattr(tools, "clean_template_response", lambda _raw: {"name": "Template", "children": []})
+        first = tools.get_cedar_template.invoke({"template_id": "t-1"})
+        second = tools.get_cedar_template.invoke({"template_id": "t-1"})
+        assert second == first == {"name": "Template", "children": []}
+
+    def test_the_cache_hit_is_still_logged(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        async def fake_search(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            return SEARCH_RESPONSE
+
+        monkeypatch.setattr(tools, "async_search_terms_from_ontology", fake_search)
+        asyncio.run(tools.term_search_from_ontology.ainvoke(self.TOOL_CALL))
+        with caplog.at_level(logging.DEBUG, logger="arms_agent.tools"):
+            asyncio.run(tools.term_search_from_ontology.ainvoke(self.TOOL_CALL))
+        assert "term_search_from_ontology cache hit" in caplog.text
