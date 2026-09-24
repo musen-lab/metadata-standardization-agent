@@ -47,20 +47,10 @@ The modules follow that pipeline:
 * :mod:`~analysis.significance.clustering` -- how much independent evidence the
   repeated corpus actually holds.
 * :mod:`~analysis.significance.tables` -- the reported tables.
-* :mod:`~analysis.significance.cli` -- the command-line entry point.
 
 This package and :mod:`analysis.data_analysis` both walk the corpus through
 :mod:`analysis.corpus`, so an interval and the point estimate it qualifies are computed
 over the same files.
-
-Run from the project root::
-
-    uv run python -m evaluation.analysis.significance --data-root data --model gpt5mini
-    uv run python -m evaluation.analysis.significance --data-root data --model gpt5mini --csv-dir out/
-
-Or, from the ``evaluation/`` directory (same convention as the notebook)::
-
-    uv run python -m analysis.significance --data-root ../data --model gpt5mini
 
 This module re-exports the whole surface, so ``from analysis.significance import ...``
 reaches every name regardless of which module defines it.
@@ -77,7 +67,6 @@ from analysis.significance.bootstrap import (
     cluster_bootstrap_prf,
     cluster_bootstrap_prf_delta,
 )
-from analysis.significance.cli import main
 from analysis.significance.clustering import effective_sample_size
 from analysis.significance.deduplicated import (
     DeduplicatedOutcomes,
@@ -95,9 +84,7 @@ from analysis.significance.hypothesis_tests import (
 from analysis.significance.paired_data import CATEGORIES, CATEGORY_LABELS, PairedData, collect_paired_data
 from analysis.significance.single_run import SingleRunData, collect_single_run_data
 from analysis.significance.tables import (
-    build_overall_table,
     build_per_assay_precision_recall_table,
-    build_per_assay_table,
     build_precision_recall_table,
     build_single_run_table,
 )
@@ -113,9 +100,7 @@ __all__ = [
     "bootstrap_ci",
     "bootstrap_pooled_accuracy",
     "bootstrap_prf",
-    "build_overall_table",
     "build_per_assay_precision_recall_table",
-    "build_per_assay_table",
     "build_precision_recall_table",
     "build_single_run_table",
     "cluster_bootstrap_pooled",
@@ -126,7 +111,6 @@ __all__ = [
     "collect_single_run_data",
     "deduplicated_paired_tests",
     "effective_sample_size",
-    "main",
     "paired_cluster_test",
     "paired_mcnemar",
     "paired_permutation",

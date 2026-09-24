@@ -14,7 +14,6 @@ from analysis.significance import (
     bootstrap_ci,
     bootstrap_pooled_accuracy,
     bootstrap_prf,
-    build_overall_table,
     build_per_assay_precision_recall_table,
     build_precision_recall_table,
     build_single_run_table,
@@ -190,23 +189,6 @@ class TestCollectPairedData:
     def test_missing_assay_returns_empty(self, tmp_path: Path) -> None:
         data = collect_paired_data(tmp_path, "gpt5mini", "atacseq")
         assert data.record_acc["all"] == []
-
-
-class TestBuildOverallTable:
-    def test_overall_table_shape_and_values(self, tmp_path: Path) -> None:
-        _build_mini_data_root(tmp_path)
-        table = build_overall_table(tmp_path, "gpt5mini")
-        assert list(table["category"]) == [
-            "Ontology-constrained",
-            "Non-ontology-constrained",
-            "All fields",
-        ]
-        ont = table[table["category"] == "Ontology-constrained"].iloc[0]
-        # baseline 0/2 correct, ARMS 2/2; McNemar c=2, b=0.
-        assert ont["mcnemar_c"] == 2
-        assert ont["mcnemar_b"] == 0
-        # The record-clustered permutation column is present for every category.
-        assert "perm_p" in table.columns
 
 
 def _build_clustered_root(root: Path) -> None:

@@ -13,19 +13,14 @@ from typing import TYPE_CHECKING
 
 from analysis.corpus import iter_assays
 from analysis.significance.bootstrap import (
-    bootstrap_ci,
     bootstrap_pooled_accuracy,
     bootstrap_prf,
-    cluster_bootstrap_pooled,
     cluster_bootstrap_prf,
     cluster_bootstrap_prf_delta,
 )
 from analysis.significance.hypothesis_tests import (
     adjust_pvalues,
-    paired_mcnemar,
-    paired_permutation,
     paired_permutation_prf,
-    paired_wilcoxon,
 )
 from analysis.significance.paired_data import CATEGORIES, CATEGORY_LABELS, PairedData, collect_paired_data
 from analysis.significance.single_run import collect_single_run_data
@@ -56,94 +51,6 @@ def _pooled_data(data_root: str | Path, model: str, baseline_run: str, system_ru
             collect_paired_data(data_root, model, assay.key, baseline_run=baseline_run, system_run=system_run)
         )
     return pooled
-
-
-def build_per_assay_table(
-    data_root: str | Path,
-    model: str,
-    category: str = "all",
-    *,
-    baseline_run: str = "baseline",
-    system_run: str = "arms-agent",
-) -> pd.DataFrame:
-    """One row per assay for *category*: both runs' mean+CI, Wilcoxon p, McNemar b/c/p.
-
-    The two columns are named after *baseline_run* and *system_run*, which may be
-    any two conditions present under ``output/<model>/``.
-    """
-    import pandas as pd
-
-    rows = []
-    for assay in iter_assays(data_root):
-        data = collect_paired_data(data_root, model, assay.key, baseline_run=baseline_run, system_run=system_run)
-        pairs = data.record_acc[category]
-        if not pairs:
-            continue
-        b_mean, b_lo, b_hi = bootstrap_ci([b for b, _ in pairs])
-        a_mean, a_lo, a_hi = bootstrap_ci([a for _, a in pairs])
-        _, w_p, _ = paired_wilcoxon(pairs)
-        mc = paired_mcnemar(data.field_outcomes[category])
-        perm = paired_permutation(data.record_discordant[category])
-        rows.append(
-            {
-                "assay": assay.label,
-                "n_records": len(pairs),
-                baseline_run: _fmt_ci(b_mean, b_lo, b_hi),
-                system_run: _fmt_ci(a_mean, a_lo, a_hi),
-                "wilcoxon_p": _fmt_p(w_p),
-                "mcnemar_b": mc["b"],
-                "mcnemar_c": mc["c"],
-                "mcnemar_p": _fmt_p(mc["pvalue"]),
-                "perm_p": _fmt_p(perm["pvalue"]),
-            }
-        )
-    return pd.DataFrame(rows)
-
-
-def build_overall_table(
-    data_root: str | Path,
-    model: str,
-    *,
-    baseline_run: str = "baseline",
-    system_run: str = "arms-agent",
-) -> pd.DataFrame:
-    """Pooled-across-assays results, one row per field category.
-
-    Accuracy is reported as *pooled* (field-weighted) accuracy with a record-level
-    cluster-bootstrap CI, matching the paper's overall bottom row.  Significance is
-    the paired Wilcoxon (per-record) and McNemar (per-field) tests, plus a
-    record-clustered permutation test that treats the record -- not the field -- as
-    the independent unit, so duplicated/clustered fields do not inflate the result.
-    """
-    import pandas as pd
-
-    pooled = _pooled_data(data_root, model, baseline_run, system_run)
-
-    rows = []
-    for category in CATEGORIES:
-        counts = pooled.record_counts[category]
-        pairs = pooled.record_acc[category]
-        b_mean, b_lo, b_hi = cluster_bootstrap_pooled(counts, "baseline")
-        a_mean, a_lo, a_hi = cluster_bootstrap_pooled(counts, "system")
-        _, w_p, w_n = paired_wilcoxon(pairs)
-        mc = paired_mcnemar(pooled.field_outcomes[category])
-        perm = paired_permutation(pooled.record_discordant[category])
-        rows.append(
-            {
-                "category": CATEGORY_LABELS[category],
-                "n_records": len(pairs),
-                "n_fields": len(pooled.field_outcomes[category]),
-                baseline_run: _fmt_ci(b_mean, b_lo, b_hi),
-                system_run: _fmt_ci(a_mean, a_lo, a_hi),
-                "wilcoxon_p": _fmt_p(w_p),
-                "wilcoxon_n": w_n,
-                "mcnemar_b": mc["b"],
-                "mcnemar_c": mc["c"],
-                "mcnemar_p": _fmt_p(mc["pvalue"]),
-                "perm_p": _fmt_p(perm["pvalue"]),
-            }
-        )
-    return pd.DataFrame(rows)
 
 
 def build_precision_recall_table(
@@ -188,7 +95,7 @@ def build_single_run_table(data_root: str | Path, model: str, run_type: str) -> 
     """Accuracy and micro precision/recall/F1 with bootstrap CIs, for one run alone.
 
     One row per field category.  Needing no comparison run, this covers every run in a
-    sweep -- a single repetition included -- where :func:`build_overall_table` can only
+    sweep -- a single repetition included -- where :func:`build_precision_recall_table` can only
     describe the two arms it pairs.
 
     Records are the resampling unit throughout, and the point estimates are the ones
