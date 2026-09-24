@@ -9,6 +9,7 @@ test the descriptor and not the promise: what has to hold is that a file appeari
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import sys
 import textwrap
 from pathlib import Path
@@ -57,6 +58,19 @@ _MODULE = textwrap.dedent(
 )
 
 
+def _forget(path: Path) -> None:
+    """Remove every trace of the module at *path*, so the next import reads the file again.
+
+    The bytecode cache is checked by the source's mtime, to the second, and its size.  A
+    test that rewrites a module within the same second and at the same length -- ``order=50``
+    then ``order=10`` -- would otherwise be served the first version from ``__pycache__``.
+    """
+    path.unlink(missing_ok=True)
+    Path(importlib.util.cache_from_source(str(path))).unlink(missing_ok=True)
+    sys.modules.pop(f"conditions.{path.parent.name}.{path.stem}", None)
+    importlib.invalidate_caches()
+
+
 @pytest.fixture
 def drop_in() -> Iterator[object]:
     """Write condition modules into the package, and take them out again afterwards.
@@ -69,18 +83,16 @@ def drop_in() -> Iterator[object]:
     def _drop(family: str, module: str, *, name: str, requires_keys: tuple[str, ...] = (), order: int = 50) -> None:
         path = _FAMILIES / family / f"{module}.py"
         assert not path.exists(), f"{path} already exists; pick another module name"
+        _forget(path)
         source = _MODULE.replace("{name}", name).replace("{requires_keys!r}", repr(requires_keys))
         path.write_text(source.replace("{order}", str(order)))
         written.append(path)
-        importlib.invalidate_caches()
         discover(refresh=True)
 
     yield _drop
 
     for path in written:
-        path.unlink(missing_ok=True)
-        sys.modules.pop(f"conditions.{path.parent.name}.{path.stem}", None)
-    importlib.invalidate_caches()
+        _forget(path)
     discover(refresh=True)
 
 
@@ -138,7 +150,7 @@ class TestDroppingOneIn:
 
     def test_taking_it_out_again_removes_it(self, drop_in: object) -> None:
         drop_in("prompt_only", "dropped_in", name="dropped-in")
-        (_FAMILIES / "prompt_only" / "dropped_in.py").unlink()
+        _forget(_FAMILIES / "prompt_only" / "dropped_in.py")
         discover(refresh=True)
         assert "dropped-in" not in condition_names()
 
@@ -158,9 +170,7 @@ class TestRefusals:
             with pytest.raises(TypeError, match="is str, not a Condition"):
                 discover(refresh=True)
         finally:
-            path.unlink()
-            sys.modules.pop("conditions.prompt_only.not_a_condition", None)
-            importlib.invalidate_caches()
+            _forget(path)
             discover(refresh=True)
 
     def test_an_unknown_name_says_what_it_expected(self) -> None:
