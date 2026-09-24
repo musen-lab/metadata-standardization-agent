@@ -16,6 +16,7 @@ from arms_agent.agent import build_migration_agent, build_response_format
 from arms_agent.prompts import SYSTEM_PROMPT
 from arms_agent.tools import all_tools
 from arms_agent.workflow import build_workflow
+from conditions.registry import Condition
 
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
@@ -54,3 +55,14 @@ def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str
         f"Metadata template IRI: {template_iri}\n\n"
         f"Legacy metadata record:\n```json\n{json.dumps(legacy_metadata, indent=2)}\n```"
     )
+
+
+#: What the harness runs this module as.  ARMS is the one condition that reaches
+#: BioPortal at inference time, so it is the one that declares the key.
+CONDITION = Condition(
+    name="arms-agent",
+    build_workflow=build_agent_tool_workflow,
+    build_user_prompt=build_user_prompt,
+    requires_keys=("BIOPORTAL_API_KEY",),
+    order=100,
+)

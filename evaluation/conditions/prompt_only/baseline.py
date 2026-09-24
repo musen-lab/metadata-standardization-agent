@@ -13,6 +13,7 @@ from arms_agent.agent import build_migration_agent, build_response_format
 from arms_agent.workflow import build_workflow
 from conditions.prompt_only import template_spec
 from conditions.prompt_only.prompts.baseline import SYSTEM_PROMPT
+from conditions.registry import Condition
 
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
@@ -70,3 +71,14 @@ def build_user_prompt(legacy_metadata: dict[str, Any], template_iri: str) -> str
     prompt += "- Missing values: use null\n\n"
     prompt += "Do not provide any explanation. Output only the corrected record in Python dict format"
     return prompt
+
+
+#: What the harness runs this module as.  ``baseline`` needs no key of its own: the
+#: template comes from CEDAR, which every condition needs, and the vocabularies are
+#: never consulted.
+CONDITION = Condition(
+    name="baseline",
+    build_workflow=build_baseline_workflow,
+    build_user_prompt=build_user_prompt,
+    order=0,
+)

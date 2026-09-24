@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 from analysis.corpus import get_assay
 from arms_agent.tracing import tracing_enabled
 from assays import ASSAY_SCHEMAS
-from conditions import CONDITIONS, build_condition
+from conditions import build_condition, condition_names, get_condition
 from evaluate import run_experiment
 
 if TYPE_CHECKING:
@@ -38,11 +38,10 @@ if TYPE_CHECKING:
 #: never starts a run before the one before it has finished.
 DEFAULT_CONCURRENCY = 8
 
-#: The keys every condition needs -- the LLM to call, and the CEDAR template to migrate
-#: to -- and the one only some of them need.  ARMS looks terms up in BioPortal through a
-#: tool; ``baseline`` asks it nothing.
+#: The keys every condition needs: the LLM to call, and the CEDAR template to migrate
+#: to.  A condition that calls anything else declares it in its own ``requires_keys``,
+#: which is what keeps this list from having to know what a dropped-in module does.
 _REQUIRED_KEYS = ("OPENAI_API_KEY", "CEDAR_API_KEY")
-_BIOPORTAL_CONDITIONS = ("arms-agent",)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -94,7 +93,7 @@ def plan_sweep(
     model: str,
     *,
     assays: Sequence[str],
-    run_types: Sequence[str] = CONDITIONS,
+    run_types: Sequence[str] | None = None,
 ) -> SweepPlan:
     """Check what a sweep over *assays* x *run_types* would run, print its size, return it.
 
@@ -110,7 +109,8 @@ def plan_sweep(
         data_root: The root data directory, holding one directory per assay.
         model: The LLM the runs call, which is also the directory they write under.
         assays: The assays to cover, by key -- the keys of ``assays.ASSAY_SCHEMAS``.
-        run_types: The conditions to run each assay through (default: both).
+        run_types: The conditions to run each assay through (default: every condition
+            declared under ``conditions/``, so a module dropped in is covered).
 
     Returns:
         The checked :class:`SweepPlan`, ready to hand to :func:`run_sweep`.
@@ -122,6 +122,10 @@ def plan_sweep(
     """
     load_dotenv(_PROJECT_ROOT / ".env", override=True)
 
+    known = condition_names()
+    if run_types is None:
+        run_types = known
+
     if not assays or not run_types:
         raise ValueError("Nothing to run: name at least one assay and one condition.")
 
@@ -129,16 +133,13 @@ def plan_sweep(
     if unknown_assays:
         raise ValueError(f"Unknown assay(s): {', '.join(unknown_assays)}")
 
-    unknown_run_types = [name for name in run_types if name not in CONDITIONS]
+    unknown_run_types = [name for name in run_types if name not in known]
     if unknown_run_types:
-        raise ValueError(
-            f"Unknown run type(s): {', '.join(unknown_run_types)}; expected one of {', '.join(CONDITIONS)}"
-        )
+        raise ValueError(f"Unknown run type(s): {', '.join(unknown_run_types)}; expected one of {', '.join(known)}")
 
-    needed = [*_REQUIRED_KEYS]
-    if any(run_type in _BIOPORTAL_CONDITIONS for run_type in run_types):
-        needed.append("BIOPORTAL_API_KEY")
-    missing = [key for key in needed if not os.environ.get(key)]
+    # Each condition says what it calls out to, so a new one brings its own key check.
+    needed = {*_REQUIRED_KEYS}.union(*(get_condition(run_type).requires_keys for run_type in run_types))
+    missing = [key for key in sorted(needed) if not os.environ.get(key)]
     if missing:
         raise OSError(
             f"These conditions need {', '.join(missing)}, which is not set. "

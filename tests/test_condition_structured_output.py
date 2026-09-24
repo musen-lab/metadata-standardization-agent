@@ -1,6 +1,6 @@
 """Tests that every arm is built alike and answers with a validated object.
 
-The two arms differ in information access and nothing else, so they must also agree on
+The arms differ in information access and nothing else, so they must also agree on
 how their answer is carried: one ``{record, log}`` object, validated against the
 template, read by the same extraction node.  Since every arm is now built by the one
 ``build_migration_agent``, that agreement is structural -- what these tests pin is that
@@ -18,9 +18,13 @@ from arms_agent import agent as agent_module
 from arms_agent.prompts import SYSTEM_PROMPT as ARMS_PROMPT
 from arms_agent.schema import build_response_model
 from arms_agent.state import AgentState
-from arms_agent.tools import all_tools
+from arms_agent.tools import all_tools, get_cedar_template, term_search_from_branch, term_search_from_ontology
+from conditions.ablation import template_tool, term_tool
+from conditions.ablation.prompts.template_tool import SYSTEM_PROMPT as TEMPLATE_TOOL_PROMPT
+from conditions.ablation.prompts.term_tool import SYSTEM_PROMPT as TERM_TOOL_PROMPT
 from conditions.agent_tool import arms
 from conditions.prompt_only import baseline
+from conditions.prompt_only.prompts.baseline import SYSTEM_PROMPT as BASELINE_PROMPT
 
 TEMPLATE: dict[str, Any] = {
     "type": "template",
@@ -50,7 +54,11 @@ ANSWER: dict[str, Any] = {
 PROMPT_ONLY = [
     pytest.param(baseline, "build_baseline_workflow", id="baseline"),
 ]
-EVERY_ARM = [*PROMPT_ONLY, pytest.param(arms, "build_agent_tool_workflow", id="agent-tool")]
+PARTIAL_TOOLS = [
+    pytest.param(template_tool, "build_template_tool_workflow", id="template-tool"),
+    pytest.param(term_tool, "build_term_tool_workflow", id="term-tool"),
+]
+EVERY_ARM = [*PROMPT_ONLY, *PARTIAL_TOOLS, pytest.param(arms, "build_agent_tool_workflow", id="agent-tool")]
 
 
 @pytest.fixture(autouse=True)
@@ -192,6 +200,47 @@ class TestTheToolArmIsTheOneWithTools:
         """o-series models reject the flag outright."""
         arms.build_agent_tool_workflow(model="o3-mini", template_iri="iri")
         assert built["llm"]["model_kwargs"] == {}
+
+
+class TestThePartialToolArmsSplitARMSTools:
+    """Each ablation holds one half of ARMS's tools, so together they account for all of it."""
+
+    def test_template_tool_has_the_template_fetch_only(self, built: dict[str, Any]) -> None:
+        template_tool.build_template_tool_workflow(model="gpt-4.1-mini", template_iri="iri")
+        assert list(built["tools"]) == [get_cedar_template]
+
+    def test_term_tool_has_both_searches_and_no_template_fetch(self, built: dict[str, Any]) -> None:
+        """Both searches, as ARMS has both: which one fits is the model's call, not ours."""
+        term_tool.build_term_tool_workflow(model="gpt-4.1-mini", template_iri="iri")
+        assert list(built["tools"]) == [term_search_from_branch, term_search_from_ontology]
+
+    def test_the_halves_make_up_ARMS(self) -> None:  # noqa: N802
+        """By tool name: a tool object is not hashable, and its name is what the model sees."""
+        template_names = {tool.name for tool in template_tool.TOOLS}
+        term_names = {tool.name for tool in term_tool.TOOLS}
+        assert template_names | term_names == {tool.name for tool in all_tools}
+        assert not template_names & term_names
+
+    @pytest.mark.parametrize(
+        ("module", "builder_name", "prompt"),
+        [
+            (template_tool, "build_template_tool_workflow", TEMPLATE_TOOL_PROMPT),
+            (term_tool, "build_term_tool_workflow", TERM_TOOL_PROMPT),
+        ],
+        ids=["template-tool", "term-tool"],
+    )
+    def test_each_sends_its_own_prompt_and_calls_in_parallel(
+        self, module: Any, builder_name: str, prompt: str, built: dict[str, Any]
+    ) -> None:
+        getattr(module, builder_name)(model="gpt-4.1-mini", template_iri="iri")
+        assert built["system_prompt"] == prompt
+        assert built["system_prompt"] not in (ARMS_PROMPT, BASELINE_PROMPT)
+        assert built["llm"]["model_kwargs"] == {"parallel_tool_calls": True}
+
+    def test_each_reuses_the_user_prompt_of_the_arm_it_takes_its_information_from(self) -> None:
+        """template-tool is told what ARMS is told; term-tool what the baseline is told."""
+        assert template_tool.CONDITION.build_user_prompt is arms.build_user_prompt
+        assert term_tool.CONDITION.build_user_prompt is baseline.build_user_prompt
 
 
 @pytest.mark.parametrize(("module", "builder_name"), EVERY_ARM)
