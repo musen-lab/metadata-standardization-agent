@@ -61,7 +61,7 @@ uv run python -m evaluation \
   --input data/atacseq/input \
   --target-schema https://repo.metadatacenter.org/templates/dd5e8653-81cf-470b-b71b-15cab421bb84 \
   --output data/atacseq/output/gpt5mini \
-  --model gpt-5-mini --concurrent 8 --agent-tool arms-agent
+  --model gpt-5-mini --concurrent 8 --condition arms-agent
 ```
 
 ### Tracing agent runs (optional)
