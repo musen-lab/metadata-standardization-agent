@@ -3,15 +3,14 @@
 Usage::
 
     evaluate --input <dir> --target-schema <iri> --output <parent-dir> \
-        --condition CONDITION [--run-name NAME] \
+        --condition CONDITION \
         [--model MODEL] [--concurrent N] [--langfuse-environment NAME] \
         [--debug]
 
 ``--condition`` takes any condition declared under ``conditions/``; the list is read
 from there rather than written down here, so a module dropped in is offered without
-this file changing.  The run is named after it, unless ``--run-name`` says otherwise:
-that name tags the trace, and the predictions are written to ``<--output>/<name>/run-1/``.
-The CLI always makes one run; repeats are a sweep's business (``sweep.run_sweep``).
+this file changing.  The predictions are written to ``<--output>/<condition>/run-1/``:
+the CLI always makes one run, and repeats are a sweep's business (``sweep.run_sweep``).
 """
 
 from __future__ import annotations
@@ -47,7 +46,7 @@ def main() -> None:
         "--output",
         required=True,
         type=Path,
-        help="Parent directory for migrated output files.  The run writes to <output>/<run name>/run-1/.",
+        help="Parent directory for migrated output files.  The run writes to <output>/<condition>/run-1/.",
     )
     # The choices are the declared conditions, so a name outside them is refused here --
     # before the input is read and before anything is spent.
@@ -57,13 +56,6 @@ def main() -> None:
         choices=known,
         help="The condition to run.  Each is a module under conditions/ that declares itself; "
         f"the module says which family it belongs to and what keys it needs.  One of: {', '.join(known)}.",
-    )
-    parser.add_argument(
-        "--run-name",
-        metavar="NAME",
-        help="What to call this run: the subdirectory of --output it writes to, and the tag its "
-        "trace carries (default: the condition's own name).  Name a run to hold a repeat of one "
-        "condition beside the first rather than over it.",
     )
     gpt_models = ["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"]
     parser.add_argument(
@@ -102,13 +94,10 @@ def main() -> None:
 
     from evaluate import run_experiment
 
-    # Names the on-disk output directory (data/<assay>/output/<model>/<run_name>/run-1/) and
-    # is matched verbatim by the modules under analysis/.  It is the condition's name unless
-    # --run-name overrode it.  The CLI makes one run, so it always writes run-1, the run
-    # the analyses read by default.
-    run_name = args.run_name or condition.name
-    output_dir = args.output / run_name / "run-1"
-    logging.getLogger(__name__).info("Running condition %s as %s", condition.name, run_name)
+    # The on-disk layout the modules under analysis/ read: data/<assay>/output/<model>/<condition>/run-<n>/.
+    # The CLI makes one run, so it always writes run-1, the run the analyses read by default.
+    output_dir = args.output / condition.name / "run-1"
+    logging.getLogger(__name__).info("Running condition %s", condition.name)
     logging.getLogger(__name__).info("Writing output to %s", output_dir)
     run_experiment(
         template_iri=args.target_schema,
@@ -118,11 +107,11 @@ def main() -> None:
         user_prompt_builder=condition.build_user_prompt,
         max_concurrency=args.concurrent,
         config={
-            "tags": ["evaluation", run_name],
+            "tags": ["evaluation", condition.name],
             "metadata": {
                 "template_iri": args.target_schema,
-                "workflow_type": run_name,
                 "condition": condition.name,
+                "run": 1,
             },
         },
     )

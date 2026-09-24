@@ -1,13 +1,13 @@
-"""How a run and a field type become a mark.
+"""How a condition and a field type become a mark.
 
 Two variables have to share one panel of the precision/recall figures, and they are split
-across channels that do not interfere: the **run** takes the colour (or, with colour off,
+across channels that do not interfere: the **condition** takes the colour (or, with colour off,
 the fill and a letter), and the **field type** takes the marker shape.  Keeping both here
-is what stops a figure inventing its own vocabulary -- a run is the same colour, and a
+is what stops a figure inventing its own vocabulary -- a condition is the same colour, and a
 field type the same shape, in every figure either appears in.
 
 :mod:`plots.segments` is the same idea for the stacked bars, whose segments are categories
-rather than runs and so need a scale rather than a pair of hues.
+rather than conditions and so need a scale rather than a pair of hues.
 """
 
 from __future__ import annotations
@@ -25,17 +25,17 @@ from plots.theme import NO_COLOR_INK
 #: carry their value as text rather than relying on the fill alone.
 CONDITION_COLOURS = ("#4472C4", "#ED7D31")
 
-#: A group holding several runs is *ordinal* -- swapping two of them would change what
+#: A group holding several conditions is *ordinal* -- swapping two of them would change what
 #: they mean -- so the group takes one hue in monotone lightness steps rather than
 #: unrelated hues.  The light end clears 2:1 on a white page.  The other group is a
 #: different mechanism, not a further step, so it keeps the hue it has in every figure.
 LADDER_BLUES = ("#8FB5E2", "#5A8CCB", "#2E5FA3")
 
-#: The same, in the system group's hue, for when several system runs are compared.
+#: The same, in the system group's hue, for when several system conditions are compared.
 LADDER_ORANGES = ("#ED7D31", "#C25A11", "#8C4109")
 
 #: Marker per field type, so field types can share one panel without spending the
-#: colour channel, which belongs to the run.
+#: colour channel, which belongs to the condition.
 FIELD_TYPE_MARKERS = {"ontology": "o", "non_ontology": "s", "all": "^"}
 
 #: What each field type is called wherever it is written -- legend keys, column titles
@@ -48,28 +48,28 @@ FIELD_TYPE_LABELS = {
 
 #: The field-type keys, which carry shape rather than identity.  Dark grey rather than
 #: black: dark enough to read the marker's outline, quiet enough not to outrank the
-#: coloured run keys beside it.  Drawn a little under the marks in the panels, since a key
+#: coloured condition keys beside it.  Drawn a little under the marks in the panels, since a key
 #: has only to be identified and not compared.
 FIELD_KEY_COLOUR = "#3f3f3a"
 FIELD_KEY_SIZE = 9
 
 
-def _run_colours(n_runs: int, ramp: tuple[str, ...], solo: str) -> list[str]:
-    """One colour per run in a group: the solid hue for a lone run, the ramp for several.
+def _condition_colours(n_conditions: int, ramp: tuple[str, ...], solo: str) -> list[str]:
+    """One colour per condition in a group: the solid hue for a lone condition, the ramp for several.
 
     A group of one is a coordinate, not a progression, so it keeps the flat hue it has
     in every other figure rather than borrowing a step from an ordinal ramp.
     """
-    if n_runs == 1:
+    if n_conditions == 1:
         return [solo]
-    if n_runs <= len(ramp):
-        return list(ramp[len(ramp) - n_runs :])
+    if n_conditions <= len(ramp):
+        return list(ramp[len(ramp) - n_conditions :])
     cmap = plt.get_cmap("Blues" if ramp is LADDER_BLUES else "Oranges")
-    return [cmap(step) for step in np.linspace(0.42, 0.85, n_runs)]
+    return [cmap(step) for step in np.linspace(0.42, 0.85, n_conditions)]
 
 
-class RunMark(NamedTuple):
-    """How one run is drawn: matplotlib keywords, the letter naming its place, and -- with
+class ConditionMark(NamedTuple):
+    """How one condition is drawn: matplotlib keywords, the letter naming its place, and -- with
     colour off -- whether the mark is solid, which its size hangs on.
 
     *fill* is ``None`` in colour, where the size sits in *style* and every mark is filled,
@@ -93,9 +93,9 @@ NO_COLOR_INK_DIAMETER = 12.4
 #:
 #: The white border is drawn on the mark rather than under it, so half of it falls inside
 #: the black and only half is left to separate with.  That is the whole of the seam, and
-#: it is deliberately little: everything a wider one covers is some other run's mark, so
+#: it is deliberately little: everything a wider one covers is some other condition's mark, so
 #: it would erase a mark that lands beside this one rather than merely separating it.
-#: Two runs at the same point collapse to one mark either way -- nothing drawn in the
+#: Two conditions at the same point collapse to one mark either way -- nothing drawn in the
 #: same place can show both.
 NO_COLOR_EDGE_WIDTH = 1.4
 
@@ -128,23 +128,23 @@ def _no_color_marker_size(marker: str, *, filled: bool) -> float:
     return NO_COLOR_INK_DIAMETER + reach if filled else NO_COLOR_INK_DIAMETER - reach
 
 
-def _mark_style(mark: RunMark, marker: str) -> dict[str, object]:
+def _mark_style(mark: ConditionMark, marker: str) -> dict[str, object]:
     """*mark*'s keywords, sized for the shape it is about to be drawn in."""
     if mark.fill is None:
         return mark.style
     return {**mark.style, "markersize": _no_color_marker_size(marker, filled=mark.fill)}
 
 
-def _run_marks(
-    baseline_runs: tuple[str, ...],
-    system_runs: tuple[str, ...],
+def _condition_marks(
+    baselines: tuple[str, ...],
+    systems: tuple[str, ...],
     *,
     no_color: bool,
-) -> list[tuple[str, RunMark]]:
-    """Every run in the order it is drawn, with the marker it takes.
+) -> list[tuple[str, ConditionMark]]:
+    """Every condition in the order it is drawn, with the marker it takes.
 
     Three things need telling apart in one panel -- which condition, which field type,
-    and where a run sits in the sequence -- and shape can carry only one of them.  With
+    and where a condition sits in the sequence -- and shape can carry only one of them.  With
     colour off they are split across the channels that survive greyscale, print and
     colour-vision deficiency:
 
@@ -152,8 +152,8 @@ def _run_marks(
     * **condition** is the fill, the baseline group hollow against the system group
       solid.  The two keep one shape, so a pair reads as a pair;
     * **order** is a capital letter written inside the mark, running ``A``, ``B``, ``C``
-      across the groups -- a letter states a run's place exactly where a size only
-      suggests it.  Only a group holding several runs is lettered: a group of one has no
+      across the groups -- a letter states a condition's place exactly where a size only
+      suggests it.  Only a group holding several conditions is lettered: a group of one has no
       order to report, and a lone ``A`` beside it would invite the reader to look for a
       sequence that is not there.
 
@@ -163,28 +163,28 @@ def _run_marks(
     sizes to come out the same width, and each shape a different size again -- see
     :func:`_no_color_marker_size`.
     """
-    marks: list[tuple[str, RunMark]] = []
+    marks: list[tuple[str, ConditionMark]] = []
     lettered = 0
-    for runs, ramp, solo, filled in (
-        (baseline_runs, LADDER_BLUES, CONDITION_COLOURS[0], False),
-        (system_runs, LADDER_ORANGES, CONDITION_COLOURS[1], True),
+    for conditions, ramp, solo, filled in (
+        (baselines, LADDER_BLUES, CONDITION_COLOURS[0], False),
+        (systems, LADDER_ORANGES, CONDITION_COLOURS[1], True),
     ):
         if not no_color:
-            for run, colour in zip(runs, _run_colours(len(runs), ramp, solo), strict=True):
+            for condition, colour in zip(conditions, _condition_colours(len(conditions), ramp, solo), strict=True):
                 style = {"color": colour, "markerfacecolor": colour, "markeredgecolor": "white", "markersize": 9}
-                marks.append((run, RunMark(style, None)))
+                marks.append((condition, ConditionMark(style, None)))
             continue
 
-        for run in runs:
+        for condition in conditions:
             style = {
                 "color": NO_COLOR_INK,
                 "markerfacecolor": NO_COLOR_INK if filled else "white",
                 "markeredgecolor": "white" if filled else NO_COLOR_INK,
                 "markeredgewidth": NO_COLOR_EDGE_WIDTH,
             }
-            # Only the lettered runs take a place in the sequence, so a lettered group
-            # reads A, B, C whether or not the other group is a single run.
-            letter = chr(ord("A") + lettered) if len(runs) > 1 else None
+            # Only the lettered conditions take a place in the sequence, so a lettered group
+            # reads A, B, C whether or not the other group is a single condition.
+            letter = chr(ord("A") + lettered) if len(conditions) > 1 else None
             lettered += bool(letter)
-            marks.append((run, RunMark(style, letter, fill=filled)))
+            marks.append((condition, ConditionMark(style, letter, fill=filled)))
     return marks

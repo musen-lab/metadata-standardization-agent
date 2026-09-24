@@ -62,11 +62,11 @@ DEDUPLICATED_COLUMNS = [
 METRICS = ("precision", "recall")
 
 
-def count_predictions(data_root: str | Path, model: str, run_types: Sequence[str]) -> dict[str, int]:
-    """How many predictions each of *run_types* has on disk, across every assay."""
+def count_predictions(data_root: str | Path, model: str, conditions: Sequence[str]) -> dict[str, int]:
+    """How many predictions each of *conditions* has on disk, across every assay."""
     return {
-        run_type: sum(len(list(assay.output_dir(model, run_type).glob("*.json"))) for assay in iter_assays(data_root))
-        for run_type in run_types
+        condition: sum(len(list(assay.output_dir(model, condition).glob("*.json"))) for assay in iter_assays(data_root))
+        for condition in conditions
     }
 
 
@@ -83,60 +83,60 @@ def order_rows(table: pd.DataFrame) -> pd.DataFrame:
 def show_precision_recall_tables(
     data_root: str | Path,
     model: str,
-    run_types: Sequence[str],
+    conditions: Sequence[str],
 ) -> dict[str, pd.DataFrame]:
-    """Print the instance-weighted table for every run with predictions, and return them.
+    """Print the instance-weighted table for every condition with predictions, and return them.
 
     One row per (assay, field type): one field of one record is one unit, which is the
     workload number -- the fraction of values a curator would have to fix by hand.
     """
-    scored = count_predictions(data_root, model, run_types)
+    scored = count_predictions(data_root, model, conditions)
     tables: dict[str, pd.DataFrame] = {}
 
     print("=== instance-weighted: one field of one record is one unit ===")
-    for run_type, count in scored.items():
+    for condition, count in scored.items():
         if not count:
             continue
         frames = [
-            create_per_assay_precision_recall_summary(data_root, model, run_type, category=field_type).assign(
+            create_per_assay_precision_recall_summary(data_root, model, condition, category=field_type).assign(
                 field_type=field_type
             )
             for field_type in CONFUSION_CATEGORIES
         ]
         frames = [frame for frame in frames if len(frame)]
-        tables[run_type] = order_rows(pd.concat(frames, ignore_index=True))
-        print(f"\n--- {run_type} ({count} prediction(s)) ---")
-        print(tables[run_type][WEIGHTED_COLUMNS].to_string(index=False))
+        tables[condition] = order_rows(pd.concat(frames, ignore_index=True))
+        print(f"\n--- {condition} ({count} prediction(s)) ---")
+        print(tables[condition][WEIGHTED_COLUMNS].to_string(index=False))
 
     if not tables:
-        print(f"  no predictions on disk for any of {list(run_types)}.")
+        print(f"  no predictions on disk for any of {list(conditions)}.")
     return tables
 
 
 def show_deduplicated_tables(
     data_root: str | Path,
     model: str,
-    run_types: Sequence[str],
+    conditions: Sequence[str],
 ) -> dict[str, pd.DataFrame]:
-    """Print the deduplicated table for every run with predictions, and return them.
+    """Print the deduplicated table for every condition with predictions, and return them.
 
     Same rows, but one distinct value is one unit, which is the capability number: how
     many different things the run gets right rather than how much work it saves.
     """
-    scored = count_predictions(data_root, model, run_types)
+    scored = count_predictions(data_root, model, conditions)
     tables: dict[str, pd.DataFrame] = {}
 
     print("=== deduplicated: one distinct value is one unit ===")
-    for run_type, count in scored.items():
+    for condition, count in scored.items():
         if not count:
             continue
-        rows = create_per_assay_deduplicated_precision_recall_summary(data_root, model, run_type)
-        tables[run_type] = order_rows(rows.rename(columns={"category": "field_type"}))
-        print(f"\n--- {run_type} ---")
-        print(tables[run_type][DEDUPLICATED_COLUMNS].to_string(index=False))
+        rows = create_per_assay_deduplicated_precision_recall_summary(data_root, model, condition)
+        tables[condition] = order_rows(rows.rename(columns={"category": "field_type"}))
+        print(f"\n--- {condition} ---")
+        print(tables[condition][DEDUPLICATED_COLUMNS].to_string(index=False))
 
     if not tables:
-        print(f"  no predictions on disk for any of {list(run_types)}.")
+        print(f"  no predictions on disk for any of {list(conditions)}.")
     return tables
 
 
@@ -144,8 +144,8 @@ def show_hypothesis_tests(
     data_root: str | Path,
     model: str,
     *,
-    baseline_run: str,
-    system_run: str,
+    baseline: str,
+    system: str,
     alpha: float = 0.05,
 ) -> pd.DataFrame | None:
     """Print the record-level verdict on precision and recall, and return it.
@@ -154,31 +154,26 @@ def show_hypothesis_tests(
     record-clustered permutation test says how surprising it would be under the null.
     The effective sample size printed afterwards is the caveat on both: it counts how
     much independent evidence the corpus holds once values repeated across records are
-    clustered together.  Returns ``None`` when either run has no predictions.
+    clustered together.  Returns ``None`` when either condition has no predictions.
     """
-    scored = count_predictions(data_root, model, (baseline_run, system_run))
-    if not (scored[baseline_run] and scored[system_run]):
+    scored = count_predictions(data_root, model, (baseline, system))
+    if not (scored[baseline] and scored[system]):
         print(
-            f"Nothing to test: found {scored[baseline_run]} prediction(s) for {baseline_run!r} "
-            f"and {scored[system_run]} for {system_run!r}; both are needed for a paired test."
+            f"Nothing to test: found {scored[baseline]} prediction(s) for {baseline!r} "
+            f"and {scored[system]} for {system!r}; both are needed for a paired test."
         )
         return None
 
-    print(
-        f"H0: {system_run} and {baseline_run} are interchangeable.  "
-        f"Differences are {system_run} minus {baseline_run}.\n"
-    )
+    print(f"H0: {system} and {baseline} are interchangeable.  Differences are {system} minus {baseline}.\n")
 
-    intervals = build_precision_recall_table(data_root, model, baseline_run=baseline_run, system_run=system_run)
+    intervals = build_precision_recall_table(data_root, model, baseline=baseline, system=system)
     intervals = intervals[intervals["metric"].isin(METRICS)]
     print("=== 95% confidence intervals, record-cluster bootstrap ===")
     print(intervals.to_string(index=False))
 
     pooled = PairedData()
     for assay in iter_assays(data_root):
-        pooled.extend(
-            collect_paired_data(data_root, model, assay.key, baseline_run=baseline_run, system_run=system_run)
-        )
+        pooled.extend(collect_paired_data(data_root, model, assay.key, baseline=baseline, system=system))
 
     verdicts: list[dict[str, Any]] = []
     for category in CATEGORIES:
@@ -210,16 +205,16 @@ def show_hypothesis_tests(
             f"(p={verdict['p_value']}, difference {verdict['difference [95% CI]']})"
         )
 
-    show_effective_sample_size(data_root, model, system_run)
+    show_effective_sample_size(data_root, model, system)
     return table
 
 
-def show_effective_sample_size(data_root: str | Path, model: str, run_type: str) -> None:
-    """Print how much independent evidence the corpus holds for *run_type*."""
-    print(f"\n=== effective sample size ({run_type} field outcomes, clustered by (assay, field, value)) ===")
+def show_effective_sample_size(data_root: str | Path, model: str, condition: str) -> None:
+    """Print how much independent evidence the corpus holds for *condition*."""
+    print(f"\n=== effective sample size ({condition} field outcomes, clustered by (assay, field, value)) ===")
     print("  N_eff far below N means the corpus holds less independent evidence than the record count suggests.")
     for field_type in (None, "ontology", "non_ontology"):
-        ess = effective_sample_size(data_root, model, run_type, field_type=field_type)
+        ess = effective_sample_size(data_root, model, condition, field_type=field_type)
         print(
             f"  {field_type or 'all':<13} N={ess['n']:.0f} clusters={ess['n_clusters']:.0f} "
             f"ICC={ess['icc']:.3f} DEFF={ess['design_effect']:.1f} N_eff={ess['n_effective']:.0f}"
@@ -230,34 +225,30 @@ def show_deduplicated_tests(
     data_root: str | Path,
     model: str,
     *,
-    baseline_run: str,
-    system_run: str,
+    baseline: str,
+    system: str,
     alpha: float = 0.05,
     n_resamples: int = 10_000,
 ) -> pd.DataFrame | None:
     """Print the same question asked of distinct values, and return the verdict table.
 
-    Recall pairs on the distinct gold value, precision on the field -- the two runs
+    Recall pairs on the distinct gold value, precision on the field -- the two conditions
     assert different values, so precision has no shared item list to pair on.  Returns
-    ``None`` when either run has no predictions.
+    ``None`` when either condition has no predictions.
     """
-    scored = count_predictions(data_root, model, (baseline_run, system_run))
-    if not (scored[baseline_run] and scored[system_run]):
-        print(f"Nothing to test: {baseline_run!r} and {system_run!r} must both have predictions.")
+    scored = count_predictions(data_root, model, (baseline, system))
+    if not (scored[baseline] and scored[system]):
+        print(f"Nothing to test: {baseline!r} and {system!r} must both have predictions.")
         return None
 
-    rows = deduplicated_paired_tests(
-        data_root, model, baseline_run=baseline_run, system_run=system_run, n_resamples=n_resamples
-    )
+    rows = deduplicated_paired_tests(data_root, model, baseline=baseline, system=system, n_resamples=n_resamples)
     table = pd.DataFrame(rows)
     table["difference [95% CI]"] = table.apply(
         lambda row: f"{row['delta']:+.3f} [{row['lo']:+.3f}, {row['hi']:+.3f}]", axis=1
     )
     table["p_value"] = table["pvalue"].round(4)
     table[f"reject H0 at {alpha}"] = ["yes" if pvalue < alpha else "no" for pvalue in table["pvalue"]]
-    table = table.rename(columns={"baseline": baseline_run, "system": system_run}).round(
-        {baseline_run: 3, system_run: 3}
-    )
+    table = table.rename(columns={"baseline": baseline, "system": system}).round({baseline: 3, system: 3})
 
     print(f"=== deduplicated: paired over items, not records ({n_resamples:,} resamples) ===")
     columns = [
@@ -265,8 +256,8 @@ def show_deduplicated_tests(
         "metric",
         "paired on",
         "n_items",
-        baseline_run,
-        system_run,
+        baseline,
+        system,
         "difference [95% CI]",
         "p_value",
         f"reject H0 at {alpha}",
@@ -281,13 +272,13 @@ def show_deduplicated_tests(
 def show_error_analysis(
     data_root: str | Path,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     field_type: str | None = None,
     apply_dedup: bool = False,
     top_fields: int = 10,
 ) -> pd.DataFrame:
-    """Print why *run_type* loses precision and why it loses recall, and return the errors.
+    """Print why *condition* loses precision and why it loses recall, and return the errors.
 
     Two tables, counting by assay: the categories first, then the sub-categories they break
     into.  Both levels are printed because they answer different questions -- the category
@@ -313,15 +304,15 @@ def show_error_analysis(
     ``pointer`` of ``<assay>/<record>#<field>`` to open.  Pass it to
     :func:`show_error_examples` to read a category or a sub-category.
     """
-    errors = collect_field_errors(data_root, model, run_type)
+    errors = collect_field_errors(data_root, model, condition)
     if errors.empty:
-        print(f"No errors to categorise: {run_type!r} has no predictions under {model!r}.")
+        print(f"No errors to categorise: {condition!r} has no predictions under {model!r}.")
         return errors
 
     # Reconciled before any deduplication: the check is that the collection lost nothing,
     # which is a fact about every instance and not about the reading chosen below.
-    counts = reconcile_with_confusion(errors, data_root, model, run_type)
-    print(f"=== {run_type}: every counted error, categorised ===")
+    counts = reconcile_with_confusion(errors, data_root, model, condition)
+    print(f"=== {condition}: every counted error, categorised ===")
     for cell, totals in counts.items():
         agree = "accounted for" if totals["counted"] == totals["categorised"] else "MISMATCH"
         print(f"  {cell}: {totals['counted']} counted, {totals['categorised']} categorised -- {agree}")

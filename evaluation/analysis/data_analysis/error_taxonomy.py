@@ -331,13 +331,13 @@ def _appears_in_legacy(value: Any, legacy: dict[str, Any]) -> bool:
     return bool(_legacy_fields_carrying(value, legacy))
 
 
-def _decision_log(assay: Assay, model: str, run_type: str, record_name: str) -> dict[str, dict[str, Any]]:
+def _decision_log(assay: Assay, model: str, condition: str, record_name: str) -> dict[str, dict[str, Any]]:
     """The run's own account of each field, keyed by field, when it kept one.
 
     ARMS writes a decision per field under ``decisions/``; the prompt-only conditions do
     not, so this is empty for them and the two columns it fills stay blank.
     """
-    path = assay.output_dir(model, run_type) / "decisions" / record_name
+    path = assay.output_dir(model, condition) / "decisions" / record_name
     if not path.exists():
         return {}
     try:
@@ -373,7 +373,7 @@ def _require_legacy(legacy_path: Path, predicted_path: Path) -> dict[str, Any]:
 def collect_field_errors(
     data_root: str | Path,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
@@ -401,7 +401,7 @@ def collect_field_errors(
             field: {_loose_identifier(option) for option in options}
             for field, options in assay.permissible_values().items()
         }
-        output_dir = assay.output_dir(model, run_type)
+        output_dir = assay.output_dir(model, condition)
 
         for gold_path in sorted(assay.gold_dir.glob("*.json")):
             predicted_path = output_dir / gold_path.name
@@ -410,7 +410,7 @@ def collect_field_errors(
             gold = load_record(gold_path)
             predicted = load_record(predicted_path)
             legacy = _require_legacy(assay.input_dir / gold_path.name, predicted_path)
-            decisions = _decision_log(assay, model, run_type, gold_path.name)
+            decisions = _decision_log(assay, model, condition, gold_path.name)
 
             for field in gold:
                 case = _classify_field(predicted, gold, field, match_case=match_case, match_whole_word=match_whole_word)
@@ -600,7 +600,7 @@ def reconcile_with_confusion(
     errors: pd.DataFrame,
     data_root: str | Path,
     model: str,
-    run_type: str,
+    condition: str,
 ) -> dict[str, dict[str, int]]:
     """Check the labelled rows against the confusion counts they claim to explain.
 
@@ -612,7 +612,7 @@ def reconcile_with_confusion(
     """
     from analysis.data_analysis.precision_recall_tables import _accumulate_confusion
 
-    counts, _n_pairs, _skipped = _accumulate_confusion(iter_assays(data_root), model, run_type)
+    counts, _n_pairs, _skipped = _accumulate_confusion(iter_assays(data_root), model, condition)
     return {
         "FP": {
             "counted": counts["all"]["FP"],

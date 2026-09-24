@@ -1,13 +1,13 @@
 """Collecting the paired outcomes every test and interval is built from.
 
-The two runs compared default to ``baseline`` -- the prompt-only condition, under
+The two conditions compared default to ``baseline`` -- the prompt-only condition, under
 ``output/<model>/baseline/`` -- and ARMS, under ``output/<model>/arms-agent/``, but
 :func:`collect_paired_data` will pair any two conditions asked of it.
 
 One pass over the saved predictions produces every view the rest of the package needs,
 because they have to describe the same comparison: a Wilcoxon test on per-record
 accuracy and a bootstrap CI on the same accuracy would be incomparable if each walked
-the corpus on its own terms.  A record is included only when *both* runs predicted it.
+the corpus on its own terms.  A record is included only when *both* conditions predicted it.
 """
 
 from __future__ import annotations
@@ -133,23 +133,23 @@ def collect_paired_data(
     model: str,
     assay_key: str,
     *,
-    baseline_run: str = "baseline",
-    system_run: str = "arms-agent",
+    baseline: str = "baseline",
+    system: str = "arms-agent",
 ) -> PairedData:
     """Collect paired outcomes for a single assay from saved outputs.
 
-    *baseline_run* and *system_run* name the two output directories to compare, and
+    *baseline* and *system* name the two output directories to compare, and
     every difference below is *system minus baseline*.  They
     default to the prompt-only baseline and ARMS, but any two conditions can be paired
     -- one repetition against another, say -- since nothing below this function knows
     which conditions produced the numbers.
 
-    Records predicted by only one of the two runs are skipped: the comparison is
+    Records predicted by only one of the two conditions are skipped: the comparison is
     paired, so an unmatched record would put them on different denominators.
     """
     assay = get_assay(data_root, assay_key)
-    baseline_dir = assay.output_dir(model, baseline_run)
-    system_dir = assay.output_dir(model, system_run)
+    baseline_dir = assay.output_dir(model, baseline)
+    system_dir = assay.output_dir(model, system)
 
     data = PairedData()
     if not assay.has_gold:

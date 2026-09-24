@@ -9,7 +9,7 @@ The package is layered.  Underneath are three modules that no figure owns:
 
 * :mod:`plots.theme` -- the page: the greys, the sizes of type, and how a figure is
   finished.
-* :mod:`plots.marks` -- how a run and a field type become a mark, so a run is the same
+* :mod:`plots.marks` -- how a condition and a field type become a mark, so a condition is the same
   colour and a field type the same shape in every figure either appears in.
 * :mod:`plots.segments` -- how a share becomes a segment of a stacked bar, and how a
   segment too narrow to hold its own number gets one anyway.

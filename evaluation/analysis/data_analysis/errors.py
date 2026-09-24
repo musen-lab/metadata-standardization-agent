@@ -43,7 +43,7 @@ _REPORT_COLUMNS = ["error_type", "field_type", "expected_value", "predicted_valu
 def analyze_prediction_errors(
     data_root: str,
     model: str,
-    run_type: str = "baseline",
+    condition: str = "baseline",
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
@@ -61,7 +61,7 @@ def analyze_prediction_errors(
         and model outputs.
     model:
         Model name to evaluate (e.g. ``"gpt5mini"``).
-    run_type:
+    condition:
         Output sub-directory under each model: the prompt-only condition
         (``"baseline"``) or ``"arms-agent"``.
     match_case:
@@ -78,7 +78,7 @@ def analyze_prediction_errors(
             continue
         ontology_fields = assay.ontology_fields()
 
-        for gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, run_type)):
+        for gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition)):
             if predicted is None:
                 continue
             for field, gold_val in gold.items():
@@ -112,7 +112,7 @@ def analyze_prediction_errors(
 def create_error_report(
     data_root: str,
     model: str,
-    run_type: str = "baseline",
+    condition: str = "baseline",
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
@@ -132,7 +132,7 @@ def create_error_report(
     errors_df = analyze_prediction_errors(
         data_root,
         model,
-        run_type,
+        condition,
         match_case=match_case,
         match_whole_word=match_whole_word,
     )

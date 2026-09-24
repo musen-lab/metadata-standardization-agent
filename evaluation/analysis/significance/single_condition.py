@@ -1,10 +1,10 @@
-"""One run measured on its own, so every condition can carry an interval.
+"""One condition measured on its own, so every condition can carry an interval.
 
-:mod:`~analysis.significance.paired_data` exists to compare two runs, and therefore
+:mod:`~analysis.significance.paired_data` exists to compare two conditions, and therefore
 only ever describes the two it pairs.  A confidence interval needs no comparison: it
-needs one run's per-record outcomes.  Those are what this module collects, in exactly
-the shapes :mod:`~analysis.significance.bootstrap` takes, so a run the paired tables do
-not model -- one repetition on its own, say -- can still be reported with an interval.
+needs one condition's per-record outcomes.  Those are what this module collects, in exactly
+the shapes :mod:`~analysis.significance.bootstrap` takes, so a condition the paired tables do
+not model -- an ablation, say -- can still be reported with an interval.
 
 The point estimates are the same numbers :mod:`analysis.data_analysis` reports --
 pooled (field-weighted) accuracy and micro precision/recall/F1 -- so this puts an
@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class SingleRunData:
-    """One run's per-record outcomes, keyed by field category.
+class SingleConditionData:
+    """One condition's per-record outcomes, keyed by field category.
 
     * ``record_counts[category]`` is ``(correct, total)`` per record, for pooled
       accuracy and its bootstrap.
@@ -42,7 +42,7 @@ class SingleRunData:
     record_counts: dict[str, list[tuple[int, int]]] = field(default_factory=lambda: {c: [] for c in CATEGORIES})
     record_confusion: dict[str, list[tuple[int, int, int]]] = field(default_factory=lambda: {c: [] for c in CATEGORIES})
 
-    def extend(self, other: SingleRunData) -> None:
+    def extend(self, other: SingleConditionData) -> None:
         """Accumulate another assay's data into this one, for the pooled view."""
         for category in CATEGORIES:
             self.record_counts[category].extend(other.record_counts[category])
@@ -50,7 +50,7 @@ class SingleRunData:
 
 
 def _add_record(
-    data: SingleRunData,
+    data: SingleConditionData,
     gold: dict[str, Any],
     predicted: dict[str, Any],
     schema_path: Path,
@@ -74,24 +74,24 @@ def _add_record(
             data.record_counts[category].append((correct, total))
 
 
-def collect_single_run_data(
+def collect_single_condition_data(
     data_root: str | Path,
     model: str,
-    run_type: str,
+    condition: str,
     assay_key: str | None = None,
-) -> SingleRunData:
-    """Collect one run's per-record outcomes, for *assay_key* or pooled across all assays.
+) -> SingleConditionData:
+    """Collect one condition's per-record outcomes, for *assay_key* or pooled across all assays.
 
-    Driven by the gold records, so a gold record the run never predicted is skipped
+    Driven by the gold records, so a gold record the condition never predicted is skipped
     rather than scored as a failure -- the same rule the paired collector follows.
     """
     assays = [get_assay(data_root, assay_key)] if assay_key else list(iter_assays(data_root))
 
-    data = SingleRunData()
+    data = SingleConditionData()
     for assay in assays:
         if not assay.has_gold:
             continue
-        output_dir = assay.output_dir(model, run_type)
+        output_dir = assay.output_dir(model, condition)
         for gold_file, gold in iter_records(assay.gold_dir):
             prediction = output_dir / gold_file.name
             if not prediction.exists():

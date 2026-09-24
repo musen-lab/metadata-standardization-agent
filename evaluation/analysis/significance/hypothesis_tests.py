@@ -88,7 +88,7 @@ def paired_permutation(
     integer tuples, one per record.  Each record collapses to a signed net system
     advantage ``d_i = system_only - baseline_only`` and the observed statistic is ``S = sum(d_i)``.
 
-    Under the null that the two runs are interchangeable, swapping a record's
+    Under the null that the two conditions are interchangeable, swapping a record's
     two labels flips the sign of its ``d_i``, so the null distribution is generated
     by assigning each record an independent random ``+/-`` sign.  Because the sign
     flip acts on the *whole record*, fields within a record -- and the same field
@@ -138,7 +138,7 @@ def paired_permutation_prf(
     micro-averaged over summed counts, so they cannot be reduced to a per-field win or
     loss the way accuracy can.
 
-    Under the null the two runs are interchangeable, so a record's baseline and
+    Under the null the two conditions are interchangeable, so a record's baseline and
     system triples can be swapped without changing anything.  Each replicate swaps a random
     subset of records, recomputes the micro-averaged difference from the new sums, and
     the two-sided p-value is how often a shuffled difference is at least as large as
@@ -170,7 +170,7 @@ def paired_permutation_prf(
     swap = rng.random((n_resamples, len(confusion))) < 0.5
 
     def summed(baseline_side: np.ndarray, system_side: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Per-replicate totals for the two runs after the swap."""
+        """Per-replicate totals for the two conditions after the swap."""
         return (
             np.where(swap, system_side, baseline_side).sum(axis=1),
             np.where(swap, baseline_side, system_side).sum(axis=1),

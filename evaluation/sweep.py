@@ -1,14 +1,19 @@
-"""The sweep: every assay run through every condition, one run at a time.
+"""The sweep: every assay run through every condition, one job at a time.
+
+A *job* is one assay under one condition: one call to :func:`evaluate.run_experiment`.
+A *run* is one repeat of the whole sweep, numbered from 1, and it names the directory a
+job writes to: ``<condition>/run-<n>/``.
 
 ``experiment.ipynb`` calls two functions from here.  :func:`plan_sweep` settles what the
 sweep covers and checks it; :func:`run_sweep` runs it.  The split is what makes a typo
 cheap -- an unknown assay, an unknown condition, an empty input directory or a missing
-API key raises from the plan, before any run starts and before anything is spent.
+API key raises from the plan, before any job starts and before anything is spent.
 
 Both print as they go, because a sweep that spends money should say what it is doing.
 Neither does any of the work: the conditions come from :func:`conditions.build_condition`
-and each run is driven by :func:`evaluate.run_experiment`.  This module only arranges
-them -- which runs, in which order, writing where, traced under which environment.
+and each job is driven by :func:`evaluate.run_experiment`.  This module only arranges
+them -- which jobs, how many runs, in which order, writing where, traced under which
+environment.
 """
 
 from __future__ import annotations
@@ -34,8 +39,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from contextlib import AbstractContextManager
 
-#: How many of one run's records are migrated at a time.  Within a run only: the sweep
-#: never starts a run before the one before it has finished.
+#: How many of one job's records are migrated at a time.  Within a job only: the sweep
+#: never starts a job before the one before it has finished.
 DEFAULT_CONCURRENCY = 8
 
 #: The keys every condition needs: the LLM to call, and the CEDAR template to migrate
@@ -48,7 +53,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 @dataclass(frozen=True)
 class SweepPlan:
-    """What a sweep will run, and where each of its runs reads and writes.
+    """What a sweep will run, and where each of its jobs reads and writes.
 
     Built by :func:`plan_sweep`, which is what checks it.  Holding it as a value means
     the plan can be printed, trimmed or inspected before :func:`run_sweep` acts on it.
@@ -56,35 +61,35 @@ class SweepPlan:
 
     data_root: Path
     model: str
-    runs: tuple[tuple[str, str], ...]
+    jobs: tuple[tuple[str, str], ...]
 
     @property
     def assays(self) -> list[str]:
         """The assays covered, in the order they run."""
-        return list(dict.fromkeys(assay for assay, _run_type in self.runs))
+        return list(dict.fromkeys(assay for assay, _condition in self.jobs))
 
     @property
-    def run_types(self) -> list[str]:
+    def conditions(self) -> list[str]:
         """The conditions each assay is run through, in the order they run."""
-        return list(dict.fromkeys(run_type for _assay, run_type in self.runs))
+        return list(dict.fromkeys(condition for _assay, condition in self.jobs))
 
     @property
     def migrations(self) -> int:
-        """How many record migrations the whole sweep makes."""
-        return sum(len(self.input_records(assay)) for assay, _run_type in self.runs)
+        """How many record migrations one run of the sweep makes."""
+        return sum(len(self.input_records(assay)) for assay, _condition in self.jobs)
 
     def input_records(self, assay: str) -> list[Path]:
-        """Every legacy record of *assay*: what one run of it migrates."""
+        """Every legacy record of *assay*: what one job of it migrates."""
         return sorted(get_assay(self.data_root, assay).input_dir.glob("*.json"))
 
-    def output_dir(self, assay: str, run_type: str, run: int = 1) -> Path:
-        """Where one (assay, condition) writes in run *run*; the CLI's one run is ``run-1``."""
-        return get_assay(self.data_root, assay).output_dir(self.model, run_type, run=run)
+    def output_dir(self, assay: str, condition: str, run: int = 1) -> Path:
+        """Where one (assay, condition) job writes in run *run*; the CLI's one run is ``run-1``."""
+        return get_assay(self.data_root, assay).output_dir(self.model, condition, run=run)
 
     def __str__(self) -> str:
         return (
-            f"{len(self.assays)} assay(s) x {len(self.run_types)} condition(s) = "
-            f"{len(self.runs)} run(s), {self.migrations} record migration(s) in total"
+            f"{len(self.assays)} assay(s) x {len(self.conditions)} condition(s) = "
+            f"{len(self.jobs)} job(s), {self.migrations} record migration(s) per run"
         )
 
 
@@ -93,9 +98,9 @@ def plan_sweep(
     model: str,
     *,
     assays: Sequence[str],
-    run_types: Sequence[str] | None = None,
+    conditions: Sequence[str] | None = None,
 ) -> SweepPlan:
-    """Check what a sweep over *assays* x *run_types* would run, print its size, return it.
+    """Check what a sweep over *assays* x *conditions* would run, print its size, return it.
 
     Loads the API keys from the project's ``.env`` first, then raises on anything that
     would fail partway through: an unknown assay, an unknown condition, an assay with no
@@ -107,9 +112,9 @@ def plan_sweep(
 
     Args:
         data_root: The root data directory, holding one directory per assay.
-        model: The LLM the runs call, which is also the directory they write under.
+        model: The LLM the jobs call, which is also the directory they write under.
         assays: The assays to cover, by key -- the keys of ``assays.ASSAY_SCHEMAS``.
-        run_types: The conditions to run each assay through (default: every condition
+        conditions: The conditions to run each assay through (default: every condition
             declared under ``conditions/``, so a module dropped in is covered).
 
     Returns:
@@ -123,22 +128,22 @@ def plan_sweep(
     load_dotenv(_PROJECT_ROOT / ".env", override=True)
 
     known = condition_names()
-    if run_types is None:
-        run_types = known
+    if conditions is None:
+        conditions = known
 
-    if not assays or not run_types:
+    if not assays or not conditions:
         raise ValueError("Nothing to run: name at least one assay and one condition.")
 
     unknown_assays = [name for name in assays if name not in ASSAY_SCHEMAS]
     if unknown_assays:
         raise ValueError(f"Unknown assay(s): {', '.join(unknown_assays)}")
 
-    unknown_run_types = [name for name in run_types if name not in known]
-    if unknown_run_types:
-        raise ValueError(f"Unknown run type(s): {', '.join(unknown_run_types)}; expected one of {', '.join(known)}")
+    unknown_conditions = [name for name in conditions if name not in known]
+    if unknown_conditions:
+        raise ValueError(f"Unknown condition(s): {', '.join(unknown_conditions)}; expected one of {', '.join(known)}")
 
     # Each condition says what it calls out to, so a new one brings its own key check.
-    needed = {*_REQUIRED_KEYS}.union(*(get_condition(run_type).requires_keys for run_type in run_types))
+    needed = {*_REQUIRED_KEYS}.union(*(get_condition(condition).requires_keys for condition in conditions))
     missing = [key for key in sorted(needed) if not os.environ.get(key)]
     if missing:
         raise OSError(
@@ -146,7 +151,7 @@ def plan_sweep(
             f"Put it in {_PROJECT_ROOT / '.env'} or in the environment."
         )
 
-    plan = SweepPlan(Path(data_root), model, tuple(product(assays, run_types)))
+    plan = SweepPlan(Path(data_root), model, tuple(product(assays, conditions)))
     for assay in plan.assays:
         if not plan.input_records(assay):
             raise FileNotFoundError(f"No input records found in {get_assay(data_root, assay).input_dir}")
@@ -154,7 +159,7 @@ def plan_sweep(
     print(f"Sweep: {plan}.")
     print(f"  model      {plan.model}")
     print(f"  assays     {', '.join(plan.assays)}")
-    print(f"  conditions {', '.join(plan.run_types)}")
+    print(f"  conditions {', '.join(plan.conditions)}")
     print(f"  writing to {plan.data_root}/<assay>/output/{plan.model}/<condition>/run-<n>/")
     return plan
 
@@ -166,79 +171,79 @@ def run_sweep(
     dry_run: bool = True,
     max_concurrency: int = DEFAULT_CONCURRENCY,
 ) -> None:
-    """Run every run in *plan*, *n_repeat* times over, printing each one as it starts.
+    """Run every job in *plan*, *n_repeat* times over, printing each job as it starts.
 
     The only function here that spends money, and it spends nothing while *dry_run*
     stands: it lists what it would run and stops.  That is the default, so a cell run by
     accident costs nothing.
 
-    Repeat *n* writes to ``<condition>/run-<n>/``.  The repeat is the outermost loop, so
-    the whole plan finishes once before any of it runs again, and stopping early leaves
-    every assay and condition with the same number of complete repeats.  The CLI has no
-    repeats: its one run is ``run-1``.
+    Run *n* writes to ``<condition>/run-<n>/``.  The run is the outermost loop, so every
+    job finishes once before any job runs again, and stopping early leaves every assay
+    and condition with the same number of complete runs.  The CLI has no repeats: its
+    one run is ``run-1``.
 
     Args:
         plan: A plan from :func:`plan_sweep`.
-        n_repeat: How many times to run the whole plan, into ``run-1`` to ``run-<n_repeat>``.
-        dry_run: While true, list the runs instead of making them.
-        max_concurrency: How many of one run's records are migrated at a time.
+        n_repeat: How many runs of the whole plan to make, into ``run-1`` to ``run-<n_repeat>``.
+        dry_run: While true, list the jobs instead of running them.
+        max_concurrency: How many of one job's records are migrated at a time.
 
     Raises:
         ValueError: If *n_repeat* is less than 1.
     """
     if n_repeat < 1:
         raise ValueError(f"n_repeat must be at least 1, not {n_repeat}.")
-    runs = [(run, assay, run_type) for run in range(1, n_repeat + 1) for assay, run_type in plan.runs]
+    jobs = [(run, assay, condition) for run in range(1, n_repeat + 1) for assay, condition in plan.jobs]
 
     if dry_run:
-        for position, (run, assay, run_type) in enumerate(runs, start=1):
-            print(f"would run  {_describe(plan, position, len(runs), run, assay, run_type)}")
+        for position, (run, assay, condition) in enumerate(jobs, start=1):
+            print(f"would run  {_describe(plan, position, len(jobs), run, assay, condition)}")
         print(
-            f"\nDry run: nothing was run, nothing was spent ({plan}; x {n_repeat} repeat(s) = "
-            f"{len(runs)} run(s), {plan.migrations * n_repeat} record migration(s))."
+            f"\nDry run: nothing was run, nothing was spent ({plan}; x {n_repeat} run(s) = "
+            f"{len(jobs)} job(s), {plan.migrations * n_repeat} record migration(s) in total)."
         )
         print("Pass dry_run=False to run the sweep above.")
         return
 
-    # Every run is handed to the same worker thread: run_experiment drives its per-file
+    # Every job is handed to the same worker thread: run_experiment drives its per-file
     # concurrency with asyncio.run, which needs a thread of its own to own the loop, and
     # the tracing context is a context variable, so it is entered inside that thread.
-    # One worker, so the sweep waits for each run to finish before starting the next.
+    # One worker, so the sweep waits for each job to finish before starting the next.
     with ThreadPoolExecutor(max_workers=1) as pool:
-        for position, (run, assay, run_type) in enumerate(runs, start=1):
-            print(_describe(plan, position, len(runs), run, assay, run_type))
-            pool.submit(_run_one, plan, run, assay, run_type, max_concurrency).result()
+        for position, (run, assay, condition) in enumerate(jobs, start=1):
+            print(_describe(plan, position, len(jobs), run, assay, condition))
+            pool.submit(_run_job, plan, run, assay, condition, max_concurrency).result()
 
 
-def _describe(plan: SweepPlan, position: int, total: int, run: int, assay: str, run_type: str) -> str:
-    """One line saying which run this is, how big it is, and where it lands."""
+def _describe(plan: SweepPlan, position: int, total: int, run: int, assay: str, condition: str) -> str:
+    """One line saying which job this is, how big it is, and where it lands."""
     return (
-        f"[{position}/{total}] {assay} | {run_type} | run {run} | "
-        f"{len(plan.input_records(assay))} record(s) -> {plan.output_dir(assay, run_type, run)}"
+        f"[{position}/{total}] {assay} | {condition} | run {run} | "
+        f"{len(plan.input_records(assay))} record(s) -> {plan.output_dir(assay, condition, run)}"
     )
 
 
-def _run_one(plan: SweepPlan, run: int, assay: str, run_type: str, max_concurrency: int) -> None:
-    """Migrate every record of one assay under one condition, as its *run*-th repeat."""
-    build_workflow, build_user_prompt = build_condition(run_type)
+def _run_job(plan: SweepPlan, run: int, assay: str, condition: str, max_concurrency: int) -> None:
+    """Migrate every record of one assay under one condition, as part of run *run*."""
+    build_workflow, build_user_prompt = build_condition(condition)
     schema_iri = ASSAY_SCHEMAS[assay]
     with _traced_as(f"experiment-{assay}"):
         run_experiment(
             template_iri=schema_iri,
             input_dir=get_assay(plan.data_root, assay).input_dir,
-            output_dir=plan.output_dir(assay, run_type, run),
+            output_dir=plan.output_dir(assay, condition, run),
             workflow_factory=partial(build_workflow, model=plan.model, template_iri=schema_iri),
             user_prompt_builder=build_user_prompt,
             max_concurrency=max_concurrency,
             config={
-                "tags": ["experiment", run_type],
-                "metadata": {"assay": assay, "run_type": run_type, "run": run, "template_iri": schema_iri},
+                "tags": ["experiment", condition],
+                "metadata": {"assay": assay, "condition": condition, "run": run, "template_iri": schema_iri},
             },
         )
 
 
 def _traced_as(environment: str) -> AbstractContextManager[Any]:
-    """File the traces of the run inside this context under *environment* in Langfuse.
+    """File the traces of the job inside this context under *environment* in Langfuse.
 
     One environment per assay, ``experiment-<assay>``, so a sweep can be read one assay
     at a time in the Langfuse UI; the condition rides along as a trace tag.  Whatever

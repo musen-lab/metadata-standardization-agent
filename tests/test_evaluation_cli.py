@@ -27,12 +27,11 @@ _CONDITIONS = [
     ["--condition", "arms-agent"],
 ]
 
-# --output is the parent; below it is the run's name, which is the condition's own name
-# unless --run-name gave it another, and below that run-1: the CLI makes one run.
-_RUN_DIRECTORIES = [
+# --output is the parent; below it is the condition's name, and below that run-1: the CLI
+# makes one run.
+_CONDITION_DIRECTORIES = [
     (["--condition", "baseline"], "baseline"),
     (["--condition", "arms-agent"], "arms-agent"),
-    (["--condition", "arms-agent", "--run-name", "arms-agent-r2"], "arms-agent-r2"),
 ]
 
 
@@ -75,11 +74,13 @@ def test_condition_reaches_the_runner(tmp_path: Path, workflow_args: list[str]) 
     assert "No *.json files found" in result.stderr, result.stderr
 
 
-@pytest.mark.parametrize(("workflow_args", "run_directory"), _RUN_DIRECTORIES, ids=lambda arg: str(arg))
-def test_output_goes_under_the_run_name(tmp_path: Path, workflow_args: list[str], run_directory: str) -> None:
-    """The run writes to <--output>/<run name>/run-1, not to --output itself."""
+@pytest.mark.parametrize(("workflow_args", "condition_directory"), _CONDITION_DIRECTORIES, ids=lambda arg: str(arg))
+def test_output_goes_under_the_condition_as_run_1(
+    tmp_path: Path, workflow_args: list[str], condition_directory: str
+) -> None:
+    """The run writes to <--output>/<condition>/run-1, not to --output itself."""
     result = _run_cli(tmp_path, workflow_args)
-    assert str(tmp_path / "output" / run_directory / "run-1") in result.stderr, result.stderr
+    assert str(tmp_path / "output" / condition_directory / "run-1") in result.stderr, result.stderr
 
 
 def test_a_condition_is_required(tmp_path: Path) -> None:
@@ -106,8 +107,8 @@ def test_the_declared_conditions_are_offered(tmp_path: Path) -> None:
     assert "--condition {baseline,template-tool,term-tool,arms-agent}" in usage, result.stdout
 
 
-def test_a_run_name_does_not_change_the_condition(tmp_path: Path) -> None:
-    """--run-name names the output; it must not be read as a condition of its own."""
+def test_there_is_no_run_name(tmp_path: Path) -> None:
+    """The output directory is always the condition's: repeats go to run-<n>, made by the sweep."""
     result = _run_cli(tmp_path, ["--condition", "baseline", "--run-name", "arms-agent"])
-    assert result.returncode == 0, result.stderr
-    assert "Running condition baseline as arms-agent" in result.stderr, result.stderr
+    assert result.returncode != 0
+    assert "unrecognized arguments: --run-name" in result.stderr, result.stderr

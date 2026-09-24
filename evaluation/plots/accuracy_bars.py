@@ -27,15 +27,15 @@ def plot_grouped_bar_chart(
     metric: str,
     title: str,
     *,
-    baseline_run: str = "baseline",
-    system_run: str = "arms-agent",
+    baseline: str = "baseline",
+    system: str = "arms-agent",
     show_error_bars: bool = True,
     error_mode: str = "ci",
     save_path: str | None = None,
 ) -> None:
     """Grouped bar chart (baseline vs experiment) with optional error bars.
 
-    *baseline_run* and *system_run* name the two output directories to compare, as
+    *baseline* and *system* name the two output directories to compare, as
     they do throughout :mod:`analysis.significance`.
 
     *error_mode* selects what the error bars represent: ``"ci"`` (default) for
@@ -46,7 +46,7 @@ def plot_grouped_bar_chart(
     root = Path(data_root)
 
     # Collect per-assay stats for each condition
-    conditions = [baseline_run, system_run]
+    conditions = [baseline, system]
     # assay_key -> condition -> {mean, low, high}
     stats: dict[str, dict[str, dict[str, float]]] = {}
 
@@ -86,7 +86,7 @@ def plot_grouped_bar_chart(
     fig, ax = plt.subplots(figsize=(7, 4))
     for i, (condition, color) in enumerate(zip(conditions, CONDITION_COLOURS, strict=True)):
         means = np.array([stats[a].get(condition, {}).get("mean", 0.0) for a in assays])
-        label = "Baseline" if condition == baseline_run else "ARMS"
+        label = "Baseline" if condition == baseline else "ARMS"
 
         bar_kwargs: dict[str, object] = {
             "width": width,

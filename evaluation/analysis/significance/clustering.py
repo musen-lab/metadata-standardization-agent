@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 def effective_sample_size(
     data_root: str | Path,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     field_type: str | None = None,
 ) -> dict[str, float]:
@@ -49,7 +49,7 @@ def effective_sample_size(
             continue
         ontology_fields = assay.ontology_fields()
 
-        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, run_type)):
+        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition)):
             if predicted is None:
                 continue
             for field_name, gold_val in gold.items():

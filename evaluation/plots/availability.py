@@ -105,7 +105,7 @@ def _difficulty_panel(
 def plot_availability_difficulty(
     data_root: str,
     model: str,
-    run_type: str = "arms-agent",
+    condition: str = "arms-agent",
     *,
     title: str | None = None,
     save_path: str | None = None,
@@ -125,9 +125,9 @@ def plot_availability_difficulty(
     A hollow mark is a group of fewer than :data:`MIN_TRUSTED_CELL` values, where the rate
     is too thin to argue with; an assay with no fields of a kind is absent from its panel.
     """
-    summary = create_availability_summary(data_root, model, run_type)
+    summary = create_availability_summary(data_root, model, condition)
     if summary.empty:
-        raise ValueError(f"no predictions on disk for {run_type!r} under {model!r}")
+        raise ValueError(f"no predictions on disk for {condition!r} under {model!r}")
 
     field_types = ("ontology", "non_ontology")
     labels = [label for _key, label in ASSAY_ORDER if label in set(summary["assay"])]

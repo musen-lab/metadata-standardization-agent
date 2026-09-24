@@ -23,7 +23,7 @@ from analysis.significance.hypothesis_tests import (
     paired_permutation_prf,
 )
 from analysis.significance.paired_data import CATEGORIES, CATEGORY_LABELS, PairedData, collect_paired_data
-from analysis.significance.single_run import collect_single_run_data
+from analysis.significance.single_condition import collect_single_condition_data
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -43,13 +43,11 @@ def _fmt_p(p: float) -> str:
     return "<0.001" if p < 0.001 else f"{p:.3f}"
 
 
-def _pooled_data(data_root: str | Path, model: str, baseline_run: str, system_run: str) -> PairedData:
+def _pooled_data(data_root: str | Path, model: str, baseline: str, system: str) -> PairedData:
     """Paired outcomes for every assay, accumulated into one :class:`PairedData`."""
     pooled = PairedData()
     for assay in iter_assays(data_root):
-        pooled.extend(
-            collect_paired_data(data_root, model, assay.key, baseline_run=baseline_run, system_run=system_run)
-        )
+        pooled.extend(collect_paired_data(data_root, model, assay.key, baseline=baseline, system=system))
     return pooled
 
 
@@ -57,8 +55,8 @@ def build_precision_recall_table(
     data_root: str | Path,
     model: str,
     *,
-    baseline_run: str = "baseline",
-    system_run: str = "arms-agent",
+    baseline: str = "baseline",
+    system: str = "arms-agent",
 ) -> pd.DataFrame:
     """Precision, recall and F1 with cluster-bootstrap CIs, pooled across assays.
 
@@ -69,13 +67,13 @@ def build_precision_recall_table(
     """
     import pandas as pd
 
-    pooled = _pooled_data(data_root, model, baseline_run, system_run)
+    pooled = _pooled_data(data_root, model, baseline, system)
 
     rows = []
     for category in CATEGORIES:
         confusion = pooled.record_confusion[category]
-        baseline = cluster_bootstrap_prf(confusion, "baseline")
-        system = cluster_bootstrap_prf(confusion, "system")
+        baseline_ci = cluster_bootstrap_prf(confusion, "baseline")
+        system_ci = cluster_bootstrap_prf(confusion, "system")
         delta = cluster_bootstrap_prf_delta(confusion)
         for metric in ("precision", "recall", "f1"):
             rows.append(
@@ -83,20 +81,20 @@ def build_precision_recall_table(
                     "category": CATEGORY_LABELS[category],
                     "metric": metric,
                     "n_records": len(confusion),
-                    baseline_run: _fmt_ci(*baseline[metric]),
-                    system_run: _fmt_ci(*system[metric]),
+                    baseline: _fmt_ci(*baseline_ci[metric]),
+                    system: _fmt_ci(*system_ci[metric]),
                     "difference": _fmt_ci(*delta[metric]),
                 }
             )
     return pd.DataFrame(rows)
 
 
-def build_single_run_table(data_root: str | Path, model: str, run_type: str) -> pd.DataFrame:
-    """Accuracy and micro precision/recall/F1 with bootstrap CIs, for one run alone.
+def build_single_condition_table(data_root: str | Path, model: str, condition: str) -> pd.DataFrame:
+    """Accuracy and micro precision/recall/F1 with bootstrap CIs, for one condition alone.
 
-    One row per field category.  Needing no comparison run, this covers every run in a
-    sweep -- a single repetition included -- where :func:`build_precision_recall_table` can only
-    describe the two arms it pairs.
+    One row per field category.  Needing no comparison condition, this covers every
+    condition in a sweep -- an ablation included -- where :func:`build_precision_recall_table` can
+    only describe the two arms it pairs.
 
     Records are the resampling unit throughout, and the point estimates are the ones
     :mod:`analysis.data_analysis` already reports, so each interval qualifies a number
@@ -104,7 +102,7 @@ def build_single_run_table(data_root: str | Path, model: str, run_type: str) -> 
     """
     import pandas as pd
 
-    data = collect_single_run_data(data_root, model, run_type)
+    data = collect_single_condition_data(data_root, model, condition)
 
     rows = []
     for category in CATEGORIES:
@@ -112,7 +110,7 @@ def build_single_run_table(data_root: str | Path, model: str, run_type: str) -> 
         prf = bootstrap_prf(data.record_confusion[category])
         rows.append(
             {
-                "run_type": run_type,
+                "condition": condition,
                 "category": CATEGORY_LABELS[category],
                 "n_records": len(counts),
                 "accuracy": _fmt_ci(*bootstrap_pooled_accuracy(counts)),
@@ -130,19 +128,19 @@ def build_per_assay_precision_recall_table(
     *,
     correction: str = "holm",
     alpha: float = 0.05,
-    baseline_run: str = "baseline",
-    system_run: str = "arms-agent",
+    baseline: str = "baseline",
+    system: str = "arms-agent",
 ) -> pd.DataFrame:
     """Per-assay precision and recall: ARMS against baseline, with a corrected p-value.
 
-    One row per (assay, field category, metric), holding both runs' intervals, the
+    One row per (assay, field category, metric), holding both conditions' intervals, the
     paired difference with its interval, the record-clustered permutation p-value, and
     that p-value corrected over every row of the table.
 
-    *baseline_run* and *system_run* name the two conditions compared, so the same
-    table answers "does ARMS beat baseline" or "does one repetition beat another"
+    *baseline* and *system* name the two conditions compared, so the same
+    table answers "does ARMS beat baseline" or "does ARMS beat an ablation"
     without changing anything else.  Every difference is system minus baseline,
-    and the two estimate columns are named after the runs.
+    and the two estimate columns are named after the conditions.
 
     Every row is one hypothesis, and they are tested together, so the correction family
     is the whole table rather than whichever cell looked best.  *correction* is
@@ -161,13 +159,13 @@ def build_per_assay_precision_recall_table(
 
     rows = []
     for assay in iter_assays(data_root):
-        data = collect_paired_data(data_root, model, assay.key, baseline_run=baseline_run, system_run=system_run)
+        data = collect_paired_data(data_root, model, assay.key, baseline=baseline, system=system)
         for category in CATEGORIES:
             confusion = data.record_confusion[category]
             if not confusion:
                 continue
-            baseline = cluster_bootstrap_prf(confusion, "baseline")
-            system = cluster_bootstrap_prf(confusion, "system")
+            baseline_ci = cluster_bootstrap_prf(confusion, "baseline")
+            system_ci = cluster_bootstrap_prf(confusion, "system")
             delta = cluster_bootstrap_prf_delta(confusion)
             test = paired_permutation_prf(confusion)
             for metric in ("precision", "recall"):
@@ -178,8 +176,8 @@ def build_per_assay_precision_recall_table(
                         "metric": metric,
                         "n_records": len(confusion),
                         "n_differing": test["n_effective"],
-                        baseline_run: _fmt_ci(*baseline[metric]),
-                        system_run: _fmt_ci(*system[metric]),
+                        baseline: _fmt_ci(*baseline_ci[metric]),
+                        system: _fmt_ci(*system_ci[metric]),
                         "difference": _fmt_ci(*delta[metric]),
                         "perm_p": test[metric]["pvalue"],
                     }

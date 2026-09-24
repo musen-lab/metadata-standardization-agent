@@ -1,7 +1,7 @@
 """Tests for the notebook's two calls: :func:`sweep.plan_sweep` and :func:`sweep.run_sweep`.
 
 Nothing here reaches an API.  ``run_experiment`` is stubbed, which is the seam where a
-run would start spending, so what these check is everything before that: which runs, in
+job would start spending, so what these check is everything before that: which jobs, in
 which order, reading and writing where, and every reason a sweep is stopped before it
 starts.
 
@@ -53,22 +53,22 @@ def data_root(tmp_path: Path) -> Path:
 
 def test_plan_is_assay_major(data_root: Path, keys: None) -> None:
     """Every condition of one assay runs before the next assay starts."""
-    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], run_types=["baseline", "arms-agent"])
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], conditions=["baseline", "arms-agent"])
 
-    assert plan.runs == (
+    assert plan.jobs == (
         ("atacseq", "baseline"),
         ("atacseq", "arms-agent"),
         ("lcms", "baseline"),
         ("lcms", "arms-agent"),
     )
     assert plan.assays == ["atacseq", "lcms"]
-    assert plan.run_types == ["baseline", "arms-agent"]
+    assert plan.conditions == ["baseline", "arms-agent"]
     assert plan.migrations == 8  # 2 records x 2 assays x 2 conditions
 
 
 def test_plan_reads_and_writes_where_the_cli_does(data_root: Path, keys: None) -> None:
     """The directories the analysis section reads back."""
-    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], run_types=["arms-agent"])
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["arms-agent"])
 
     condition_dir = data_root / "atacseq" / "output" / "test-model" / "arms-agent"
     assert plan.output_dir("atacseq", "arms-agent") == condition_dir / "run-1"
@@ -80,11 +80,11 @@ def test_plan_defaults_to_every_condition(data_root: Path, keys: None) -> None:
     """Naming no conditions runs both."""
     plan = plan_sweep(data_root, "test-model", assays=["atacseq"])
 
-    assert plan.run_types == list(CONDITIONS)
+    assert plan.conditions == list(CONDITIONS)
 
 
 @pytest.mark.parametrize(
-    ("assays", "run_types", "expected"),
+    ("assays", "conditions", "expected"),
     [
         (["atacseq", "not-an-assay"], ["baseline"], "not-an-assay"),
         (["atacseq"], ["baseline-typo"], "baseline-typo"),
@@ -93,11 +93,11 @@ def test_plan_defaults_to_every_condition(data_root: Path, keys: None) -> None:
     ],
 )
 def test_plan_refuses_a_bad_name(
-    data_root: Path, keys: None, assays: list[str], run_types: list[str], expected: str
+    data_root: Path, keys: None, assays: list[str], conditions: list[str], expected: str
 ) -> None:
     """A typo costs nothing rather than failing partway through a sweep."""
     with pytest.raises(ValueError, match=re.escape(expected)):
-        plan_sweep(data_root, "test-model", assays=assays, run_types=run_types)
+        plan_sweep(data_root, "test-model", assays=assays, conditions=conditions)
 
 
 def test_plan_refuses_an_assay_with_no_records(data_root: Path, keys: None) -> None:
@@ -106,7 +106,7 @@ def test_plan_refuses_an_assay_with_no_records(data_root: Path, keys: None) -> N
         record.unlink()
 
     with pytest.raises(FileNotFoundError, match="lcms"):
-        plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], run_types=["baseline"])
+        plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], conditions=["baseline"])
 
 
 def test_plan_refuses_a_missing_key(data_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -114,7 +114,7 @@ def test_plan_refuses_a_missing_key(data_root: Path, monkeypatch: pytest.MonkeyP
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
     with pytest.raises(OSError, match="CEDAR_API_KEY"):
-        plan_sweep(data_root, "test-model", assays=["atacseq"], run_types=["baseline"])
+        plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
 
 
 def test_only_some_conditions_need_bioportal(data_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -122,36 +122,36 @@ def test_only_some_conditions_need_bioportal(data_root: Path, monkeypatch: pytes
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("CEDAR_API_KEY", "test-key")
 
-    plan_sweep(data_root, "test-model", assays=["atacseq"], run_types=["baseline"])
+    plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
 
     with pytest.raises(OSError, match="BIOPORTAL_API_KEY"):
-        plan_sweep(data_root, "test-model", assays=["atacseq"], run_types=["arms-agent"])
+        plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["arms-agent"])
 
 
-def _record_runs(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
+def _record_jobs(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     """Stub out the two things a run does, and collect what each one was asked for."""
     calls: list[dict[str, Any]] = []
-    monkeypatch.setattr(sweep, "build_condition", lambda run_type: (lambda **kwargs: run_type, lambda *args: ""))
+    monkeypatch.setattr(sweep, "build_condition", lambda condition: (lambda **kwargs: condition, lambda *args: ""))
     monkeypatch.setattr(sweep, "run_experiment", lambda **kwargs: calls.append(kwargs))
     return calls
 
 
 def test_dry_run_spends_nothing(data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The default lists the runs it would make and stops."""
-    calls = _record_runs(monkeypatch)
-    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], run_types=["baseline", "arms-agent"])
+    """The default lists the jobs it would run and stops."""
+    calls = _record_jobs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline", "arms-agent"])
 
     run_sweep(plan)
 
     assert calls == []
 
 
-def test_run_sweep_runs_every_run_in_order(
+def test_run_sweep_runs_every_job_in_order(
     data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """One call to ``run_experiment`` per run, in the plan's order, pointed at its own directories."""
-    calls = _record_runs(monkeypatch)
-    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], run_types=["baseline"])
+    calls = _record_jobs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], conditions=["baseline"])
     capsys.readouterr()
 
     run_sweep(plan, dry_run=False, max_concurrency=3)
@@ -162,16 +162,16 @@ def test_run_sweep_runs_every_run_in_order(
         plan.output_dir("lcms", "baseline"),
     ]
     assert [call["max_concurrency"] for call in calls] == [3, 3]
-    assert [call["config"]["metadata"]["run_type"] for call in calls] == ["baseline", "baseline"]
+    assert [call["config"]["metadata"]["condition"] for call in calls] == ["baseline", "baseline"]
     assert "[1/2] atacseq | baseline | run 1 | 2 record(s)" in capsys.readouterr().out
 
 
-def test_repeats_run_the_whole_plan_again_into_their_own_directories(
+def test_each_run_repeats_the_whole_plan_into_its_own_directory(
     data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The repeat is the outer loop: every run of the plan finishes once before any runs twice."""
-    calls = _record_runs(monkeypatch)
-    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], run_types=["baseline"])
+    """The run is the outer loop: every job finishes once before any job runs twice."""
+    calls = _record_jobs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], conditions=["baseline"])
     capsys.readouterr()
 
     run_sweep(plan, n_repeat=2, dry_run=False)
@@ -186,12 +186,12 @@ def test_repeats_run_the_whole_plan_again_into_their_own_directories(
     assert "[4/4] lcms | baseline | run 2 | 2 record(s)" in capsys.readouterr().out
 
 
-def test_a_dry_run_lists_every_repeat(
+def test_a_dry_run_lists_every_run(
     data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The dry run shows what the repeats would cost, and still spends nothing."""
-    calls = _record_runs(monkeypatch)
-    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], run_types=["baseline"])
+    """The dry run shows what every run would cost, and still spends nothing."""
+    calls = _record_jobs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
     capsys.readouterr()
 
     run_sweep(plan, n_repeat=3)
@@ -203,9 +203,9 @@ def test_a_dry_run_lists_every_repeat(
 
 
 @pytest.mark.parametrize("n_repeat", [0, -1])
-def test_fewer_than_one_repeat_is_refused(data_root: Path, keys: None, n_repeat: int) -> None:
+def test_fewer_than_one_run_is_refused(data_root: Path, keys: None, n_repeat: int) -> None:
     """A sweep that would run nothing says so rather than quietly doing nothing."""
-    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], run_types=["baseline"])
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
 
     with pytest.raises(ValueError, match="n_repeat"):
         run_sweep(plan, n_repeat=n_repeat)
@@ -216,13 +216,13 @@ def test_each_assay_is_traced_under_its_own_environment(
 ) -> None:
     """One Langfuse environment per assay, so a sweep can be read one assay at a time."""
     environments: list[str | None] = []
-    monkeypatch.setattr(sweep, "build_condition", lambda run_type: (lambda **kwargs: run_type, lambda *args: ""))
+    monkeypatch.setattr(sweep, "build_condition", lambda condition: (lambda **kwargs: condition, lambda *args: ""))
     monkeypatch.setattr(
         sweep,
         "run_experiment",
         lambda **kwargs: environments.append(sweep.os.environ.get("LANGFUSE_TRACING_ENVIRONMENT")),
     )
-    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], run_types=["baseline"])
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], conditions=["baseline"])
 
     run_sweep(plan, dry_run=False)
 
@@ -231,18 +231,18 @@ def test_each_assay_is_traced_under_its_own_environment(
 
 def test_plan_is_a_value(data_root: Path, keys: None) -> None:
     """The plan can be trimmed and re-read without going back through the checks."""
-    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], run_types=["baseline"])
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], conditions=["baseline"])
 
-    trimmed = SweepPlan(plan.data_root, plan.model, plan.runs[:1])
+    trimmed = SweepPlan(plan.data_root, plan.model, plan.jobs[:1])
 
     assert trimmed.assays == ["atacseq"]
     assert trimmed.migrations == 2
 
 
-@pytest.mark.parametrize("run_type", CONDITIONS)
-def test_every_condition_builds(run_type: str) -> None:
+@pytest.mark.parametrize("condition", CONDITIONS)
+def test_every_condition_builds(condition: str) -> None:
     """Each name reaches a workflow builder and a prompt builder of its own."""
-    build_workflow, build_user_prompt = build_condition(run_type)
+    build_workflow, build_user_prompt = build_condition(condition)
 
     assert callable(build_workflow)
     assert callable(build_user_prompt)

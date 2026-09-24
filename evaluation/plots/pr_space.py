@@ -1,6 +1,6 @@
 """Operating points in precision/recall space: one panel per assay, or one for the corpus.
 
-The paper's main figure.  A panel is a window on the unit square with a mark per (run,
+The paper's main figure.  A panel is a window on the unit square with a mark per (condition,
 field type), which is why this module is mostly furniture: the window, the constant-F1
 contours behind the marks, the two legends under them, and the two ways of laying the
 panels out.  What the marks themselves look like is :mod:`plots.marks`.
@@ -24,9 +24,9 @@ from plots.marks import (
     FIELD_KEY_SIZE,
     FIELD_TYPE_LABELS,
     FIELD_TYPE_MARKERS,
-    RunMark,
+    ConditionMark,
+    _condition_marks,
     _mark_style,
-    _run_marks,
 )
 from plots.pr_scores import POOLED_LABEL, _check_pr_arguments
 from plots.theme import (
@@ -49,7 +49,7 @@ from plots.theme import (
 #: put the origin somewhere other than the corner, and a reader would have to check the
 #: ticks of every panel before believing any distance in it: a gap that looks large is
 #: only large against a scale that starts at zero.  The window reaches a little past both
-#: ends of that square so a run scoring 0 or 1 -- and several score 1 -- sits inside the
+#: ends of that square so a condition scoring 0 or 1 -- and several score 1 -- sits inside the
 #: panel rather than half under its frame.
 PR_WINDOW = (-0.05, 1.08)
 
@@ -149,14 +149,14 @@ def _style_pr_axes(ax: plt.Axes) -> None:
 def _draw_pr_path(
     ax: plt.Axes,
     points: list[tuple[float, float]],
-    marks: list[RunMark],
+    marks: list[ConditionMark],
     marker: str = "o",
 ) -> None:
     """Draw one group's operating points.
 
     The points are not joined.  A line between them reads as a path something travelled,
     and these are separate systems measured once each -- nothing lies between two of them
-    to trace.  The order within a group is carried by the colour ramp, which says the runs
+    to trace.  The order within a group is carried by the colour ramp, which says the conditions
     are ordered without claiming anything about the space between them.
     """
     for (recall, precision), mark in zip(points, marks, strict=True):
@@ -175,7 +175,7 @@ def _draw_pr_path(
 
 def _pr_panel_series(
     ax: plt.Axes,
-    series: list[tuple[list[tuple[float, float]], list[RunMark], str]],
+    series: list[tuple[list[tuple[float, float]], list[ConditionMark], str]],
     *,
     error_axes: bool = False,
     show_f1_contours: bool = True,
@@ -190,16 +190,16 @@ def _pr_panel_series(
 
 def _pr_legends(
     fig: plt.Figure,
-    baseline_runs: tuple[str, ...],
-    system_runs: tuple[str, ...],
+    baselines: tuple[str, ...],
+    systems: tuple[str, ...],
     field_types: tuple[str, ...],
     *,
     show_field_keys: bool = True,
     no_color: bool = False,
 ) -> float:
-    """Colour for the run, and -- when a panel holds more than one -- marker for the field type.
+    """Colour for the condition, and -- when a panel holds more than one -- marker for the field type.
 
-    Stacked rather than side by side: on one line the run names and the field-type names
+    Stacked rather than side by side: on one line the condition names and the field-type names
     collide as soon as either list grows.  *show_field_keys* is ``False`` when every
     panel holds a single field type and says so in its own title, where a key would only
     repeat what the reader has already been told.  Returns the fraction of figure height
@@ -213,10 +213,10 @@ def _pr_legends(
             [],
             marker="o",
             linestyle="",
-            label=f"{mark.letter}  {run}" if mark.letter else run,
+            label=f"{mark.letter}  {condition}" if mark.letter else condition,
             **_mark_style(mark, "o"),
         )
-        for run, mark in _run_marks(baseline_runs, system_runs, no_color=no_color)
+        for condition, mark in _condition_marks(baselines, systems, no_color=no_color)
     ]
     field_keys = (
         []
@@ -272,8 +272,8 @@ def plot_pr_space(
     model: str,
     *,
     assays: tuple[str, ...] = (),
-    baseline_runs: tuple[str, ...] = ("baseline",),
-    system_runs: tuple[str, ...] = ("arms-agent",),
+    baselines: tuple[str, ...] = ("baseline",),
+    systems: tuple[str, ...] = ("arms-agent",),
     field_types: tuple[str, ...] = ("ontology", "non_ontology", "all"),
     shared_window: bool = True,
     error_axes: bool = False,
@@ -284,15 +284,15 @@ def plot_pr_space(
 ) -> None:
     """Operating points in precision/recall space.
 
-    Each run is one **operating point**, not a curve: the runs emit a value or leave a
+    Each condition is one **operating point**, not a curve: the conditions emit a value or leave a
     field empty, with no score to threshold, so there is nothing to sweep.  A group of
-    several runs is joined into a path in the order given -- read it as a progression
+    several conditions is joined into a path in the order given -- read it as a progression
     between discrete systems, never as a frontier that could be tuned along -- and a
     group of one is drawn as a lone coordinate, since one point has no progression.
 
-    So ``baseline_runs=("baseline",)`` against ``system_runs=("arms-agent",)`` draws the
-    head-to-head comparison, while several runs on a side -- repetitions of one
-    condition, say -- draw a progression with the other beside it.
+    So ``baselines=("baseline",)`` against ``systems=("arms-agent",)`` draws the
+    head-to-head comparison, while several conditions on a side -- the ablations
+    leading up to ARMS, say -- draw a progression with the other beside it.
 
     *assays* names the assays to draw, by the keys ``ASSAY_ORDER`` uses (``"atacseq"``,
     ``"rnaseq"``, ...).  **Left empty, the corpus is pooled into one set of panels**
@@ -300,20 +300,20 @@ def plot_pr_space(
     per-assay ratios, since the assays differ in size by more than tenfold.
 
     *error_axes* replaces recall on the x axis with the **miss rate**, ``1 - recall``:
-    the share of the values gold asks for that the run did not produce.  Lower is then
+    the share of the values gold asks for that the condition did not produce.  Lower is then
     better, so the good corner moves from the right to the left, and the axis is anchored
     at 0 and labelled there -- an error axis that starts anywhere else hides how far from
-    perfect a run is, and makes two runs look further apart than they are.  Precision is
+    perfect a condition is, and makes two conditions look further apart than they are.  Precision is
     left as it is, so a panel reads up-and-left.  The F1 contours are the same curves,
     mirrored.
 
     *show_f1_contours* draws the constant-F1 curves behind the points.  They are what
-    makes two runs with different trade-offs rankable by eye; turn them off when the
+    makes two conditions with different trade-offs rankable by eye; turn them off when the
     panel is crowded enough that they compete with the marks rather than support them.
 
     *no_color* draws the figure without colour: the condition becomes the marker's
     fill, hollow against solid, so a pair keeps one shape and stays directly comparable;
-    the field type keeps the shape it already had; and a run's place in its group becomes
+    the field type keeps the shape it already had; and a condition's place in its group becomes
     a letter written inside the mark.  What survives greyscale, print and colour-vision
     deficiency is what carries the meaning.
 
@@ -327,15 +327,15 @@ def plot_pr_space(
     * ``False`` -- each field type takes a column and each assay a row, so a panel holds
       one field type of one assay.  Wider, but nothing overlaps.
 
-    Colour is the run -- one hue per group, in monotone lightness steps when a group has
-    several runs -- and the marker is the field type.  Constant-F1 contours sit behind
-    the points: two runs on the same contour reached the same F1 by a different
+    Colour is the condition -- one hue per group, in monotone lightness steps when a group has
+    several conditions -- and the marker is the field type.  Constant-F1 contours sit behind
+    the points: two conditions on the same contour reached the same F1 by a different
     trade-off.  Every panel shares one window, so they stay comparable rather than each
     rescaling to its own data.  When *save_path* is given the figure is written there
     (PNG/PDF inferred from the extension) instead of shown interactively.
     """
-    _check_pr_arguments(baseline_runs, system_runs, field_types)
-    runs = (*baseline_runs, *system_runs)
+    _check_pr_arguments(baselines, systems, field_types)
+    conditions = (*baselines, *systems)
     labels = dict(ASSAY_ORDER)
     unknown = [key for key in assays if key not in labels]
     if unknown:
@@ -343,10 +343,10 @@ def plot_pr_space(
 
     if assays:
         frames = {
-            (run, field_type): create_per_assay_precision_recall_summary(
-                data_root, model, run, category=field_type
+            (condition, field_type): create_per_assay_precision_recall_summary(
+                data_root, model, condition, category=field_type
             ).set_index("assay")
-            for run in runs
+            for condition in conditions
             for field_type in field_types
         }
         wanted = {labels[key] for key in assays}
@@ -356,25 +356,26 @@ def plot_pr_space(
             if label in wanted and all(label in frame.index for frame in frames.values())
         ]
         if not rows:
-            raise ValueError(f"No requested assay has predictions for every one of {runs}")
+            raise ValueError(f"No requested assay has predictions for every one of {conditions}")
 
-        def score(run: str, field_type: str, row: str) -> tuple[float, float]:
-            frame = frames[(run, field_type)]
+        def score(condition: str, field_type: str, row: str) -> tuple[float, float]:
+            frame = frames[(condition, field_type)]
             return frame.loc[row, "recall"], frame.loc[row, "precision"]
 
-        first = frames[(runs[0], field_types[0])]
+        first = frames[(conditions[0], field_types[0])]
         n_records = {row: int(first.loc[row, "n_records"]) for row in rows}
     else:
         summaries = {
-            run: create_overall_precision_recall_summary(data_root, model, run).set_index("category") for run in runs
+            condition: create_overall_precision_recall_summary(data_root, model, condition).set_index("category")
+            for condition in conditions
         }
         rows = [POOLED_LABEL]
 
-        def score(run: str, field_type: str, _row: str) -> tuple[float, float]:
-            summary = summaries[run]
+        def score(condition: str, field_type: str, _row: str) -> tuple[float, float]:
+            summary = summaries[condition]
             return summary.loc[field_type, "recall"], summary.loc[field_type, "precision"]
 
-        n_records = {POOLED_LABEL: int(summaries[runs[0]].loc[field_types[0], "n_records"])}
+        n_records = {POOLED_LABEL: int(summaries[conditions[0]].loc[field_types[0], "n_records"])}
 
     def panel_title(row: str) -> str:
         """The row's name with the records standing behind it.
@@ -384,12 +385,12 @@ def plot_pr_space(
         """
         return f"{row} (n={n_records[row]})"
 
-    marks = [mark for _run, mark in _run_marks(baseline_runs, system_runs, no_color=no_color)]
-    groups = ((baseline_runs, marks[: len(baseline_runs)]), (system_runs, marks[len(baseline_runs) :]))
+    marks = [mark for _condition, mark in _condition_marks(baselines, systems, no_color=no_color)]
+    groups = ((baselines, marks[: len(baselines)]), (systems, marks[len(baselines) :]))
 
-    def placed(run: str, field_type: str, row: str) -> tuple[float, float]:
-        """One run's point, with recall turned into its miss rate when asked for."""
-        recall, precision = score(run, field_type, row)
+    def placed(condition: str, field_type: str, row: str) -> tuple[float, float]:
+        """One condition's point, with recall turned into its miss rate when asked for."""
+        recall, precision = score(condition, field_type, row)
         return (1.0 - recall if error_axes else recall, precision)
 
     def series(row: str, drawn: tuple[str, ...]) -> list[tuple[list[tuple[float, float]], list[str], str]]:
@@ -400,7 +401,7 @@ def plot_pr_space(
         one left legible, rather than whichever field type happened to be drawn last.
         """
         return [
-            ([placed(run, field_type, row) for run in group], group_marks, FIELD_TYPE_MARKERS[field_type])
+            ([placed(condition, field_type, row) for condition in group], group_marks, FIELD_TYPE_MARKERS[field_type])
             for group, group_marks in groups
             for field_type in drawn
         ]
@@ -478,7 +479,7 @@ def plot_pr_space(
 
     # With one field type per panel, named in the column title, a marker key would only
     # repeat it.
-    strip = _pr_legends(fig, baseline_runs, system_runs, field_types, show_field_keys=shared_window, no_color=no_color)
+    strip = _pr_legends(fig, baselines, systems, field_types, show_field_keys=shared_window, no_color=no_color)
     fig.tight_layout(rect=(0.0, strip, 1.0, 1.0))
     if title:
         # After tight_layout, which does not know about a suptitle added later: adding it

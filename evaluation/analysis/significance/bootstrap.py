@@ -28,10 +28,10 @@ def _resample_indices(n_items: int, n_resamples: int, seed: int) -> np.ndarray:
 
 
 def _run_index(which: str) -> int:
-    """0 for the baseline run, 1 for the system.
+    """0 for the baseline condition, 1 for the system.
 
     Rejecting anything else rather than falling through to the system: a caller
-    passing a run type by mistake would otherwise silently receive the other run's
+    passing a condition name by mistake would otherwise silently receive the other condition's
     numbers, which is invisible in the output.
     """
     if which not in ("baseline", "system"):
@@ -73,14 +73,14 @@ def bootstrap_pooled_accuracy(
     alpha: float = 0.05,
     seed: int = 0,
 ) -> Interval:
-    """Bootstrap CI for one run's *pooled* (field-weighted) accuracy, resampling records.
+    """Bootstrap CI for one condition's *pooled* (field-weighted) accuracy, resampling records.
 
     *counts* is a list of ``(correct, total)`` per record.  Pooled accuracy is
     ``sum(correct) / sum(total)`` -- the same field-weighted estimate the overall
     accuracy row reports, so this puts an interval on a number that already exists
     rather than a differently-weighted one.
 
-    Any run can be measured this way, paired or not, which is what lets every
+    Any condition can be measured this way, paired or not, which is what lets every
     condition get an interval and not only the two the paired tables compare.
     """
     if not counts:
@@ -105,8 +105,8 @@ def cluster_bootstrap_pooled(
     """Bootstrap CI for *pooled* (field-weighted) accuracy of one arm of a pair.
 
     *counts* is a list of ``(baseline_correct, system_correct, total)`` per record.
-    ``which`` is ``"baseline"`` or ``"system"``.  Selects that run's column and hands
-    it to :func:`bootstrap_pooled_accuracy`, so a paired arm and the same run
+    ``which`` is ``"baseline"`` or ``"system"``.  Selects that condition's column and hands
+    it to :func:`bootstrap_pooled_accuracy`, so a paired arm and the same condition
     measured on its own cannot come out differently.
     """
     col = _run_index(which)
@@ -151,7 +151,7 @@ def bootstrap_prf(
     alpha: float = 0.05,
     seed: int = 0,
 ) -> dict[str, Interval]:
-    """Bootstrap CIs on one run's micro precision, recall and F1, resampling records.
+    """Bootstrap CIs on one condition's micro precision, recall and F1, resampling records.
 
     *confusion* is a list of ``(tp, fp, fn)`` per record.  Counts are summed over the
     resampled records and the ratios taken once from the totals, so the point estimate
@@ -193,8 +193,8 @@ def cluster_bootstrap_prf(
 
     *confusion* is a list of ``(baseline_tp, baseline_fp, baseline_fn, system_tp,
     system_fp, system_fn)`` per record; ``which`` selects ``"baseline"`` or
-    ``"system"``.  Selects that run's three columns and hands them to
-    :func:`bootstrap_prf`, so a run measured as half of a pair and the same run
+    ``"system"``.  Selects that condition's three columns and hands them to
+    :func:`bootstrap_prf`, so a condition measured as half of a pair and the same condition
     measured on its own cannot come out differently.
     """
     offset = 3 * _run_index(which)
@@ -215,9 +215,9 @@ def cluster_bootstrap_prf_delta(
 ) -> dict[str, Interval]:
     """Paired bootstrap CIs on the system-minus-baseline difference in P, R and F1.
 
-    Each replicate resamples records once and scores *both* runs on that same
+    Each replicate resamples records once and scores *both* conditions on that same
     resample, so the pairing is preserved and the difference is not inflated by
-    the two runs being resampled independently.  An interval excluding zero is
+    the two conditions being resampled independently.  An interval excluding zero is
     the confidence statement about the difference.
 
     Returns ``{"precision": (delta, lo, hi), "recall": ..., "f1": ...}``.

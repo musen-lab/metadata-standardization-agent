@@ -11,19 +11,19 @@ The recommended way to run evaluations and explore results is the `experiment.ip
 - Plotting grouped bar charts comparing baseline vs ARMS
 - Generating error analysis reports
 
-Open the notebook and follow the configuration cells to set your `DATA_ROOT`, `MODEL`, `ASSAYS` and `RUN_TYPES`. Run it from the repository root: its setup cell puts this directory on the import path so the modules below can be imported by name.
+Open the notebook and follow the configuration cells to set your `DATA_ROOT`, `MODEL`, `ASSAYS` and `CONDITIONS`. Run it from the repository root: its setup cell puts this directory on the import path so the modules below can be imported by name.
 
 Running the experiments is two calls, both from `[sweep.py](sweep.py)`:
 
 ```python
 from sweep import plan_sweep, run_sweep
 
-plan = plan_sweep(DATA_ROOT, MODEL, assays=ASSAYS, run_types=RUN_TYPES)
+plan = plan_sweep(DATA_ROOT, MODEL, assays=ASSAYS, conditions=CONDITIONS)
 run_sweep(plan, dry_run=False)             # one run, into run-1/
 run_sweep(plan, n_repeat=5, dry_run=False) # the whole plan five times, into run-1/ .. run-5/
 ```
 
-`plan_sweep` loads the API keys from `.env` and prints what the sweep covers. It raises on an unknown assay, an unknown condition, an assay with no input records, or a missing key — before anything is spent. `run_sweep` then makes the runs, one at a time, every condition of one assay before the next assay starts. It spends nothing while `dry_run` stands, which is its default.
+`plan_sweep` loads the API keys from `.env` and prints what the sweep covers. It raises on an unknown assay, an unknown condition, an assay with no input records, or a missing key — before anything is spent. `run_sweep` then runs the jobs (one job is one assay under one condition), one at a time, every condition of one assay before the next assay starts. It spends nothing while `dry_run` stands, which is its default.
 With `n_repeat=N` it makes N runs of the whole plan, finishing each run before starting the next, and writes run *n* to `<condition>/run-<n>/`.
 The CLI has no repeats: its one run always lands in `run-1/`, which is also the run the analyses read.
 
@@ -124,7 +124,7 @@ CONDITION = Condition(
 
 The parameters of `Condition`:
 
-- `name`: what `--condition` and `RUN_TYPES` take, and the name of the output directory. It must be unique across all conditions.
+- `name`: what `--condition` and `CONDITIONS` take, and the name of the output directory. It must be unique across all conditions.
 - `build_workflow`: a function taking `model` and `template_iri` that returns the compiled graph to run.
 - `build_user_prompt`: a function taking the legacy record and the template IRI that returns the user message. It may be imported from another condition.
 - `requires_keys` (optional): environment variables the condition needs beyond `OPENAI_API_KEY` and `CEDAR_API_KEY`. `plan_sweep` stops before any run if one is missing.
@@ -140,7 +140,7 @@ You can also run standardizations from the command line:
 
 ```bash
 python -m evaluation --input <dir> --target-schema <iri> --output <parent-dir> \
-    --condition CONDITION [--run-name NAME] \
+    --condition CONDITION \
     [--model MODEL] [--concurrent N] [--langfuse-environment NAME] \
     [--debug]
 ```
@@ -149,9 +149,8 @@ python -m evaluation --input <dir> --target-schema <iri> --output <parent-dir> \
 |------|-------------|
 | `--input DIR` | Directory containing input JSON files |
 | `--target-schema IRI` | IRI of the CEDAR template to standardize to |
-| `--output DIR` | Parent directory for the migrated output JSON files. The run writes to `DIR/<run name>/run-1/` |
+| `--output DIR` | Parent directory for the migrated output JSON files. The run writes to `DIR/<condition>/run-1/` |
 | `--condition CONDITION` | Which condition to run. The choices are the modules declared under `conditions/`, so a module dropped in is offered here without this flag changing |
-| `--run-name NAME` | What to call this run: the output subdirectory and the trace tag (default: the condition's own name). Use it to keep a repeat run beside the first |
 | `--model MODEL` | GPT model variant: `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol` (default: `gpt-5.6-terra`) |
 | `--concurrent N` | Max number of concurrent file evaluations (default: `5`) |
 | `--langfuse-environment NAME` | Langfuse tracing environment to file this run under (overrides `.env` setting) |

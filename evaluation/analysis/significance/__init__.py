@@ -8,7 +8,8 @@ template's field and vocabulary names and nothing more, and it is what these tab
 compare against ARMS.
 
 Each condition writes to its own directory under ``data/<assay>/output/<model>/``: the
-prompt-only condition under its own name, ARMS under ``arms-agent/``.  The code
+prompt-only condition under ``baseline/``, ARMS under ``arms-agent/``, each holding one
+``run-<n>/`` per repeat, and every function here reads ``run-1``.  The code
 follows those directories, which is why ``baseline`` and ``arms`` are what the
 parameters, columns and tuple fields below are called.
 
@@ -18,11 +19,11 @@ happened to be sampled.  It reads the prediction files already on disk (no LLM/A
 calls) and computes:
 
 * **Bootstrap 95% confidence intervals** on per-record accuracy, for the prompt-only
-  run and ARMS separately.
+  condition and ARMS separately.
 * **Paired Wilcoxon signed-rank test** on per-record accuracy (same record under
-  both runs).
+  both conditions).
 * **Paired McNemar test** on per-field correctness (same field of the same record
-  under both runs), reporting ``b`` (only the prompt-only run correct), ``c`` (only
+  under both conditions), reporting ``b`` (only the prompt-only condition correct), ``c`` (only
   ARMS correct), and the p-value.
 * **Record-clustered permutation test** on the same discordant outcomes, but with
   the record as the independent unit (whole-record label swaps).  Unlike the flat
@@ -32,7 +33,7 @@ calls) and computes:
 All four are produced for each of the three field categories used in the paper
 (``ontology``, ``non_ontology``, ``all``) and both per assay and pooled overall.
 
-Everything is paired -- a record counts only when both runs produced it -- and the
+Everything is paired -- a record counts only when both conditions produced it -- and the
 record, not the field, is the unit of resampling, because the corpus repeats the same
 correction across many records.  :mod:`~analysis.significance.clustering` measures how
 much that repetition costs in independent evidence.
@@ -82,11 +83,11 @@ from analysis.significance.hypothesis_tests import (
     paired_wilcoxon,
 )
 from analysis.significance.paired_data import CATEGORIES, CATEGORY_LABELS, PairedData, collect_paired_data
-from analysis.significance.single_run import SingleRunData, collect_single_run_data
+from analysis.significance.single_condition import SingleConditionData, collect_single_condition_data
 from analysis.significance.tables import (
     build_per_assay_precision_recall_table,
     build_precision_recall_table,
-    build_single_run_table,
+    build_single_condition_table,
 )
 
 __all__ = [
@@ -94,7 +95,7 @@ __all__ = [
     "CATEGORY_LABELS",
     "DeduplicatedOutcomes",
     "PairedData",
-    "SingleRunData",
+    "SingleConditionData",
     "_prf_from_sums",
     "adjust_pvalues",
     "bootstrap_ci",
@@ -102,13 +103,13 @@ __all__ = [
     "bootstrap_prf",
     "build_per_assay_precision_recall_table",
     "build_precision_recall_table",
-    "build_single_run_table",
+    "build_single_condition_table",
     "cluster_bootstrap_pooled",
     "cluster_bootstrap_prf",
     "cluster_bootstrap_prf_delta",
     "collect_deduplicated_outcomes",
     "collect_paired_data",
-    "collect_single_run_data",
+    "collect_single_condition_data",
     "deduplicated_paired_tests",
     "effective_sample_size",
     "paired_cluster_test",
