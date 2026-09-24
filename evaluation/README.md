@@ -6,9 +6,9 @@ Measures the quality of agent-predicted metadata against gold-standard reference
 
 The recommended way to run evaluations and explore results is the `experiment.ipynb` notebook in the repository root. It provides an interactive workflow for:
 
-- Running the method evaluations (prompt-only and agent-tool) across all assay types
+- Running the method evaluations (prompt-only and ARMS) across all assay types
 - Computing per-assay and overall accuracy summaries
-- Plotting grouped bar charts comparing baseline vs agent-tool
+- Plotting grouped bar charts comparing baseline vs ARMS
 - Generating error analysis reports
 
 Open the notebook and follow the configuration cells to set your `DATA_ROOT`, `MODEL`, `ASSAYS` and `RUN_TYPES`. Run it from the repository root: its setup cell puts this directory on the import path so the modules below can be imported by name.

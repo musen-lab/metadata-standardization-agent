@@ -8,7 +8,7 @@ template's field and vocabulary names and nothing more, and it is what these tab
 compare against ARMS.
 
 Each condition writes to its own directory under ``data/<assay>/output/<model>/``: the
-prompt-only condition under its own name, ARMS under ``agent-tool/``.  The code
+prompt-only condition under its own name, ARMS under ``arms-agent/``.  The code
 follows those directories, which is why ``baseline`` and ``arms`` are what the
 parameters, columns and tuple fields below are called.
 

@@ -63,7 +63,7 @@ def analyze_prediction_errors(
         Model name to evaluate (e.g. ``"gpt5mini"``).
     run_type:
         Output sub-directory under each model: the prompt-only condition
-        (``"baseline"``) or ``"agent-tool"``.
+        (``"baseline"``) or ``"arms-agent"``.
     match_case:
         Whether string comparison is case-sensitive.
     match_whole_word:

@@ -172,7 +172,7 @@ def _build_mini_data_root(root: Path) -> None:
             root / "atacseq" / "output" / "gpt5mini" / "baseline" / name, {"tissue": "WRONG", "title": "study"}
         )
         _write_record(
-            root / "atacseq" / "output" / "gpt5mini" / "agent-tool" / name, {"tissue": "lung", "title": "study"}
+            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / name, {"tissue": "lung", "title": "study"}
         )
 
 
@@ -222,7 +222,7 @@ def _build_clustered_root(root: Path) -> None:
     for name in ("r0.json", "r1.json", "r2.json"):
         _write_record(root / "atacseq" / "gold" / name, {"tissue": "lung", "title": "study"})
         _write_record(
-            root / "atacseq" / "output" / "gpt5mini" / "agent-tool" / name, {"tissue": "lung", "title": "WRONG"}
+            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / name, {"tissue": "lung", "title": "WRONG"}
         )
 
 
@@ -231,7 +231,7 @@ class TestEffectiveSampleSize:
         # Two clusters (tissue=lung, title=study), each with 3 perfectly-correlated
         # instances -> ICC = 1, so N_eff collapses to the number of clusters (2).
         _build_clustered_root(tmp_path)
-        e = effective_sample_size(tmp_path, "gpt5mini", "agent-tool")
+        e = effective_sample_size(tmp_path, "gpt5mini", "arms-agent")
         assert e["n"] == 6
         assert e["n_clusters"] == 2
         assert e["icc"] > 0.99
@@ -239,7 +239,7 @@ class TestEffectiveSampleSize:
 
     def test_field_type_filter(self, tmp_path: Path) -> None:
         _build_clustered_root(tmp_path)
-        ont = effective_sample_size(tmp_path, "gpt5mini", "agent-tool", field_type="ontology")
+        ont = effective_sample_size(tmp_path, "gpt5mini", "arms-agent", field_type="ontology")
         assert ont["n"] == 3
         assert ont["n_clusters"] == 1  # only the tissue=lung cluster
 
@@ -385,7 +385,7 @@ class TestSingleRunIntervals:
         _build_mini_data_root(tmp_path)
         paired = collect_paired_data(tmp_path, "gpt5mini", "atacseq")
 
-        for run_type, which in (("baseline", "baseline"), ("agent-tool", "system")):
+        for run_type, which in (("baseline", "baseline"), ("arms-agent", "system")):
             single = collect_single_run_data(tmp_path, "gpt5mini", run_type, "atacseq")
             for category in ("ontology", "non_ontology", "all"):
                 assert bootstrap_pooled_accuracy(single.record_counts[category]) == cluster_bootstrap_pooled(
@@ -423,7 +423,7 @@ class TestSingleRunIntervals:
 
     def test_table_has_an_interval_for_every_metric(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
-        table = build_single_run_table(tmp_path, "gpt5mini", "agent-tool")
+        table = build_single_run_table(tmp_path, "gpt5mini", "arms-agent")
         for column in ("accuracy", "precision", "recall", "f1"):
             for value in table[column]:
                 assert "[" in value and "]" in value, (column, value)
@@ -499,7 +499,7 @@ class TestBuildPerAssayPrecisionRecallTable:
         _build_mini_data_root(tmp_path)
         table = build_per_assay_precision_recall_table(tmp_path, "gpt5mini")
         assert set(table["metric"]) == {"precision", "recall"}, "F1 must stay out of the family"
-        for column in ("baseline", "agent-tool", "difference", "perm_p", "p_adjusted", "significant"):
+        for column in ("baseline", "arms-agent", "difference", "perm_p", "p_adjusted", "significant"):
             assert column in table.columns
         # One assay x 3 categories x 2 metrics, minus categories absent from the data.
         assert len(table) == len(set(zip(table["category"], table["metric"], strict=True)))
@@ -538,14 +538,14 @@ class TestConditionAgnosticComparison:
     def test_swapping_the_runs_swaps_the_arms(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
         forward = collect_paired_data(tmp_path, "gpt5mini", "atacseq")
-        reverse = collect_paired_data(tmp_path, "gpt5mini", "atacseq", baseline_run="agent-tool", system_run="baseline")
+        reverse = collect_paired_data(tmp_path, "gpt5mini", "atacseq", baseline_run="arms-agent", system_run="baseline")
         assert forward.field_outcomes["ontology"][0] == (False, True)
         assert reverse.field_outcomes["ontology"][0] == (True, False)
 
     def test_swapping_the_runs_flips_the_sign_of_the_difference(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
         forward = collect_paired_data(tmp_path, "gpt5mini", "atacseq")
-        reverse = collect_paired_data(tmp_path, "gpt5mini", "atacseq", baseline_run="agent-tool", system_run="baseline")
+        reverse = collect_paired_data(tmp_path, "gpt5mini", "atacseq", baseline_run="arms-agent", system_run="baseline")
         ahead = paired_permutation_prf(forward.record_confusion["all"])
         behind = paired_permutation_prf(reverse.record_confusion["all"])
         for metric in ("precision", "recall", "f1"):
@@ -555,15 +555,15 @@ class TestConditionAgnosticComparison:
     def test_columns_are_named_after_the_runs(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
         self._add_condition(tmp_path, "baseline-r2", {"tissue": "lung", "title": "WRONG"})
-        table = build_precision_recall_table(tmp_path, "gpt5mini", baseline_run="baseline-r2", system_run="agent-tool")
+        table = build_precision_recall_table(tmp_path, "gpt5mini", baseline_run="baseline-r2", system_run="arms-agent")
         assert "baseline-r2" in table.columns
-        assert "agent-tool" in table.columns
+        assert "arms-agent" in table.columns
         assert "baseline" not in table.columns, "the column must follow the run that was asked for"
 
     def test_default_still_compares_baseline_against_arms(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
         explicit = collect_paired_data(
-            tmp_path, "gpt5mini", "atacseq", baseline_run="baseline", system_run="agent-tool"
+            tmp_path, "gpt5mini", "atacseq", baseline_run="baseline", system_run="arms-agent"
         )
         assert collect_paired_data(tmp_path, "gpt5mini", "atacseq").record_acc == explicit.record_acc
 
@@ -572,7 +572,7 @@ class TestRunSelector:
     def test_unknown_selector_raises_rather_than_silently_picking_the_other_run(self) -> None:
         """A run type passed where a role belongs must fail loudly, not select the wrong run."""
         counts = [(1, 2, 3), (2, 2, 4)]
-        for bad in ("agent-tool", "arms-agent", "arms", ""):
+        for bad in ("arms-agent", "template-tool", "arms", ""):
             with pytest.raises(ValueError, match="baseline"):
                 cluster_bootstrap_pooled(counts, bad)
             with pytest.raises(ValueError, match="baseline"):

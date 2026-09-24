@@ -1,7 +1,7 @@
 """Collecting the paired outcomes every test and interval is built from.
 
 The two runs compared default to ``baseline`` -- the prompt-only condition, under
-``output/<model>/baseline/`` -- and ARMS, under ``output/<model>/agent-tool/``, but
+``output/<model>/baseline/`` -- and ARMS, under ``output/<model>/arms-agent/``, but
 :func:`collect_paired_data` will pair any two conditions asked of it.
 
 One pass over the saved predictions produces every view the rest of the package needs,
@@ -134,7 +134,7 @@ def collect_paired_data(
     assay_key: str,
     *,
     baseline_run: str = "baseline",
-    system_run: str = "agent-tool",
+    system_run: str = "arms-agent",
 ) -> PairedData:
     """Collect paired outcomes for a single assay from saved outputs.
 

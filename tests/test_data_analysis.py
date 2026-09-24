@@ -70,13 +70,13 @@ def _build_repetitive_root(root: Path) -> None:
         name = f"r{i}.json"
         _write(root / "atacseq" / "gold" / name, {"tissue": "lung", "title": f"study{i}"})
         # ARMS: tissue right every time (1 unique pair); title wrong every time (3 unique pairs).
-        _write(root / "atacseq" / "output" / "gpt5mini" / "agent-tool" / name, {"tissue": "lung", "title": "WRONG"})
+        _write(root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / name, {"tissue": "lung", "title": "WRONG"})
 
 
 class TestDeduplicatedAccuracy:
     def test_counts_each_unique_pair_once(self, tmp_path: Path) -> None:
         _build_repetitive_root(tmp_path)
-        df = create_deduplicated_accuracy_summary(str(tmp_path), "gpt5mini", "agent-tool")
+        df = create_deduplicated_accuracy_summary(str(tmp_path), "gpt5mini", "arms-agent")
         row = df.iloc[0]
         # 1 unique ontology pair (correct) -> 1.0; 3 unique non-ontology pairs (wrong) -> 0.0.
         assert row["ontology_constrained_accuracy"] == 1.0
@@ -94,7 +94,7 @@ class TestDeduplicatedPrecisionRecall:
         # gold: tissue="lung" in all 3 records, title unique per record.
         # run:  tissue="lung" (right every time), title="WRONG" (same wrong answer 3x).
         _build_repetitive_root(tmp_path)
-        df = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
+        df = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
         row = df[df["category"] == "all"].iloc[0]
 
         # Recall clusters key on the gold value: 1 for "lung" (reproduced) + 3 titles (not).
@@ -110,8 +110,8 @@ class TestDeduplicatedPrecisionRecall:
     def test_differs_from_instance_weighted_when_values_repeat(self, tmp_path: Path) -> None:
         """The whole point: repetition moves the instance-weighted number and not this one."""
         _build_repetitive_root(tmp_path)
-        dedup = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
-        weighted = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
+        dedup = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
+        weighted = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
 
         # Instance-weighted recall is 3 of 6 gold values produced; deduplicated is 1 of 4.
         assert weighted[weighted["category"] == "all"].iloc[0]["recall"] == 0.5
@@ -131,12 +131,12 @@ class TestDeduplicatedPrecisionRecall:
             _write(tmp_path / "atacseq" / "gold" / name, {"tissue": f"tissue{i}", "title": f"study{i}"})
             # Right on tissue, wrong on title, with a different wrong value each time.
             _write(
-                tmp_path / "atacseq" / "output" / "gpt5mini" / "agent-tool" / name,
+                tmp_path / "atacseq" / "output" / "gpt5mini" / "arms-agent" / name,
                 {"tissue": f"tissue{i}", "title": f"wrong{i}"},
             )
 
-        dedup = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
-        weighted = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
+        dedup = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
+        weighted = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
         for category in ("ontology", "non_ontology", "all"):
             deduped_row = dedup[dedup["category"] == category].iloc[0]
             weighted_row = weighted[weighted["category"] == category].iloc[0]
@@ -146,7 +146,7 @@ class TestDeduplicatedPrecisionRecall:
 
     def test_cluster_counts_split_across_categories(self, tmp_path: Path) -> None:
         _build_repetitive_root(tmp_path)
-        df = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool").set_index("category")
+        df = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent").set_index("category")
         for column in ("n_gold_values", "n_asserted_values"):
             assert df.loc["all", column] == df.loc["ontology", column] + df.loc["non_ontology", column]
         assert df.loc["ontology", "recall"] == 1.0  # tissue="lung", reproduced
@@ -156,12 +156,12 @@ class TestDeduplicatedPrecisionRecall:
         """A value right in some records and wrong in others counts as the fraction."""
         schema = {"children": [{"name": "title", "permissible_values": []}]}
         _write(tmp_path / "schemas" / "atacseq.json", schema)
-        out = tmp_path / "atacseq" / "output" / "gpt5mini" / "agent-tool"
+        out = tmp_path / "atacseq" / "output" / "gpt5mini" / "arms-agent"
         for i in range(4):
             _write(tmp_path / "atacseq" / "gold" / f"r{i}.json", {"title": "study"})
             _write(out / f"r{i}.json", {"title": "study" if i < 3 else "WRONG"})
 
-        row = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool").iloc[-1]
+        row = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent").iloc[-1]
         # One gold cluster "study", right in 3 of 4 records -> 0.75 of one distinct value.
         assert row["n_gold_values"] == 1
         assert row["gold_values_reproduced"] == 0.75
@@ -169,9 +169,9 @@ class TestDeduplicatedPrecisionRecall:
 
     def test_missing_prediction_is_skipped_and_logged(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
         _build_repetitive_root(tmp_path)
-        (tmp_path / "atacseq" / "output" / "gpt5mini" / "agent-tool" / "r0.json").unlink()
+        (tmp_path / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "r0.json").unlink()
         with caplog.at_level(logging.WARNING):
-            df = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
+            df = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
         assert "skipped 1 gold record" in caplog.text
         # r0's unique title is gone from gold's side too, so 3 distinct gold values remain.
         assert df[df["category"] == "all"].iloc[0]["n_gold_values"] == 3
@@ -182,7 +182,7 @@ class TestFrequencySplitAccuracy:
         # tissue="lung" recurs in all 3 records (ARMS correct); each title is unique
         # (ARMS wrong). So recurring -> 3/3 = 1.0, singleton -> 0/3 = 0.0.
         _build_repetitive_root(tmp_path)
-        df = create_frequency_split_accuracy_summary(str(tmp_path), "gpt5mini", "agent-tool")
+        df = create_frequency_split_accuracy_summary(str(tmp_path), "gpt5mini", "arms-agent")
         rec = df[df["bucket"] == "recurring"].iloc[0]
         sing = df[df["bucket"] == "singleton"].iloc[0]
         assert rec["accuracy"] == 1.0
@@ -194,7 +194,7 @@ class TestFrequencySplitAccuracy:
         _build_repetitive_root(tmp_path)
         # Non-ontology fields are only the unique titles -> all singletons, all wrong.
         non = create_frequency_split_accuracy_summary(
-            str(tmp_path), "gpt5mini", "agent-tool", field_type="non_ontology"
+            str(tmp_path), "gpt5mini", "arms-agent", field_type="non_ontology"
         )
         sing = non[non["bucket"] == "singleton"].iloc[0]
         rec = non[non["bucket"] == "recurring"].iloc[0]
@@ -218,7 +218,7 @@ def _build_confusion_root(root: Path) -> None:
         ]
     }
     _write(root / "schemas" / "atacseq.json", schema)
-    out = root / "atacseq" / "output" / "gpt5mini" / "agent-tool"
+    out = root / "atacseq" / "output" / "gpt5mini" / "arms-agent"
 
     gold_r1 = {"tissue": "lung", "cell_type": "T cell", "title": None, "note": None}
     _write(root / "atacseq" / "gold" / "r1.json", gold_r1)
@@ -231,7 +231,7 @@ def _build_confusion_root(root: Path) -> None:
 class TestPrecisionRecallSummaries:
     def test_overall_counts_and_scores(self, tmp_path: Path) -> None:
         _build_confusion_root(tmp_path)
-        df = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
+        df = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
         row = df[df["category"] == "all"].iloc[0]
         # TP: r1.tissue, r2.title.  substitutions: r2.tissue.  deletions: r1.cell_type, r2.note.
         # insertions: r1.title.  TN: r1.note, r2.cell_type.
@@ -244,35 +244,35 @@ class TestPrecisionRecallSummaries:
 
     def test_overall_categories_sum_to_all(self, tmp_path: Path) -> None:
         _build_confusion_root(tmp_path)
-        df = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool").set_index("category")
+        df = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent").set_index("category")
         for key in ("TP", "FP", "FN", "TN", "insertions", "deletions", "substitutions"):
             assert df.loc["all", key] == df.loc["ontology", key] + df.loc["non_ontology", key]
 
     def test_per_assay_matches_overall_for_a_single_assay(self, tmp_path: Path) -> None:
         _build_confusion_root(tmp_path)
-        per_assay = create_per_assay_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
-        overall = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
+        per_assay = create_per_assay_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
+        overall = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
         assert list(per_assay["assay"]) == ["ATACseq"]
         assert per_assay["f1"].iloc[0] == overall[overall["category"] == "all"]["f1"].iloc[0]
 
     def test_per_assay_rejects_unknown_category(self, tmp_path: Path) -> None:
         _build_confusion_root(tmp_path)
         with pytest.raises(ValueError, match="category must be one of"):
-            create_per_assay_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool", category="literal")
+            create_per_assay_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent", category="literal")
 
     def test_missing_prediction_is_skipped_and_logged(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
         _build_confusion_root(tmp_path)
         unpredicted = {"tissue": "lung", "cell_type": None, "title": None, "note": None}
         _write(tmp_path / "atacseq" / "gold" / "r3.json", unpredicted)
         with caplog.at_level(logging.WARNING):
-            df = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
+            df = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
         assert df["n_records"].iloc[0] == 2
         assert "skipped 1 gold record" in caplog.text
 
     def test_reconciles_with_analyze_prediction_errors(self, tmp_path: Path) -> None:
         """insertions + deletions + substitutions must equal the error-row count."""
         _build_confusion_root(tmp_path)
-        df = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "agent-tool")
+        df = create_overall_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
         row = df[df["category"] == "all"].iloc[0]
-        errors = analyze_prediction_errors(str(tmp_path), "gpt5mini", "agent-tool")
+        errors = analyze_prediction_errors(str(tmp_path), "gpt5mini", "arms-agent")
         assert row["insertions"] + row["deletions"] + row["substitutions"] == len(errors)

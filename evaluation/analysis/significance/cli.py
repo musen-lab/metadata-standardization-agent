@@ -17,7 +17,7 @@ def main() -> None:
     parser.add_argument("--model", default="gpt5mini", help="Model output sub-directory (e.g. gpt5mini).")
     parser.add_argument("--csv-dir", default=None, help="Optional directory to write CSV tables.")
     parser.add_argument("--baseline-run", default="baseline", help="Output sub-directory of the run compared against.")
-    parser.add_argument("--system-run", default="agent-tool", help="Output sub-directory of the run tested.")
+    parser.add_argument("--system-run", default="arms-agent", help="Output sub-directory of the run tested.")
     args = parser.parse_args()
 
     runs = {"baseline_run": args.baseline_run, "system_run": args.system_run}

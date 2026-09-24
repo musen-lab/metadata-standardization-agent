@@ -64,7 +64,7 @@ def build_per_assay_table(
     category: str = "all",
     *,
     baseline_run: str = "baseline",
-    system_run: str = "agent-tool",
+    system_run: str = "arms-agent",
 ) -> pd.DataFrame:
     """One row per assay for *category*: both runs' mean+CI, Wilcoxon p, McNemar b/c/p.
 
@@ -105,7 +105,7 @@ def build_overall_table(
     model: str,
     *,
     baseline_run: str = "baseline",
-    system_run: str = "agent-tool",
+    system_run: str = "arms-agent",
 ) -> pd.DataFrame:
     """Pooled-across-assays results, one row per field category.
 
@@ -151,7 +151,7 @@ def build_precision_recall_table(
     model: str,
     *,
     baseline_run: str = "baseline",
-    system_run: str = "agent-tool",
+    system_run: str = "arms-agent",
 ) -> pd.DataFrame:
     """Precision, recall and F1 with cluster-bootstrap CIs, pooled across assays.
 
@@ -224,7 +224,7 @@ def build_per_assay_precision_recall_table(
     correction: str = "holm",
     alpha: float = 0.05,
     baseline_run: str = "baseline",
-    system_run: str = "agent-tool",
+    system_run: str = "arms-agent",
 ) -> pd.DataFrame:
     """Per-assay precision and recall: ARMS against baseline, with a corrected p-value.
 
