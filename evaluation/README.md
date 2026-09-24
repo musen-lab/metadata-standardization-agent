@@ -46,9 +46,9 @@ DATA_ROOT/
 │           ├── baseline/                 # Prompt-only: field and vocabulary names
 │           │   ├── atacseq-<hash>.json
 │           │   └── ...
-│           ├── template-tool/            # Agent tool: template fetch, no term search
+│           ├── template-tool/            # Ablation: template fetch, no term search
 │           │   └── ...
-│           ├── term-tool/                # Agent tool: term search, no template fetch
+│           ├── term-tool/                # Ablation: term search, no template fetch
 │           │   └── ...
 │           └── arms-agent/               # Agent tool: both
 │               ├── atacseq-<hash>.json

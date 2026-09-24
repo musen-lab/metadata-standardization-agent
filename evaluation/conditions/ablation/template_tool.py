@@ -13,8 +13,8 @@ from typing import TYPE_CHECKING
 from arms_agent.agent import build_migration_agent, build_response_format
 from arms_agent.tools import get_cedar_template
 from arms_agent.workflow import build_workflow
+from conditions.ablation.prompts.template_tool import SYSTEM_PROMPT
 from conditions.agent_tool.arms import build_user_prompt
-from conditions.agent_tool.prompts.template_tool import SYSTEM_PROMPT
 from conditions.registry import Condition
 
 if TYPE_CHECKING:

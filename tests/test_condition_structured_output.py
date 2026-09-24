@@ -19,9 +19,10 @@ from arms_agent.prompts import SYSTEM_PROMPT as ARMS_PROMPT
 from arms_agent.schema import build_response_model
 from arms_agent.state import AgentState
 from arms_agent.tools import all_tools, get_cedar_template, term_search_from_branch, term_search_from_ontology
-from conditions.agent_tool import arms, template_tool, term_tool
-from conditions.agent_tool.prompts.template_tool import SYSTEM_PROMPT as TEMPLATE_TOOL_PROMPT
-from conditions.agent_tool.prompts.term_tool import SYSTEM_PROMPT as TERM_TOOL_PROMPT
+from conditions.ablation import template_tool, term_tool
+from conditions.ablation.prompts.template_tool import SYSTEM_PROMPT as TEMPLATE_TOOL_PROMPT
+from conditions.ablation.prompts.term_tool import SYSTEM_PROMPT as TERM_TOOL_PROMPT
+from conditions.agent_tool import arms
 from conditions.prompt_only import baseline
 from conditions.prompt_only.prompts.baseline import SYSTEM_PROMPT as BASELINE_PROMPT
 

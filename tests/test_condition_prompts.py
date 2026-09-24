@@ -12,8 +12,8 @@ import re
 import pytest
 
 from arms_agent.prompts import SYSTEM_PROMPT as ARMS
-from conditions.agent_tool.prompts.template_tool import SYSTEM_PROMPT as TEMPLATE_TOOL
-from conditions.agent_tool.prompts.term_tool import SYSTEM_PROMPT as TERM_TOOL
+from conditions.ablation.prompts.template_tool import SYSTEM_PROMPT as TEMPLATE_TOOL
+from conditions.ablation.prompts.term_tool import SYSTEM_PROMPT as TERM_TOOL
 from conditions.prompt_only.prompts.baseline import SYSTEM_PROMPT as BASELINE
 
 PROMPTS = {

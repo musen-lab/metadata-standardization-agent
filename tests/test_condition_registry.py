@@ -103,8 +103,9 @@ class TestWhatIsAlreadyThere:
 
     def test_each_carries_the_family_it_was_found_in(self) -> None:
         assert get_condition("baseline").family == "prompt_only"
-        for name in ("template-tool", "term-tool", "arms-agent"):
-            assert get_condition(name).family == "agent_tool", name
+        assert get_condition("arms-agent").family == "agent_tool"
+        for name in ("template-tool", "term-tool"):
+            assert get_condition(name).family == "ablation", name
 
     def test_only_the_arms_that_search_declare_a_vocabulary_key(self) -> None:
         """The key check in plan_sweep reads this, so a wrong answer costs a failed run."""

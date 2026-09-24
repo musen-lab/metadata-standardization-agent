@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 from arms_agent.agent import build_migration_agent, build_response_format
 from arms_agent.tools import term_search_from_branch, term_search_from_ontology
 from arms_agent.workflow import build_workflow
-from conditions.agent_tool.prompts.term_tool import SYSTEM_PROMPT
+from conditions.ablation.prompts.term_tool import SYSTEM_PROMPT
 from conditions.prompt_only.baseline import build_user_prompt
 from conditions.registry import Condition
 
