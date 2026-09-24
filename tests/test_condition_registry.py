@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+import shutil
 import sys
 import textwrap
 from pathlib import Path
@@ -156,6 +157,53 @@ class TestDroppingOneIn:
         _forget(_FAMILIES / "prompt_only" / "dropped_in.py")
         discover(refresh=True)
         assert "dropped-in" not in condition_names()
+
+
+@pytest.fixture
+def new_family() -> Iterator[Path]:
+    """A fresh family directory under ``conditions/``, removed with all it holds afterwards."""
+    family = _FAMILIES / "ablation_under_test"
+    assert not family.exists(), f"{family} already exists"
+    family.mkdir()
+    yield family
+    for path in family.glob("*.py"):
+        _forget(path)
+    shutil.rmtree(family)
+    sys.modules.pop(f"conditions.{family.name}", None)
+    importlib.invalidate_caches()
+    discover(refresh=True)
+
+
+class TestANewFamily:
+    """A family is added the way a condition is: by dropping a directory in."""
+
+    def _write(self, family: Path) -> None:
+        path = family / "demo.py"
+        source = _MODULE.replace("{name}", "demo-ablation").replace("{requires_keys!r}", "()")
+        path.write_text(source.replace("{order}", "50"))
+        importlib.invalidate_caches()
+        discover(refresh=True)
+
+    def test_a_directory_without_an_init_is_a_family(self, new_family: Path) -> None:
+        """The easy mistake: leaving __init__.py out must not hide the conditions inside."""
+        self._write(new_family)
+        assert get_condition("demo-ablation").family == "ablation_under_test"
+
+    def test_a_directory_with_an_init_is_a_family(self, new_family: Path) -> None:
+        (new_family / "__init__.py").write_text('"""A family written by a test."""\n')
+        self._write(new_family)
+        assert get_condition("demo-ablation").family == "ablation_under_test"
+
+    def test_a_directory_that_cannot_be_imported_is_refused(self) -> None:
+        """Skipping it would hide every condition inside without a word."""
+        family = _FAMILIES / "not-importable"
+        family.mkdir()
+        try:
+            with pytest.raises(ValueError, match="conditions/not-importable/ cannot be imported"):
+                discover(refresh=True)
+        finally:
+            family.rmdir()
+            discover(refresh=True)
 
 
 class TestRefusals:

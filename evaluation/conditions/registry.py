@@ -1,9 +1,10 @@
 """How a module becomes a condition the harness can run.
 
-A condition is any module under a family package here -- :mod:`conditions.prompt_only`
-or :mod:`conditions.agent_tool` -- that declares a module-level :data:`CONDITION`.  Drop
-such a module in and the CLI, the sweep and the notebook all see it; nothing else has to
-be edited, because nothing else holds a list of what the conditions are.
+A condition is any module in a family directory here -- :mod:`conditions.prompt_only`,
+:mod:`conditions.agent_tool`, or any other directory dropped in beside them -- that
+declares a module-level :data:`CONDITION`.  Drop such a module in and the CLI, the sweep
+and the notebook all see it; nothing else has to be edited, because nothing else holds a
+list of what the conditions are.
 
 A module is asked for four things, and the last two only when it needs them::
 
@@ -130,15 +131,28 @@ def _iter_declared() -> Iterator[Condition]:
 
 
 def _families() -> list[str]:
-    """The family packages to scan, by directory name.
+    """The family directories to scan, by name.
 
-    Every package here is a family, so a third one is added the same way a condition is:
-    by dropping it in.  Private names are skipped, which is what keeps ``__pycache__``
-    out.
+    Every directory here is a family, with or without an ``__init__.py``: one without is
+    imported as a namespace package, so a new family is added the same way a condition
+    is, by dropping it in.  Names starting with ``_`` or ``.`` are skipped, which is what
+    keeps ``__pycache__`` out.
+
+    Raises:
+        ValueError: If a directory's name cannot be imported, such as ``my-family``.
+            Passing over it would hide every condition inside it without a word.
     """
-    return sorted(
-        info.name for info in pkgutil.iter_modules([str(_PACKAGE_PATH)]) if info.ispkg and not info.name.startswith("_")
-    )
+    families = []
+    for entry in sorted(_PACKAGE_PATH.iterdir()):
+        if not entry.is_dir() or entry.name.startswith(("_", ".")):
+            continue
+        if not entry.name.isidentifier():
+            raise ValueError(
+                f"conditions/{entry.name}/ cannot be imported, so the conditions in it would never be found; "
+                "rename it to a Python identifier, such as one using underscores"
+            )
+        families.append(entry.name)
+    return families
 
 
 def condition_names() -> tuple[str, ...]:
