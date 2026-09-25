@@ -18,6 +18,8 @@ On top of those sits one module per figure, each holding the public function, th
 constants that place it, and nothing else:
 
 * :mod:`plots.pr_space` -- operating points in precision/recall space, the main figure.
+* :mod:`plots.stability` -- across repeated runs, how often each condition gives the same
+  answer: how deterministic it is.
 * :mod:`plots.pr_bars` -- the same measurement as heights rather than as position.
 * :mod:`plots.availability` -- where migration is transcription and where it is
   interpretation.
@@ -39,11 +41,13 @@ from plots.availability import plot_availability_difficulty
 from plots.error_composition import plot_corpus_error_composition, plot_error_composition
 from plots.pr_bars import plot_pr_bar_chart
 from plots.pr_space import plot_pr_space
+from plots.stability import plot_field_stability
 
 __all__ = [
     "plot_availability_difficulty",
     "plot_corpus_error_composition",
     "plot_error_composition",
+    "plot_field_stability",
     "plot_grouped_bar_chart",
     "plot_pr_bar_chart",
     "plot_pr_space",

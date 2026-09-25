@@ -1,14 +1,26 @@
-"""Tests for what reads several runs at once: the spread of the scores."""
+"""Tests for what reads several runs at once: the spread of the scores, and answer consistency.
+
+The figure is captured instead of shown, by standing in for the ``_finish`` it ends with,
+so a test can inspect what was drawn rather than only check that drawing did not raise.
+"""
 
 from __future__ import annotations
 
 import json
 from typing import TYPE_CHECKING
 
+import matplotlib
 import pytest
 
-from analysis.data_analysis import create_run_spread_summary
-from notebook_utils import show_run_spread
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt  # noqa: E402
+
+from analysis.data_analysis import create_run_spread_summary  # noqa: E402
+from notebook_utils import show_run_spread  # noqa: E402
+from plots import stability  # noqa: E402
+from plots.marks import FIELD_TYPE_LABELS  # noqa: E402
+from plots.stability import plot_field_stability  # noqa: E402
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -58,6 +70,22 @@ def data_root(tmp_path: Path) -> Path:
             for name, record in records.items():
                 _write(tmp_path / "atacseq" / "output" / "m" / condition / f"run-{run}" / f"{name}.json", record)
     return tmp_path
+
+
+@pytest.fixture
+def captured(monkeypatch: pytest.MonkeyPatch) -> list[plt.Figure]:
+    """The figures the stability plot finishes with, kept open for inspection."""
+    figures: list[plt.Figure] = []
+    monkeypatch.setattr(stability, "_finish", lambda fig, _save_path: figures.append(fig))
+    yield figures
+    for fig in figures:
+        plt.close(fig)
+
+
+def _legend(fig: plt.Figure) -> tuple[list, list]:
+    """The texts and the handles of the one axes legend of *fig*."""
+    legend = fig.axes[0].get_legend()
+    return legend.get_texts(), legend.legend_handles
 
 
 class TestRunSpread:
@@ -122,3 +150,46 @@ class TestRunSpread:
         table = show_run_spread(str(data_root), "m", ["baseline"], runs=(1, 4))
         assert table.empty
         assert "no assay has predictions in every one of runs [1, 4]" in capsys.readouterr().out
+
+
+class TestFieldStabilityFigure:
+    def test_a_bar_per_condition_for_each_assay_and_no_pooled_rows(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
+        ax = captured[0].axes[0]
+        assert [tick.get_text() for tick in ax.get_yticklabels()] == ["Baseline", "ARMS"]
+        names = {text.get_text() for text in ax.texts}
+        assert "ATACseq" in names
+        assert "All assays" not in names
+
+    def test_the_bars_carry_their_shares_and_nothing_else(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
+        ax = captured[0].axes[0]
+        written = {text.get_text() for text in ax.texts} - {"ATACseq"}
+        assert written and all(text.endswith("%") for text in written), written
+        assert list(ax.get_lines()) == [], "no dot beside a condition's name"
+
+    def test_the_consistent_band_is_the_dark_one(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
+        keys = {text.get_text(): handle for text, handle in zip(*_legend(captured[0]), strict=True)}
+        dark, light = (
+            keys[label].get_facecolor() for label in ("same answer in every run", "answer changed between runs")
+        )
+        assert sum(dark[:3]) < sum(light[:3])
+
+    def test_the_axis_says_what_is_measured(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
+        assert captured[0].axes[0].get_xlabel() == "Share of field instances"
+
+    def test_a_restricted_figure_names_its_field_type(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_field_stability(str(data_root), "m", runs=(1, 2), field_type="ontology")
+        assert FIELD_TYPE_LABELS["ontology"] in captured[0].axes[0].get_xlabel()
+
+    def test_one_run_is_refused(self, data_root: Path) -> None:
+        with pytest.raises(ValueError, match="two runs"):
+            plot_field_stability(str(data_root), "m", runs=(1,))
+
+    def test_no_predictions_is_refused(self, data_root: Path) -> None:
+        with pytest.raises(ValueError, match="No field instances"):
+            plot_field_stability(str(data_root), "m", conditions=("absent",), runs=(1, 2))

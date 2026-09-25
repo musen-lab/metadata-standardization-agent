@@ -27,6 +27,7 @@ run_sweep(plan, n_repeat=5, dry_run=False) # the whole plan five times, into run
 With `n_repeat=N` it makes N runs of the whole plan, finishing each run before starting the next, and writes run *n* to `<condition>/run-<n>/`.
 The CLI has no repeats: its one run always lands in `run-1/`.
 Every analysis function reads `run-1/` too, unless given `run=<n>`, for example `create_overall_precision_recall_summary(DATA_ROOT, MODEL, "arms-agent", run=2)`.
+Two views read several runs at once: `create_run_spread_summary(DATA_ROOT, MODEL, "arms-agent", runs=(1, 2, 3))` gives precision and recall per assay as the mean with the lowest and highest run (`notebook_utils.show_run_spread` prints it for several conditions), and `plot_field_stability(DATA_ROOT, MODEL, runs=(1, 2, 3))` shows, per assay, how often each condition gives the same answer to a field in every run.
 
 ## Directory Conventions
 
