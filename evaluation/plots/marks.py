@@ -25,6 +25,18 @@ from plots.theme import NO_COLOR_INK
 #: carry their value as text rather than relying on the fill alone.
 CONDITION_COLOURS = ("#4472C4", "#ED7D31")
 
+#: What each condition is called wherever a figure names it: legend keys and axis labels.
+#: The keys are the directory names the runs are written under, which read as code; the
+#: manuscript names the two arms "Baseline" and "ARMS".  A condition missing here is shown
+#: under its own name.
+CONDITION_LABELS = {"baseline": "Baseline", "arms-agent": "ARMS"}
+
+
+def condition_label(condition: str) -> str:
+    """The name a figure shows for *condition*."""
+    return CONDITION_LABELS.get(condition, condition)
+
+
 #: A group holding several conditions is *ordinal* -- swapping two of them would change what
 #: they mean -- so the group takes one hue in monotone lightness steps rather than
 #: unrelated hues.  The light end clears 2:1 on a white page.  The other group is a

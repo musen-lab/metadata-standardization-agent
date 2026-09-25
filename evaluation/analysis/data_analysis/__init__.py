@@ -19,6 +19,8 @@ The work is split by the question each table answers:
   aggregated into an error report.
 * :mod:`~analysis.data_analysis.availability` -- whether gold's value was already
   written in the input, and whether that predicted the run getting it right.
+* :mod:`~analysis.data_analysis.run_spread` -- across repeated runs, how far precision
+  and recall move: the mean, the lowest and the highest run.
 * :mod:`~analysis.data_analysis.stability` -- across repeated runs, how often the model
   gives the same answer to the same field: how deterministic it is.
 
@@ -73,6 +75,7 @@ from analysis.data_analysis.repetition import (
     create_frequency_split_accuracy_summary,
     create_per_assay_deduplicated_precision_recall_summary,
 )
+from analysis.data_analysis.run_spread import SPREAD_METRICS, create_run_spread_summary
 from analysis.data_analysis.stability import (
     STABILITY_BANDS,
     collect_field_stability,
@@ -112,6 +115,8 @@ __all__ = [
     "create_per_assay_accuracy_summary",
     "create_per_assay_precision_recall_summary",
     "create_uncorrected_accuracy_summary",
+    "SPREAD_METRICS",
+    "create_run_spread_summary",
     "STABILITY_BANDS",
     "collect_field_stability",
     "rank_inconsistent_fields",

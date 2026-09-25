@@ -21,6 +21,7 @@ from analysis.data_analysis import (
     collect_field_errors,
     create_per_assay_deduplicated_precision_recall_summary,
     create_per_assay_precision_recall_summary,
+    create_run_spread_summary,
     deduplicate_errors,
     reconcile_with_confusion,
     summarize_error_categories,
@@ -37,6 +38,7 @@ from analysis.significance import (
     effective_sample_size,
     paired_permutation_prf,
 )
+from plots.marks import condition_label
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -70,6 +72,50 @@ def count_predictions(data_root: str | Path, model: str, conditions: Sequence[st
         )
         for condition in conditions
     }
+
+
+def show_run_spread(
+    data_root: str | Path,
+    model: str,
+    conditions: Sequence[str],
+    *,
+    runs: Sequence[int],
+    field_types: Sequence[str] = ("ontology", "non_ontology"),
+) -> pd.DataFrame:
+    """Print how far precision and recall move between *runs*, and return the table.
+
+    One row per (assay, field type), the pooled corpus last; one column per condition and
+    metric, each cell ``mean [lowest run, highest run]``.  A narrow bracket means the score
+    barely depends on which run produced it.  With no assay scored in every run -- the runs not
+    made yet -- it says so and returns an empty table.  The numbers behind each cell are
+    :func:`~analysis.data_analysis.create_run_spread_summary`'s.
+    """
+    frames = []
+    for condition in conditions:
+        spread = create_run_spread_summary(data_root, model, condition, runs=runs, field_types=field_types)
+        spread["cell"] = spread.apply(lambda row: f"{row['mean']:.3f} [{row['min']:.3f}, {row['max']:.3f}]", axis=1)
+        spread["column"] = condition_label(condition) + " " + spread["metric"]
+        frames.append(spread)
+    long = pd.concat(frames, ignore_index=True)
+    if long.empty:
+        print(
+            f"Nothing to show: no assay has predictions in every one of runs {list(runs)} for "
+            f"{', '.join(conditions)}.  Make the runs first: run_sweep(plan, n_repeat=...)."
+        )
+        return pd.DataFrame(columns=["assay", "field_type"])
+    table = (
+        long.pivot_table(index=["assay", "field_type"], columns="column", values="cell", aggfunc="first", sort=False)
+        .reset_index()
+        .rename_axis(columns=None)
+    )
+    columns = [
+        f"{condition_label(condition)} {metric}" for condition in conditions for metric in ("precision", "recall")
+    ]
+    table = table[["assay", "field_type", *[column for column in columns if column in table.columns]]]
+
+    print(f"=== precision and recall over runs {list(runs)}: mean [lowest run, highest run] ===")
+    print(table.to_string(index=False))
+    return table
 
 
 def order_rows(table: pd.DataFrame) -> pd.DataFrame:
