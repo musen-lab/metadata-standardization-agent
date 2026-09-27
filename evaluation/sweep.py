@@ -34,7 +34,7 @@ from analysis.corpus import get_assay
 from arms_agent.tracing import tracing_enabled
 from assays import ASSAY_SCHEMAS
 from conditions import build_condition, condition_names, get_condition
-from evaluate import run_experiment
+from evaluate import refuse_output_clashes, run_experiment
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -174,6 +174,7 @@ def run_sweep(
     *,
     n_repeat: int = 1,
     first_run: int = 1,
+    overwrite: bool = False,
     dry_run: bool = True,
     max_concurrency: int = DEFAULT_CONCURRENCY,
 ) -> None:
@@ -190,23 +191,26 @@ def run_sweep(
     run is the outermost loop, so every job finishes once before any job runs again, and
     stopping early leaves every assay and condition with the same number of complete runs.
 
-    Nothing already written is overwritten by a numbered run, and a condition directory
-    holds one layout or the other, never both, because a reader finds run 1 by looking at
-    which one is there.  So a sweep that would write into a ``run-<n>`` directory already
-    holding predictions, or mix the layouts -- one run where ``run-<n>`` directories are,
-    numbered runs where a single run is -- is refused before any job starts, dry run
-    included.
+    Nothing already written is overwritten unless *overwrite* is true, and a condition
+    directory holds one layout or the other, never both, because a reader finds run 1 by
+    looking at which one is there.  So a sweep that would write where predictions already
+    are, or mix the layouts -- one run where ``run-<n>`` directories are, numbered runs
+    where a single run is -- is refused before any job starts, dry run included.  The
+    refusal names the ``first_run`` that would add runs after the last one on disk.
 
     Args:
         plan: A plan from :func:`plan_sweep`.
         n_repeat: How many runs of the whole plan to make.
         first_run: The number the first of them takes; later runs follow on from it.
+        overwrite: Replace predictions already in the directories written to.  Mixing
+            the layouts is refused whatever this is.
         dry_run: While true, list the jobs instead of running them.
         max_concurrency: How many of one job's records are migrated at a time.
 
     Raises:
         ValueError: If *n_repeat* or *first_run* is less than 1, or the sweep would
-            overwrite a numbered run or mix the two layouts in a condition directory.
+            overwrite predictions without *overwrite*, or mix the two layouts in a
+            condition directory.
     """
     if n_repeat < 1:
         raise ValueError(f"n_repeat must be at least 1, not {n_repeat}.")
@@ -215,7 +219,11 @@ def run_sweep(
     runs: list[int | None] = (
         [None] if n_repeat == 1 and first_run == 1 else list(range(first_run, first_run + n_repeat))
     )
-    _refuse_clashes(plan, runs)
+    refuse_output_clashes(
+        [plan.output_dir(assay, condition, run) for run in runs for assay, condition in plan.jobs],
+        overwrite=overwrite,
+        hint=_first_run_hint(plan),
+    )
     jobs = [(run, assay, condition) for run in runs for assay, condition in plan.jobs]
 
     if dry_run:
@@ -235,51 +243,21 @@ def run_sweep(
     with ThreadPoolExecutor(max_workers=1) as pool:
         for position, (run, assay, condition) in enumerate(jobs, start=1):
             print(_describe(plan, position, len(jobs), run, assay, condition))
-            pool.submit(_run_job, plan, run, assay, condition, max_concurrency).result()
+            pool.submit(_run_job, plan, run, assay, condition, max_concurrency, overwrite).result()
 
 
-def _refuse_clashes(plan: SweepPlan, runs: list[int | None]) -> None:
-    """Raise if the sweep would overwrite a numbered run, or mix the layouts in a condition directory.
-
-    *runs* is ``[None]`` for a single run into the condition's own directory, else the run
-    numbers about to be written.
-    """
-    numbered = runs != [None]
-    mixed: list[Path] = []
-    taken: list[Path] = []
-    highest = 0  # the highest run on disk holding predictions, in any of the plan's conditions
+def _first_run_hint(plan: SweepPlan) -> str:
+    """What to pass to add runs after the ones already on disk, or nothing when there are none."""
+    highest = 0
     for assay, condition in plan.jobs:
         condition_dir = plan.output_dir(assay, condition)
         if not condition_dir.is_dir():
             continue
-        run_dirs = [child for child in condition_dir.iterdir() if child.is_dir() and child.name.startswith("run-")]
-        has_runs = bool(run_dirs)
-        has_predictions = any(condition_dir.glob("*.json"))
-        for run_dir in run_dirs:
-            number = run_dir.name.removeprefix("run-")
-            if number.isdigit() and any(run_dir.glob("*.json")):
+        for child in condition_dir.iterdir():
+            number = child.name.removeprefix("run-")
+            if child.name.startswith("run-") and number.isdigit() and any(child.glob("*.json")):
                 highest = max(highest, int(number))
-        if (not numbered and has_runs) or (numbered and has_predictions):
-            mixed.append(condition_dir)
-        if numbered:
-            taken += [
-                plan.output_dir(assay, condition, run)
-                for run in runs
-                if any(plan.output_dir(assay, condition, run).glob("*.json"))
-            ]
-    if mixed:
-        held = "run-<n> directories" if not numbered else "predictions of a single run"
-        raise ValueError(
-            f"{'One run' if not numbered else 'Numbered runs'} cannot be written where {held} already are, "
-            f"or the analyses could not tell which to read.  Move or delete these first:\n  "
-            + "\n  ".join(str(path) for path in mixed)
-        )
-    if taken:
-        raise ValueError(
-            "These runs already hold predictions, and a numbered run is never overwritten.  To add runs after "
-            f"the last one on disk pass first_run={highest + 1}; to redo them, move or delete them first:\n  "
-            + "\n  ".join(str(path) for path in taken)
-        )
+    return f"To add runs after the last one on disk, pass first_run={highest + 1}.  " if highest else ""
 
 
 def _describe(plan: SweepPlan, position: int, total: int, run: int | None, assay: str, condition: str) -> str:
@@ -291,7 +269,9 @@ def _describe(plan: SweepPlan, position: int, total: int, run: int | None, assay
     )
 
 
-def _run_job(plan: SweepPlan, run: int | None, assay: str, condition: str, max_concurrency: int) -> None:
+def _run_job(
+    plan: SweepPlan, run: int | None, assay: str, condition: str, max_concurrency: int, overwrite: bool
+) -> None:
     """Migrate every record of one assay under one condition, as part of run *run* (``None``: the only run)."""
     build_workflow, build_user_prompt = build_condition(condition)
     schema_iri = ASSAY_SCHEMAS[assay]
@@ -303,6 +283,7 @@ def _run_job(plan: SweepPlan, run: int | None, assay: str, condition: str, max_c
             workflow_factory=partial(build_workflow, model=plan.model, template_iri=schema_iri),
             user_prompt_builder=build_user_prompt,
             max_concurrency=max_concurrency,
+            overwrite=overwrite,
             config={
                 "tags": ["experiment", condition],
                 "metadata": {"assay": assay, "condition": condition, "run": run or 1, "template_iri": schema_iri},

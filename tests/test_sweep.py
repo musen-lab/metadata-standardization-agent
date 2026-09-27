@@ -226,7 +226,7 @@ def test_one_run_is_refused_where_numbered_runs_already_are(
     (data_root / "atacseq" / "output" / "test-model" / "baseline" / "run-1").mkdir(parents=True)
     plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
 
-    with pytest.raises(ValueError, match="One run cannot be written where run-<n> directories already are"):
+    with pytest.raises(ValueError, match="a single run and numbered runs in one condition folder"):
         run_sweep(plan, dry_run=dry_run)
     assert calls == []
 
@@ -241,22 +241,49 @@ def test_repeats_are_refused_where_a_single_run_already_is(
     (condition_dir / "atacseq-0.json").write_text("{}")
     plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
 
-    with pytest.raises(ValueError, match="Numbered runs cannot be written where predictions of a single run"):
+    with pytest.raises(ValueError, match="a single run and numbered runs in one condition folder"):
         run_sweep(plan, n_repeat=3, dry_run=dry_run)
     assert calls == []
 
 
-def test_the_same_layout_again_is_not_a_clash(data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Re-running a single run over a single run, or repeats over repeats, overwrites as before."""
+@pytest.mark.parametrize("dry_run", [True, False])
+def test_a_single_run_is_not_overwritten_unless_asked(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, dry_run: bool
+) -> None:
     calls = _record_jobs(monkeypatch)
     condition_dir = data_root / "atacseq" / "output" / "test-model" / "baseline"
     condition_dir.mkdir(parents=True)
     (condition_dir / "atacseq-0.json").write_text("{}")
     plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
 
-    run_sweep(plan, dry_run=False)
+    with pytest.raises(ValueError, match="already hold predictions") as refusal:
+        run_sweep(plan, dry_run=dry_run)
+    assert str(condition_dir) in str(refusal.value)
+    assert "first_run" not in str(refusal.value), "there are no numbered runs to follow"
+    assert calls == []
+
+
+def test_overwrite_replaces_a_single_run(data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = _record_jobs(monkeypatch)
+    condition_dir = data_root / "atacseq" / "output" / "test-model" / "baseline"
+    condition_dir.mkdir(parents=True)
+    (condition_dir / "atacseq-0.json").write_text("{}")
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    run_sweep(plan, overwrite=True, dry_run=False)
 
     assert [call["output_dir"] for call in calls] == [condition_dir]
+    assert [call["overwrite"] for call in calls] == [True], "run_experiment is told, so its own check agrees"
+
+
+def test_overwrite_never_allows_mixing_the_layouts(data_root: Path, keys: None) -> None:
+    condition_dir = data_root / "atacseq" / "output" / "test-model" / "baseline"
+    condition_dir.mkdir(parents=True)
+    (condition_dir / "atacseq-0.json").write_text("{}")
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    with pytest.raises(ValueError, match="a single run and numbered runs in one condition folder"):
+        run_sweep(plan, n_repeat=2, overwrite=True)
 
 
 def _existing_run(data_root: Path, condition: str, run: int) -> Path:
@@ -295,7 +322,7 @@ def test_a_single_later_run_is_numbered(data_root: Path, keys: None, monkeypatch
 
 
 @pytest.mark.parametrize("dry_run", [True, False])
-def test_a_numbered_run_holding_predictions_is_never_overwritten(
+def test_a_numbered_run_is_not_overwritten_unless_asked(
     data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, dry_run: bool
 ) -> None:
     """Forgetting first_run would renumber from 1 and overwrite run-1: refused, with the fix named."""
@@ -327,6 +354,16 @@ def test_an_empty_run_directory_is_not_a_run(data_root: Path, keys: None, monkey
     run_sweep(plan, n_repeat=2, dry_run=False)
 
     assert len(calls) == 2
+
+
+def test_overwrite_replaces_numbered_runs(data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = _record_jobs(monkeypatch)
+    run_1 = _existing_run(data_root, "baseline", 1)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    run_sweep(plan, n_repeat=2, overwrite=True, dry_run=False)
+
+    assert [call["output_dir"] for call in calls] == [run_1, run_1.parent / "run-2"]
 
 
 @pytest.mark.parametrize("first_run", [0, -1])

@@ -5,12 +5,14 @@ Usage::
     evaluate --input <dir> --target-schema <iri> --output <parent-dir> \
         --condition CONDITION \
         [--model MODEL] [--concurrent N] [--langfuse-environment NAME] \
-        [--debug]
+        [--overwrite] [--debug]
 
 ``--condition`` takes any condition declared under ``conditions/``; the list is read
 from there rather than written down here, so a module dropped in is offered without
 this file changing.  The predictions are written to ``<--output>/<condition>/``: the CLI
-always makes one run, and repeats are a sweep's business (``sweep.run_sweep``).
+always makes one run, and repeats are a sweep's business (``sweep.run_sweep``).  A folder
+that already holds predictions is refused unless ``--overwrite`` is given, and one holding
+a sweep's ``run-<n>`` folders is refused either way.
 """
 
 from __future__ import annotations
@@ -76,6 +78,12 @@ def main() -> None:
         default=None,
         help="Langfuse tracing environment to file this run under, e.g. 'histology-gpt5mini'",
     )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace predictions already in <output>/<condition>/.  Without it the run is refused before it "
+        "starts.  A folder holding a sweep's run-<n> folders is refused either way.",
+    )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging to stderr.")
     args = parser.parse_args()
 
@@ -92,12 +100,18 @@ def main() -> None:
     # The template is passed at build time so the answer can be validated against it.
     workflow_factory = partial(condition.build_workflow, model=args.model, template_iri=args.target_schema)
 
-    from evaluate import run_experiment
+    from evaluate import refuse_output_clashes, run_experiment
 
     # The on-disk layout the modules under analysis/ read: data/<assay>/output/<model>/<condition>/.
     # The CLI makes one run, which lives in the condition's own directory; only a repeated
     # sweep splits a condition into run-<n> directories.
     output_dir = args.output / condition.name
+    # Checked here as well as in run_experiment so a clash is reported as a usage error --
+    # exit status 2, with the folder named -- rather than as a traceback.
+    try:
+        refuse_output_clashes([output_dir], overwrite=args.overwrite)
+    except ValueError as clash:
+        parser.error(str(clash).replace("pass overwrite=True", "pass --overwrite"))
     logging.getLogger(__name__).info("Running condition %s", condition.name)
     logging.getLogger(__name__).info("Writing output to %s", output_dir)
     run_experiment(
@@ -107,6 +121,7 @@ def main() -> None:
         workflow_factory=workflow_factory,
         user_prompt_builder=condition.build_user_prompt,
         max_concurrency=args.concurrent,
+        overwrite=args.overwrite,
         config={
             "tags": ["evaluation", condition.name],
             "metadata": {

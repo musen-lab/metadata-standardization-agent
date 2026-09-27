@@ -111,3 +111,25 @@ def test_there_is_no_run_name(tmp_path: Path) -> None:
     result = _run_cli(tmp_path, ["--condition", "baseline", "--run-name", "arms-agent"])
     assert result.returncode != 0
     assert "unrecognized arguments: --run-name" in result.stderr, result.stderr
+
+
+def test_a_folder_holding_predictions_is_refused_without_overwrite(tmp_path: Path) -> None:
+    """Nothing is overwritten by accident: the run stops before it starts, and says how to proceed."""
+    condition_dir = tmp_path / "output" / "baseline"
+    condition_dir.mkdir(parents=True)
+    (condition_dir / "record.json").write_text("{}")
+
+    refused = _run_cli(tmp_path, ["--condition", "baseline"])
+    assert refused.returncode == 2
+    assert "already hold predictions" in refused.stderr, refused.stderr
+    assert "pass --overwrite" in refused.stderr, refused.stderr
+
+    allowed = _run_cli(tmp_path, ["--condition", "baseline", "--overwrite"])
+    assert allowed.returncode == 0, allowed.stderr
+
+
+def test_a_folder_holding_numbered_runs_is_refused_even_with_overwrite(tmp_path: Path) -> None:
+    (tmp_path / "output" / "baseline" / "run-1").mkdir(parents=True)
+    result = _run_cli(tmp_path, ["--condition", "baseline", "--overwrite"])
+    assert result.returncode == 2
+    assert "a single run and numbered runs" in result.stderr, result.stderr

@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from analysis.corpus import get_assay
+from evaluate import find_output_clashes, refuse_output_clashes, run_experiment
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -59,3 +60,57 @@ class TestOutputDir:
         condition_dir.mkdir(parents=True)
         (condition_dir / "run-notes.json").write_text("{}")
         assert get_assay(tmp_path, "atacseq").output_dir("m", "sys") == condition_dir
+
+
+class TestOutputClashes:
+    """What :func:`evaluate.find_output_clashes` reports: occupied folders, and layouts that would mix."""
+
+    def test_an_absent_or_empty_folder_clashes_with_nothing(self, condition_dir: Path) -> None:
+        assert find_output_clashes([condition_dir]) == ([], [])
+        condition_dir.mkdir(parents=True)
+        assert find_output_clashes([condition_dir, condition_dir / "run-1"]) == ([], [])
+
+    def test_a_folder_holding_predictions_is_occupied(self, condition_dir: Path) -> None:
+        condition_dir.mkdir(parents=True)
+        (condition_dir / "r.json").write_text("{}")
+        assert find_output_clashes([condition_dir]) == ([], [condition_dir])
+
+    def test_a_numbered_run_beside_a_single_run_is_mixed(self, condition_dir: Path) -> None:
+        condition_dir.mkdir(parents=True)
+        (condition_dir / "r.json").write_text("{}")
+        assert find_output_clashes([condition_dir / "run-2"]) == ([condition_dir / "run-2"], [])
+
+    def test_a_single_run_beside_numbered_runs_is_mixed(self, condition_dir: Path) -> None:
+        (condition_dir / "run-1").mkdir(parents=True)
+        assert find_output_clashes([condition_dir]) == ([condition_dir], [])
+
+    def test_only_folders_named_run_and_a_number_are_runs(self, condition_dir: Path) -> None:
+        (condition_dir / "run-notes").mkdir(parents=True)
+        (condition_dir / "decisions").mkdir()
+        assert find_output_clashes([condition_dir]) == ([], [])
+
+    def test_overwrite_lets_predictions_be_replaced(self, condition_dir: Path) -> None:
+        condition_dir.mkdir(parents=True)
+        (condition_dir / "r.json").write_text("{}")
+        with pytest.raises(ValueError, match="already hold predictions"):
+            refuse_output_clashes([condition_dir])
+        refuse_output_clashes([condition_dir], overwrite=True)
+
+    def test_overwrite_never_lets_the_layouts_mix(self, condition_dir: Path) -> None:
+        (condition_dir / "run-1").mkdir(parents=True)
+        with pytest.raises(ValueError, match="a single run and numbered runs"):
+            refuse_output_clashes([condition_dir], overwrite=True)
+
+    def test_run_experiment_refuses_before_building_anything(self, tmp_path: Path, condition_dir: Path) -> None:
+        """The last line of defence: a caller that skipped the check still cannot overwrite."""
+        condition_dir.mkdir(parents=True)
+        (condition_dir / "r.json").write_text('{"kept": true}')
+        (tmp_path / "input").mkdir()
+        (tmp_path / "input" / "r.json").write_text("{}")
+
+        def never_built() -> None:
+            raise AssertionError("the workflow must not be built")
+
+        with pytest.raises(ValueError, match="already hold predictions"):
+            run_experiment("iri", tmp_path / "input", condition_dir, never_built, lambda *_args: "")
+        assert (condition_dir / "r.json").read_text() == '{"kept": true}'
