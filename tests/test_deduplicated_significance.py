@@ -45,13 +45,13 @@ def _build_two_assays(root: Path) -> None:
     for index in range(3):
         _write(root / "atacseq" / "gold" / f"r{index}.json", {"tissue": "lung", "title": f"study {index}"})
         _write(
-            root / "atacseq" / "output" / "m" / "sys" / "run-1" / f"r{index}.json",
+            root / "atacseq" / "output" / "m" / "sys" / f"r{index}.json",
             {"tissue": "lung", "title": "WRONG"},
         )
     for index in range(2):
         _write(root / "rnaseq" / "gold" / f"r{index}.json", {"tissue": "lung", "title": f"t{index}"})
         _write(
-            root / "rnaseq" / "output" / "m" / "sys" / "run-1" / f"r{index}.json",
+            root / "rnaseq" / "output" / "m" / "sys" / f"r{index}.json",
             {"tissue": "liver", "title": f"t{index}"},
         )
 
@@ -85,7 +85,7 @@ class TestPerAssayDeduplicatedSummary:
 
     def test_assay_without_predictions_is_skipped(self, tmp_path: Path) -> None:
         _build_two_assays(tmp_path)
-        for path in (tmp_path / "rnaseq" / "output" / "m" / "sys" / "run-1").glob("*.json"):
+        for path in (tmp_path / "rnaseq" / "output" / "m" / "sys").glob("*.json"):
             path.unlink()
         table = create_per_assay_deduplicated_precision_recall_summary(str(tmp_path), "m", "sys")
         assert set(table["assay"]) == {"ATACseq"}
@@ -133,11 +133,11 @@ class TestDeduplicatedPairedTests:
         for index in range(4):
             _write(root / "atacseq" / "gold" / f"r{index}.json", {"tissue": f"organ{index}", "title": f"t{index}"})
             _write(
-                root / "atacseq" / "output" / "m" / "base" / "run-1" / f"r{index}.json",
+                root / "atacseq" / "output" / "m" / "base" / f"r{index}.json",
                 {"tissue": "WRONG", "title": f"t{index}"},
             )
             _write(
-                root / "atacseq" / "output" / "m" / "sys" / "run-1" / f"r{index}.json",
+                root / "atacseq" / "output" / "m" / "sys" / f"r{index}.json",
                 {"tissue": f"organ{index}", "title": f"t{index}"},
             )
 
@@ -163,7 +163,7 @@ class TestDeduplicatedPairedTests:
 
     def test_records_only_one_run_produced_are_skipped(self, tmp_path: Path) -> None:
         self._build_pair(tmp_path)
-        (tmp_path / "atacseq" / "output" / "m" / "sys" / "run-1" / "r0.json").unlink()
+        (tmp_path / "atacseq" / "output" / "m" / "sys" / "r0.json").unlink()
         outcomes = collect_deduplicated_outcomes(str(tmp_path), "m", baseline="base", system="sys")
         # organ0 and t0 came only from the dropped record, so their clusters are gone.
         assert not any("organ0" in key[2] or key[2] == '"t0"' for key in outcomes.recall_clusters)

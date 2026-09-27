@@ -39,7 +39,7 @@ def _case(root: Path, assay: str, name: str, *, gold: dict, predicted: dict, leg
     _write(root / "schemas" / f"{assay}.json", SCHEMA)
     _write(root / assay / "gold" / f"{name}.json", gold)
     _write(root / assay / "input" / f"{name}.json", legacy)
-    _write(root / assay / "output" / "m" / "sys" / "run-1" / f"{name}.json", predicted)
+    _write(root / assay / "output" / "m" / "sys" / f"{name}.json", predicted)
 
 
 def _corpus(root: Path):

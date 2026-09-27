@@ -3,7 +3,7 @@
 Every table in :mod:`analysis.data_analysis` and every test in
 :mod:`analysis.significance` asks a different question of the same corpus, but they
 all reach it the same way: for each assay in ``ASSAY_ORDER``, pair each gold record
-with its counterpart under ``data/<assay>/output/<model>/<condition>/run-<n>/`` -- or, for the
+with its counterpart under ``data/<assay>/output/<model>/<condition>/`` -- or, for the
 do-nothing reference point, under ``data/<assay>/input/``.  That walk is written once
 here so the analyses differ only in what they count, not in which files they see.
 """
@@ -45,14 +45,32 @@ class Assay:
         """The legacy records, as they were before any migration."""
         return self.root / self.key / "input"
 
-    def output_dir(self, model: str, condition: str, *, run: int = 1) -> Path:
-        """The predictions *model* wrote under *condition* in its *run*-th repeat.
+    def run_output_dir(self, model: str, condition: str, run: int | None) -> Path:
+        """Where run *run* of *condition* is written: the layout, stated rather than looked up.
 
-        One directory per condition, ``baseline`` for the prompt-only arm and
-        ``arms-agent`` for ARMS, holding one ``run-<n>`` directory per repeat.  The
-        analyses read ``run-1`` unless told otherwise.
+        A condition run once keeps its predictions in its own directory, ``baseline`` for
+        the prompt-only arm and ``arms-agent`` for ARMS; pass ``None`` for that.  A
+        condition run several times holds one ``run-<n>`` directory per run instead; pass
+        the run's number.  Writers use this, since what they are about to write decides
+        the layout; readers use :meth:`output_dir`, which finds it on disk.
         """
-        return self.root / self.key / "output" / model / condition / f"run-{run}"
+        condition_dir = self.root / self.key / "output" / model / condition
+        return condition_dir if run is None else condition_dir / f"run-{run}"
+
+    def output_dir(self, model: str, condition: str, *, run: int = 1) -> Path:
+        """The predictions *model* wrote under *condition* in its *run*-th run.
+
+        Found on disk: when the condition's directory holds ``run-<n>`` directories it was
+        run several times, and run *run* is ``run-<run>``; otherwise it was run once, and
+        its one run -- run 1 -- is the directory itself.  So ``run=1``, the default every
+        analysis reads, is the first run whichever way the condition was made, and a run
+        that was never made is a directory that does not exist.
+        """
+        condition_dir = self.root / self.key / "output" / model / condition
+        repeated = condition_dir.is_dir() and any(
+            child.is_dir() and child.name.startswith("run-") for child in condition_dir.iterdir()
+        )
+        return self.run_output_dir(model, condition, run if repeated or run != 1 else None)
 
     @property
     def has_gold(self) -> bool:

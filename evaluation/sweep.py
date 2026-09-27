@@ -1,8 +1,9 @@
 """The sweep: every assay run through every condition, one job at a time.
 
 A *job* is one assay under one condition: one call to :func:`evaluate.run_experiment`.
-A *run* is one repeat of the whole sweep, numbered from 1, and it names the directory a
-job writes to: ``<condition>/run-<n>/``.
+A *run* is one repeat of the whole sweep.  A sweep made once writes each job to its
+condition's own directory, as the CLI does; a sweep repeated N times numbers its runs from
+1 and writes run *n* to ``<condition>/run-<n>/``.
 
 ``experiment.ipynb`` calls two functions from here.  :func:`plan_sweep` settles what the
 sweep covers and checks it; :func:`run_sweep` runs it.  The split is what makes a typo
@@ -82,9 +83,13 @@ class SweepPlan:
         """Every legacy record of *assay*: what one job of it migrates."""
         return sorted(get_assay(self.data_root, assay).input_dir.glob("*.json"))
 
-    def output_dir(self, assay: str, condition: str, run: int = 1) -> Path:
-        """Where one (assay, condition) job writes in run *run*; the CLI's one run is ``run-1``."""
-        return get_assay(self.data_root, assay).output_dir(self.model, condition, run=run)
+    def output_dir(self, assay: str, condition: str, run: int | None = None) -> Path:
+        """Where one (assay, condition) job writes: its condition's directory, or ``run-<run>`` in it.
+
+        *run* is ``None`` for a sweep made once, as the CLI's is, and the run's number for
+        one of a repeated sweep's runs.
+        """
+        return get_assay(self.data_root, assay).run_output_dir(self.model, condition, run)
 
     def __str__(self) -> str:
         return (
@@ -160,7 +165,7 @@ def plan_sweep(
     print(f"  model      {plan.model}")
     print(f"  assays     {', '.join(plan.assays)}")
     print(f"  conditions {', '.join(plan.conditions)}")
-    print(f"  writing to {plan.data_root}/<assay>/output/{plan.model}/<condition>/run-<n>/")
+    print(f"  writing to {plan.data_root}/<assay>/output/{plan.model}/<condition>/  (run-<n>/ in it when repeated)")
     return plan
 
 
@@ -177,23 +182,31 @@ def run_sweep(
     stands: it lists what it would run and stops.  That is the default, so a cell run by
     accident costs nothing.
 
-    Run *n* writes to ``<condition>/run-<n>/``.  The run is the outermost loop, so every
-    job finishes once before any job runs again, and stopping early leaves every assay
-    and condition with the same number of complete runs.  The CLI has no repeats: its
-    one run is ``run-1``.
+    With *n_repeat* of 1 each job writes to its condition's own directory, as the CLI
+    does.  Above 1, run *n* writes to ``<condition>/run-<n>/`` instead.  The run is the
+    outermost loop, so every job finishes once before any job runs again, and stopping
+    early leaves every assay and condition with the same number of complete runs.
+
+    A condition directory holds one layout or the other, never both, because a reader
+    finds run 1 by looking at which one is there.  So a sweep that would mix them -- one
+    run into a directory holding ``run-<n>`` directories, or several into one holding
+    predictions of its own -- is refused before any job starts, dry run included.
 
     Args:
         plan: A plan from :func:`plan_sweep`.
-        n_repeat: How many runs of the whole plan to make, into ``run-1`` to ``run-<n_repeat>``.
+        n_repeat: How many runs of the whole plan to make.
         dry_run: While true, list the jobs instead of running them.
         max_concurrency: How many of one job's records are migrated at a time.
 
     Raises:
-        ValueError: If *n_repeat* is less than 1.
+        ValueError: If *n_repeat* is less than 1, or the sweep would mix the two layouts
+            in a condition directory.
     """
     if n_repeat < 1:
         raise ValueError(f"n_repeat must be at least 1, not {n_repeat}.")
-    jobs = [(run, assay, condition) for run in range(1, n_repeat + 1) for assay, condition in plan.jobs]
+    _refuse_mixed_layouts(plan, n_repeat)
+    runs: list[int | None] = [None] if n_repeat == 1 else list(range(1, n_repeat + 1))
+    jobs = [(run, assay, condition) for run in runs for assay, condition in plan.jobs]
 
     if dry_run:
         for position, (run, assay, condition) in enumerate(jobs, start=1):
@@ -215,16 +228,37 @@ def run_sweep(
             pool.submit(_run_job, plan, run, assay, condition, max_concurrency).result()
 
 
-def _describe(plan: SweepPlan, position: int, total: int, run: int, assay: str, condition: str) -> str:
+def _refuse_mixed_layouts(plan: SweepPlan, n_repeat: int) -> None:
+    """Raise if the sweep would write one layout into a condition directory holding the other."""
+    clashes = []
+    for assay, condition in plan.jobs:
+        condition_dir = plan.output_dir(assay, condition)
+        if not condition_dir.is_dir():
+            continue
+        has_runs = any(child.is_dir() and child.name.startswith("run-") for child in condition_dir.iterdir())
+        has_predictions = any(condition_dir.glob("*.json"))
+        if (n_repeat == 1 and has_runs) or (n_repeat > 1 and has_predictions):
+            clashes.append(condition_dir)
+    if clashes:
+        held = "run-<n> directories" if n_repeat == 1 else "predictions of a single run"
+        raise ValueError(
+            f"{'One run' if n_repeat == 1 else f'{n_repeat} runs'} cannot be written where {held} already are, "
+            f"or the analyses could not tell which to read.  Move or delete these first:\n  "
+            + "\n  ".join(str(path) for path in clashes)
+        )
+
+
+def _describe(plan: SweepPlan, position: int, total: int, run: int | None, assay: str, condition: str) -> str:
     """One line saying which job this is, how big it is, and where it lands."""
+    run_part = "" if run is None else f"run {run} | "
     return (
-        f"[{position}/{total}] {assay} | {condition} | run {run} | "
+        f"[{position}/{total}] {assay} | {condition} | {run_part}"
         f"{len(plan.input_records(assay))} record(s) -> {plan.output_dir(assay, condition, run)}"
     )
 
 
-def _run_job(plan: SweepPlan, run: int, assay: str, condition: str, max_concurrency: int) -> None:
-    """Migrate every record of one assay under one condition, as part of run *run*."""
+def _run_job(plan: SweepPlan, run: int | None, assay: str, condition: str, max_concurrency: int) -> None:
+    """Migrate every record of one assay under one condition, as part of run *run* (``None``: the only run)."""
     build_workflow, build_user_prompt = build_condition(condition)
     schema_iri = ASSAY_SCHEMAS[assay]
     with _traced_as(f"experiment-{assay}"):
@@ -237,7 +271,7 @@ def _run_job(plan: SweepPlan, run: int, assay: str, condition: str, max_concurre
             max_concurrency=max_concurrency,
             config={
                 "tags": ["experiment", condition],
-                "metadata": {"assay": assay, "condition": condition, "run": run, "template_iri": schema_iri},
+                "metadata": {"assay": assay, "condition": condition, "run": run or 1, "template_iri": schema_iri},
             },
         )
 

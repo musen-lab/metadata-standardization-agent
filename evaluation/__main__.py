@@ -9,8 +9,8 @@ Usage::
 
 ``--condition`` takes any condition declared under ``conditions/``; the list is read
 from there rather than written down here, so a module dropped in is offered without
-this file changing.  The predictions are written to ``<--output>/<condition>/run-1/``:
-the CLI always makes one run, and repeats are a sweep's business (``sweep.run_sweep``).
+this file changing.  The predictions are written to ``<--output>/<condition>/``: the CLI
+always makes one run, and repeats are a sweep's business (``sweep.run_sweep``).
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ def main() -> None:
         "--output",
         required=True,
         type=Path,
-        help="Parent directory for migrated output files.  The run writes to <output>/<condition>/run-1/.",
+        help="Parent directory for migrated output files.  The run writes to <output>/<condition>/.",
     )
     # The choices are the declared conditions, so a name outside them is refused here --
     # before the input is read and before anything is spent.
@@ -94,9 +94,10 @@ def main() -> None:
 
     from evaluate import run_experiment
 
-    # The on-disk layout the modules under analysis/ read: data/<assay>/output/<model>/<condition>/run-<n>/.
-    # The CLI makes one run, so it always writes run-1, the run the analyses read by default.
-    output_dir = args.output / condition.name / "run-1"
+    # The on-disk layout the modules under analysis/ read: data/<assay>/output/<model>/<condition>/.
+    # The CLI makes one run, which lives in the condition's own directory; only a repeated
+    # sweep splits a condition into run-<n> directories.
+    output_dir = args.output / condition.name
     logging.getLogger(__name__).info("Running condition %s", condition.name)
     logging.getLogger(__name__).info("Writing output to %s", output_dir)
     run_experiment(

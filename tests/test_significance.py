@@ -72,11 +72,11 @@ def _build_mini_data_root(root: Path) -> None:
         _write_record(root / "atacseq" / "gold" / name, gold)
         # baseline gets the ontology field wrong; ARMS gets everything right.
         _write_record(
-            root / "atacseq" / "output" / "gpt5mini" / "baseline" / "run-1" / name,
+            root / "atacseq" / "output" / "gpt5mini" / "baseline" / name,
             {"tissue": "WRONG", "title": "study"},
         )
         _write_record(
-            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "run-1" / name,
+            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / name,
             {"tissue": "lung", "title": "study"},
         )
 
@@ -111,7 +111,7 @@ def _build_clustered_root(root: Path) -> None:
     for name in ("r0.json", "r1.json", "r2.json"):
         _write_record(root / "atacseq" / "gold" / name, {"tissue": "lung", "title": "study"})
         _write_record(
-            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "run-1" / name,
+            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / name,
             {"tissue": "lung", "title": "WRONG"},
         )
 
@@ -297,7 +297,7 @@ class TestSingleConditionIntervals:
         # A third condition, which the default pairing has no notion of.
         for name in ("r1.json", "r2.json"):
             _write_record(
-                tmp_path / "atacseq" / "output" / "gpt5mini" / "template-tool" / "run-1" / name,
+                tmp_path / "atacseq" / "output" / "gpt5mini" / "template-tool" / name,
                 {"tissue": "lung", "title": "WRONG"},
             )
         table = build_single_condition_table(tmp_path, "gpt5mini", "template-tool")
@@ -408,7 +408,7 @@ class TestConditionAgnosticComparison:
     @staticmethod
     def _add_condition(root: Path, condition: str, record: dict) -> None:
         for name in ("r1.json", "r2.json"):
-            _write_record(root / "atacseq" / "output" / "gpt5mini" / condition / "run-1" / name, record)
+            _write_record(root / "atacseq" / "output" / "gpt5mini" / condition / name, record)
 
     def test_any_two_conditions_can_be_paired(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)
@@ -466,17 +466,21 @@ class TestRoleSelector:
 
 
 class TestRunSelection:
-    """``run`` picks which ``run-<n>`` directory every reader scores; the default is run 1."""
+    """``run`` picks which run every reader scores; the default is run 1."""
 
     @staticmethod
     def _add_run_2(root: Path) -> None:
-        """A second run in which baseline catches up with ARMS on the ontology field."""
-        for name in ("r1.json", "r2.json"):
-            for condition in ("baseline", "arms-agent"):
-                _write_record(
-                    root / "atacseq" / "output" / "gpt5mini" / condition / "run-2" / name,
-                    {"tissue": "lung", "title": "study"},
-                )
+        """Make each condition a repeated one: its single run becomes run-1, beside a new run-2.
+
+        In run 2 the baseline catches up with ARMS on the ontology field.
+        """
+        for condition in ("baseline", "arms-agent"):
+            condition_dir = root / "atacseq" / "output" / "gpt5mini" / condition
+            (condition_dir / "run-1").mkdir()
+            for prediction in condition_dir.glob("*.json"):
+                prediction.rename(condition_dir / "run-1" / prediction.name)
+            for name in ("r1.json", "r2.json"):
+                _write_record(condition_dir / "run-2" / name, {"tissue": "lung", "title": "study"})
 
     def test_paired_data_reads_the_run_asked_for(self, tmp_path: Path) -> None:
         _build_mini_data_root(tmp_path)

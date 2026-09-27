@@ -27,8 +27,7 @@ _CONDITIONS = [
     ["--condition", "arms-agent"],
 ]
 
-# --output is the parent; below it is the condition's name, and below that run-1: the CLI
-# makes one run.
+# --output is the parent; below it is the condition's name, which holds the CLI's one run.
 _CONDITION_DIRECTORIES = [
     (["--condition", "baseline"], "baseline"),
     (["--condition", "arms-agent"], "arms-agent"),
@@ -78,9 +77,9 @@ def test_condition_reaches_the_runner(tmp_path: Path, workflow_args: list[str]) 
 def test_output_goes_under_the_condition_as_run_1(
     tmp_path: Path, workflow_args: list[str], condition_directory: str
 ) -> None:
-    """The run writes to <--output>/<condition>/run-1, not to --output itself."""
+    """The run writes to <--output>/<condition>, not to --output itself nor to a run-<n> directory."""
     result = _run_cli(tmp_path, workflow_args)
-    assert str(tmp_path / "output" / condition_directory / "run-1") in result.stderr, result.stderr
+    assert f"Writing output to {tmp_path / 'output' / condition_directory}\n" in result.stderr, result.stderr
 
 
 def test_a_condition_is_required(tmp_path: Path) -> None:
@@ -108,7 +107,7 @@ def test_the_declared_conditions_are_offered(tmp_path: Path) -> None:
 
 
 def test_there_is_no_run_name(tmp_path: Path) -> None:
-    """The output directory is always the condition's: repeats go to run-<n>, made by the sweep."""
+    """The output directory is always the condition's: repeats are the sweep's, in run-<n> directories."""
     result = _run_cli(tmp_path, ["--condition", "baseline", "--run-name", "arms-agent"])
     assert result.returncode != 0
     assert "unrecognized arguments: --run-name" in result.stderr, result.stderr

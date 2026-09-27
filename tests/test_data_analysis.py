@@ -71,7 +71,7 @@ def _build_repetitive_root(root: Path) -> None:
         _write(root / "atacseq" / "gold" / name, {"tissue": "lung", "title": f"study{i}"})
         # ARMS: tissue right every time (1 unique pair); title wrong every time (3 unique pairs).
         _write(
-            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "run-1" / name,
+            root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / name,
             {"tissue": "lung", "title": "WRONG"},
         )
 
@@ -134,7 +134,7 @@ class TestDeduplicatedPrecisionRecall:
             _write(tmp_path / "atacseq" / "gold" / name, {"tissue": f"tissue{i}", "title": f"study{i}"})
             # Right on tissue, wrong on title, with a different wrong value each time.
             _write(
-                tmp_path / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "run-1" / name,
+                tmp_path / "atacseq" / "output" / "gpt5mini" / "arms-agent" / name,
                 {"tissue": f"tissue{i}", "title": f"wrong{i}"},
             )
 
@@ -159,7 +159,7 @@ class TestDeduplicatedPrecisionRecall:
         """A value right in some records and wrong in others counts as the fraction."""
         schema = {"children": [{"name": "title", "permissible_values": []}]}
         _write(tmp_path / "schemas" / "atacseq.json", schema)
-        out = tmp_path / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "run-1"
+        out = tmp_path / "atacseq" / "output" / "gpt5mini" / "arms-agent"
         for i in range(4):
             _write(tmp_path / "atacseq" / "gold" / f"r{i}.json", {"title": "study"})
             _write(out / f"r{i}.json", {"title": "study" if i < 3 else "WRONG"})
@@ -172,7 +172,7 @@ class TestDeduplicatedPrecisionRecall:
 
     def test_missing_prediction_is_skipped_and_logged(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
         _build_repetitive_root(tmp_path)
-        (tmp_path / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "run-1" / "r0.json").unlink()
+        (tmp_path / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "r0.json").unlink()
         with caplog.at_level(logging.WARNING):
             df = create_deduplicated_precision_recall_summary(str(tmp_path), "gpt5mini", "arms-agent")
         assert "skipped 1 gold record" in caplog.text
@@ -221,7 +221,7 @@ def _build_confusion_root(root: Path) -> None:
         ]
     }
     _write(root / "schemas" / "atacseq.json", schema)
-    out = root / "atacseq" / "output" / "gpt5mini" / "arms-agent" / "run-1"
+    out = root / "atacseq" / "output" / "gpt5mini" / "arms-agent"
 
     gold_r1 = {"tissue": "lung", "cell_type": "T cell", "title": None, "note": None}
     _write(root / "atacseq" / "gold" / "r1.json", gold_r1)

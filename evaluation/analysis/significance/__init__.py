@@ -9,7 +9,8 @@ compare against ARMS.
 
 Each condition writes to its own directory under ``data/<assay>/output/<model>/``: the
 prompt-only condition under ``baseline/``, ARMS under ``arms-agent/``, each holding one
-``run-<n>/`` per repeat, and every function here reads ``run-1`` unless given ``run``.  The code
+``run-<n>/`` per run when the condition was run several times, and every function here
+reads run 1 unless given ``run``.  The code
 follows those directories, which is why ``baseline`` and ``arms`` are what the
 parameters, columns and tuple fields below are called.
 

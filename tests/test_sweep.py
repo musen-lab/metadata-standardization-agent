@@ -71,8 +71,8 @@ def test_plan_reads_and_writes_where_the_cli_does(data_root: Path, keys: None) -
     plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["arms-agent"])
 
     condition_dir = data_root / "atacseq" / "output" / "test-model" / "arms-agent"
-    assert plan.output_dir("atacseq", "arms-agent") == condition_dir / "run-1"
-    assert plan.output_dir("atacseq", "arms-agent", 3) == condition_dir / "run-3"
+    assert plan.output_dir("atacseq", "arms-agent") == condition_dir  # a single run, as the CLI writes it
+    assert plan.output_dir("atacseq", "arms-agent", 3) == condition_dir / "run-3"  # run 3 of a repeated sweep
     assert [path.name for path in plan.input_records("atacseq")] == ["atacseq-0.json", "atacseq-1.json"]
 
 
@@ -163,7 +163,10 @@ def test_run_sweep_runs_every_job_in_order(
     ]
     assert [call["max_concurrency"] for call in calls] == [3, 3]
     assert [call["config"]["metadata"]["condition"] for call in calls] == ["baseline", "baseline"]
-    assert "[1/2] atacseq | baseline | run 1 | 2 record(s)" in capsys.readouterr().out
+    assert [call["config"]["metadata"]["run"] for call in calls] == [1, 1]
+    out = capsys.readouterr().out
+    assert "[1/2] atacseq | baseline | 2 record(s)" in out
+    assert "run-" not in out, "a single run writes to the condition's own directory"
 
 
 def test_each_run_repeats_the_whole_plan_into_its_own_directory(
@@ -200,6 +203,60 @@ def test_a_dry_run_lists_every_run(
     assert calls == []
     assert out.count("would run") == 3
     assert "run-3" in out
+
+
+def test_a_repeated_sweep_writes_numbered_runs_even_for_run_1(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = _record_jobs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    run_sweep(plan, n_repeat=2, dry_run=False)
+
+    condition_dir = data_root / "atacseq" / "output" / "test-model" / "baseline"
+    assert [call["output_dir"] for call in calls] == [condition_dir / "run-1", condition_dir / "run-2"]
+
+
+@pytest.mark.parametrize("dry_run", [True, False])
+def test_one_run_is_refused_where_numbered_runs_already_are(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, dry_run: bool
+) -> None:
+    """Mixing the layouts would leave a reader unable to tell which run 1 is -- refused before anything runs."""
+    calls = _record_jobs(monkeypatch)
+    (data_root / "atacseq" / "output" / "test-model" / "baseline" / "run-1").mkdir(parents=True)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    with pytest.raises(ValueError, match="One run cannot be written where run-<n> directories already are"):
+        run_sweep(plan, dry_run=dry_run)
+    assert calls == []
+
+
+@pytest.mark.parametrize("dry_run", [True, False])
+def test_repeats_are_refused_where_a_single_run_already_is(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, dry_run: bool
+) -> None:
+    calls = _record_jobs(monkeypatch)
+    condition_dir = data_root / "atacseq" / "output" / "test-model" / "baseline"
+    condition_dir.mkdir(parents=True)
+    (condition_dir / "atacseq-0.json").write_text("{}")
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    with pytest.raises(ValueError, match=str(condition_dir)):
+        run_sweep(plan, n_repeat=3, dry_run=dry_run)
+    assert calls == []
+
+
+def test_the_same_layout_again_is_not_a_clash(data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Re-running a single run over a single run, or repeats over repeats, overwrites as before."""
+    calls = _record_jobs(monkeypatch)
+    condition_dir = data_root / "atacseq" / "output" / "test-model" / "baseline"
+    condition_dir.mkdir(parents=True)
+    (condition_dir / "atacseq-0.json").write_text("{}")
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    run_sweep(plan, dry_run=False)
+
+    assert [call["output_dir"] for call in calls] == [condition_dir]
 
 
 @pytest.mark.parametrize("n_repeat", [0, -1])
