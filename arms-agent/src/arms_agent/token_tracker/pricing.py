@@ -5,9 +5,10 @@ null -- so the figure recorded for a run is worked out here, from provider-repor
 token counts against the published rates in :data:`MODEL_COSTS`.
 
 Those rates are OpenAI's, and an endpoint that resells access need not charge them.
-:class:`BillingPolicy` is the two ways one can differ, both measured against the
-Stanford AI API Gateway's usage endpoint rather than assumed: it bills half of list
-price, and gives no discount at all for cached input.
+:class:`BillingPolicy` is how one differs: a fraction of list price, and a separate
+fraction for cached input.  Both are measured against the Stanford AI API Gateway's usage
+endpoint rather than assumed: as of 2026-09-26 it bills half of list price, except cached
+input, which it bills at OpenAI's full cached rate.
 """
 
 from __future__ import annotations
@@ -41,8 +42,10 @@ MODEL_COSTS: dict[str, tuple[float, float, float]] = {
 }
 
 _MULTIPLIER_VAR = "OPENAI_COST_MULTIPLIER"
-_CACHE_DISCOUNT_VAR = "OPENAI_COST_CACHE_DISCOUNT"
-_FALSE = {"false", "0", "no", "off"}
+_CACHED_MULTIPLIER_VAR = "OPENAI_COST_CACHED_MULTIPLIER"
+# Read until 2026-09-26, when the gateway started discounting cached input; still looked
+# for so a stale .env is reported rather than silently priced by a rule that is gone.
+_RETIRED_CACHE_DISCOUNT_VAR = "OPENAI_COST_CACHE_DISCOUNT"
 
 
 def lookup_rates(model_name: str) -> tuple[float, float, float] | None:
@@ -71,22 +74,21 @@ def lookup_rates(model_name: str) -> tuple[float, float, float] | None:
 class BillingPolicy:
     """How an endpoint's charges differ from OpenAI's published prices.
 
-    Two independent differences, because they apply at different points: whether cached
-    input gets its own cheaper rate decides what a token costs, and the multiplier then
-    scales whatever the call came to.  The Stanford gateway needs both -- either alone
-    misses its billing in the opposite direction.
+    Cached input gets a fraction of its own, because an endpoint that discounts list
+    price need not discount the cached rate alike.  The Stanford gateway does not: it
+    halves every rate except cached input's, which it passes through at OpenAI's price.
 
     Attributes:
-        multiplier: The fraction of list price actually billed.  ``0.5`` for the
-            Stanford gateway's 50% discount, ``1.0`` for OpenAI itself.
-        discounts_cached_input: Whether cached input tokens are billed at their own
-            lower rate.  True for OpenAI; false for the Stanford gateway, whose usage
-            endpoint reconciles with every input token at the full rate.  Cached tokens
-            are counted and reported either way; only the price changes.
+        multiplier: The fraction of list price billed for uncached input and output.
+            ``0.5`` for the Stanford gateway, ``1.0`` for OpenAI itself.
+        cached_multiplier: The fraction of OpenAI's cached-input rate billed for cached
+            input tokens, or ``None`` to use *multiplier*.  ``1.0`` for the Stanford
+            gateway.  Cached tokens are counted and reported either way; only the price
+            changes.
     """
 
     multiplier: float = 1.0
-    discounts_cached_input: bool = True
+    cached_multiplier: float | None = None
 
     @classmethod
     def from_env(cls) -> BillingPolicy:
@@ -96,38 +98,61 @@ class BillingPolicy:
         than failing the run: a mistyped variable should not lose a sweep, and list
         price is a wrong answer that is reported rather than silently believed.
         """
-        multiplier = 1.0
-        raw = os.environ.get(_MULTIPLIER_VAR, "").strip()
-        if raw:
-            try:
-                parsed = float(raw)
-            except ValueError:
-                logger.warning("%s=%r is not a number; estimating at list price instead", _MULTIPLIER_VAR, raw)
-            else:
-                if parsed < 0:
-                    logger.warning("%s=%r is negative; estimating at list price instead", _MULTIPLIER_VAR, raw)
-                else:
-                    multiplier = parsed
-        discounts = os.environ.get(_CACHE_DISCOUNT_VAR, "").strip().lower() not in _FALSE
-        return cls(multiplier=multiplier, discounts_cached_input=discounts)
+        if os.environ.get(_RETIRED_CACHE_DISCOUNT_VAR, "").strip():
+            logger.warning(
+                "%s is no longer read; set %s instead (1.0 for the Stanford gateway)",
+                _RETIRED_CACHE_DISCOUNT_VAR,
+                _CACHED_MULTIPLIER_VAR,
+            )
+        multiplier = _read_multiplier(_MULTIPLIER_VAR)
+        return cls(
+            multiplier=1.0 if multiplier is None else multiplier,
+            cached_multiplier=_read_multiplier(_CACHED_MULTIPLIER_VAR),
+        )
+
+    def rates(self, model_name: str) -> tuple[float, float, float] | None:
+        """Return what *model_name* is billed per 1M tokens: (input, cached input, output).
+
+        ``None`` for a model with no published rates.  The one place a policy is applied
+        to a price, so the token tracker and the Langfuse price definitions cannot drift.
+        """
+        listed = lookup_rates(model_name)
+        if listed is None:
+            return None
+        input_cost, cached_cost, output_cost = listed
+        cached_multiplier = self.multiplier if self.cached_multiplier is None else self.cached_multiplier
+        return input_cost * self.multiplier, cached_cost * cached_multiplier, output_cost * self.multiplier
 
     def cost_of(self, usage: Usage) -> float:
         """Return what *usage* costs under this policy, or ``0.0`` for an unpriced model."""
-        rates = lookup_rates(usage.model_name)
+        rates = self.rates(usage.model_name)
         if rates is None:
             logger.debug("No published rates for %r; recording its tokens at no cost", usage.model_name)
             return 0.0
         input_cost, cached_cost, output_cost = rates
-        if not self.discounts_cached_input:
-            cached_cost = input_cost
         # prompt_tokens already includes cached_tokens, so bill the remainder at the
         # full rate.  The clamp guards an inconsistent usage payload.  reasoning_tokens
         # needs no such treatment: it is already inside completion_tokens and carries no
         # rate of its own, so the output line below charges for it exactly once.
         uncached = max(usage.prompt_tokens - usage.cached_tokens, 0)
-        listed = (
+        return (
             (uncached / 1_000_000) * input_cost
             + (usage.cached_tokens / 1_000_000) * cached_cost
             + (usage.completion_tokens / 1_000_000) * output_cost
         )
-        return listed * self.multiplier
+
+
+def _read_multiplier(name: str) -> float | None:
+    """Return the non-negative number in environment variable *name*, or ``None`` if unset or unusable."""
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = float(raw)
+    except ValueError:
+        logger.warning("%s=%r is not a number; ignoring it", name, raw)
+        return None
+    if parsed < 0:
+        logger.warning("%s=%r is negative; ignoring it", name, raw)
+        return None
+    return parsed

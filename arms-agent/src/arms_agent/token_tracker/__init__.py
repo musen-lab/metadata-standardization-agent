@@ -10,7 +10,7 @@ Three steps, one module each, because the endpoint matters at two of them:
 :mod:`~arms_agent.token_tracker.pricing`
     Turns counts into a cost, since no API returns one.  ``MODEL_COSTS`` holds OpenAI's
     published rates and ``BillingPolicy`` says how a given endpoint departs from them --
-    a fraction of list price, and whether cached input is discounted at all.
+    a fraction of list price, and a fraction of its own for cached input.
 
 :mod:`~arms_agent.token_tracker.tracker`
     Adds it all up across the many calls one migration makes.

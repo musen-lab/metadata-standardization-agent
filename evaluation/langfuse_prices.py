@@ -2,8 +2,8 @@
 
 Langfuse works out a generation's cost itself, from the token counts the callback handler
 reports and a price definition matched on the model name.  The definitions it ships are
-OpenAI's list prices, so under the Stanford gateway every traced call is overstated twice
-over: the gateway bills half of list price, and gives cached input no discount.
+OpenAI's list prices, so under the Stanford gateway every traced call is overstated: the
+gateway bills half of list price for everything but cached input.
 
 A price definition registered in the project takes precedence over the one Langfuse
 ships, so this module registers one per model, built from the same
@@ -21,7 +21,7 @@ import math
 import re
 from typing import TYPE_CHECKING
 
-from arms_agent.token_tracker.pricing import BillingPolicy, lookup_rates
+from arms_agent.token_tracker.pricing import BillingPolicy
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -43,18 +43,16 @@ _PAGE_SIZE = 100
 
 def billed_prices(model: str, policy: BillingPolicy) -> dict[str, float] | None:
     """Return the per-token price of each usage key of *model* under *policy*, or ``None`` if unpriced."""
-    rates = lookup_rates(model)
+    rates = policy.rates(model)
     if rates is None:
         return None
     input_cost, cached_cost, output_cost = rates
-    if not policy.discounts_cached_input:
-        cached_cost = input_cost
     per_million = (
         [(key, input_cost) for key in (*_INPUT_KEYS, *_CACHE_WRITE_KEYS)]
         + [(key, cached_cost) for key in _CACHE_READ_KEYS]
         + [(key, output_cost) for key in _OUTPUT_KEYS]
     )
-    return {key: cost * policy.multiplier / 1_000_000 for key, cost in per_million}
+    return {key: cost / 1_000_000 for key, cost in per_million}
 
 
 def match_pattern(model: str) -> str:

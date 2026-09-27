@@ -368,7 +368,7 @@ class TestCostMultiplier:
 
     @pytest.fixture(autouse=True)
     def _clear(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        for name in ("OPENAI_COST_MULTIPLIER", "OPENAI_COST_CACHE_DISCOUNT"):
+        for name in ("OPENAI_COST_MULTIPLIER", "OPENAI_COST_CACHED_MULTIPLIER", "OPENAI_COST_CACHE_DISCOUNT"):
             monkeypatch.delenv(name, raising=False)
 
     def test_unset_means_list_price(self) -> None:
@@ -398,25 +398,49 @@ class TestCostMultiplier:
         tracker.on_llm_end(_make_responses_result(1_000_000, 0, "gpt-5.6-luna"))
         assert tracker.total_cost == pytest.approx(MODEL_COSTS["gpt-5.6-luna"][0] / 2)
 
-    def test_cached_input_can_be_billed_at_the_full_rate(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """An endpoint reselling access need not pass the cache discount on."""
-        monkeypatch.setenv("OPENAI_COST_CACHE_DISCOUNT", "false")
+    def test_cached_input_follows_the_multiplier_by_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("OPENAI_COST_MULTIPLIER", "0.5")
+        tracker = TokenUsageTracker()
+        tracker.on_llm_end(_make_responses_result(1_000_000, 0, "gpt-5.6-luna", cache_read=1_000_000))
+        assert tracker.total_cost == pytest.approx(MODEL_COSTS["gpt-5.6-luna"][1] / 2)
+
+    def test_cached_input_can_have_a_multiplier_of_its_own(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """An endpoint discounting list price need not discount the cached rate alike."""
+        monkeypatch.setenv("OPENAI_COST_MULTIPLIER", "0.5")
+        monkeypatch.setenv("OPENAI_COST_CACHED_MULTIPLIER", "1.0")
         tracker = TokenUsageTracker()
         tracker.on_llm_end(_make_responses_result(1_000_000, 0, "gpt-5.6-luna", cache_read=1_000_000))
         assert tracker.cached_tokens == 1_000_000
-        assert tracker.total_cost == pytest.approx(MODEL_COSTS["gpt-5.6-luna"][0])
+        assert tracker.total_cost == pytest.approx(MODEL_COSTS["gpt-5.6-luna"][1])
+
+    def test_a_zero_multiplier_is_kept(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """A free endpoint is a real policy, not a missing one."""
+        monkeypatch.setenv("OPENAI_COST_MULTIPLIER", "0")
+        tracker = TokenUsageTracker()
+        tracker.on_llm_end(_make_responses_result(1_000_000, 1_000_000, "gpt-5.6-luna"))
+        assert tracker.total_cost == 0.0
+
+    def test_the_retired_cache_discount_variable_is_reported(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A stale .env must not be silently priced by a rule that is gone."""
+        monkeypatch.setenv("OPENAI_COST_CACHE_DISCOUNT", "false")
+        with caplog.at_level("WARNING"):
+            BillingPolicy.from_env()
+        assert "OPENAI_COST_CACHE_DISCOUNT is no longer read" in caplog.text
 
     def test_the_gateways_billing_is_reproduced(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Pinned against what the gateway's usage endpoint actually reported.
+        """Pinned against what the gateway's usage endpoint reported on 2026-09-26.
 
-        gpt-5.6-luna, 68,679 input and 20,951 output tokens, billed at $0.0194385 --
-        list price with no cache discount, halved.
+        One arms-agent record on gpt-5.6-terra: 30,697 input tokens of which 16,210 cached,
+        7,511 output, billed at $0.062795 -- half of list price, cached input at its full
+        cached rate.
         """
         monkeypatch.setenv("OPENAI_COST_MULTIPLIER", "0.5")
-        monkeypatch.setenv("OPENAI_COST_CACHE_DISCOUNT", "false")
+        monkeypatch.setenv("OPENAI_COST_CACHED_MULTIPLIER", "1.0")
         tracker = TokenUsageTracker()
-        tracker.on_llm_end(_make_responses_result(68_679, 20_951, "gpt-5.6-luna", cache_read=40_000))
-        assert tracker.total_cost == pytest.approx(0.0194385, abs=5e-7)
+        tracker.on_llm_end(_make_responses_result(30_697, 7_511, "gpt-5.6-terra", cache_read=16_210))
+        assert tracker.total_cost == pytest.approx(0.062795, abs=5e-7)
 
 
 class TestBillingPolicyIsInjectable:
@@ -424,11 +448,11 @@ class TestBillingPolicyIsInjectable:
 
     @pytest.fixture(autouse=True)
     def _clear(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        for name in ("OPENAI_COST_MULTIPLIER", "OPENAI_COST_CACHE_DISCOUNT"):
+        for name in ("OPENAI_COST_MULTIPLIER", "OPENAI_COST_CACHED_MULTIPLIER", "OPENAI_COST_CACHE_DISCOUNT"):
             monkeypatch.delenv(name, raising=False)
 
     def test_the_default_policy_is_openais_own(self) -> None:
-        assert BillingPolicy() == BillingPolicy(multiplier=1.0, discounts_cached_input=True)
+        assert BillingPolicy().rates("gpt-5.6-luna") == MODEL_COSTS["gpt-5.6-luna"]
 
     def test_a_given_policy_beats_the_environment(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("OPENAI_COST_MULTIPLIER", "0.5")
@@ -436,19 +460,23 @@ class TestBillingPolicyIsInjectable:
         tracker.on_llm_end(_make_responses_result(1_000_000, 0, "gpt-5.6-luna"))
         assert tracker.total_cost == pytest.approx(MODEL_COSTS["gpt-5.6-luna"][0])
 
-    def test_the_gateway_policy_reproduces_its_billing(self) -> None:
-        """Measured: ten 90%-cached calls on the gateway cost $0.0016970."""
-        gateway = BillingPolicy(multiplier=0.5, discounts_cached_input=False)
+    @pytest.mark.parametrize(
+        ("model", "billed"),
+        [("gpt-5.6-luna", 0.00091448), ("gpt-5.6-terra", 0.0091448)],
+    )
+    def test_the_gateway_policy_reproduces_its_billing(self, model: str, billed: float) -> None:
+        """Measured 2026-09-26: four calls, 22,520 input of which 16,839 cached, 16 output."""
+        gateway = BillingPolicy(multiplier=0.5, cached_multiplier=1.0)
         tracker = TokenUsageTracker(billing=gateway)
-        tracker.on_llm_end(_make_responses_result(16_670, 50, "gpt-5.6-luna", cache_read=14_976))
-        assert tracker.total_cost == pytest.approx(0.0016970, abs=5e-8)
+        tracker.on_llm_end(_make_responses_result(22_520, 16, model, cache_read=16_839))
+        assert tracker.total_cost == pytest.approx(billed, abs=5e-9)
 
     def test_the_same_usage_costs_less_through_the_gateway(self) -> None:
         """The two policies must not silently agree, or neither is doing anything."""
         usage = dict(input_tokens=28_253, output_tokens=10_636, model_name="gpt-5.6-luna", cache_read=19_196)
         direct = TokenUsageTracker(billing=BillingPolicy())
-        gateway = TokenUsageTracker(billing=BillingPolicy(multiplier=0.5, discounts_cached_input=False))
+        gateway = TokenUsageTracker(billing=BillingPolicy(multiplier=0.5, cached_multiplier=1.0))
         for tracker in (direct, gateway):
             tracker.on_llm_end(_make_responses_result(**usage))
         assert direct.total_cost == pytest.approx(0.0149585, abs=5e-7)
-        assert gateway.total_cost == pytest.approx(0.0092069, abs=5e-7)
+        assert gateway.total_cost == pytest.approx(0.0076712, abs=5e-7)
