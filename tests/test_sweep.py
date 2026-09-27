@@ -424,3 +424,84 @@ def test_an_unknown_condition_raises() -> None:
     """The dispatch the CLI and the sweep share names what it expected."""
     with pytest.raises(ValueError, match="armsagent"):
         build_condition("armsagent")
+
+
+def test_resume_finishes_a_sweep_that_stopped_partway(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The case this exists for: run 2 stopped inside one job, so the same call is made again with resume."""
+    calls = _record_jobs(monkeypatch)
+    _existing_run(data_root, "baseline", 1)
+    partial = _existing_run(data_root, "baseline", 2)  # one of atacseq's two records done
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+    capsys.readouterr()
+
+    run_sweep(plan, n_repeat=2, first_run=2, resume=True, dry_run=False)
+
+    assert [call["output_dir"] for call in calls] == [partial, partial.parent / "run-3"]
+    assert all(call["resume"] for call in calls), "run_experiment is told, so it skips the finished record"
+    out = capsys.readouterr().out
+    assert "[1/2] atacseq | baseline | run 2 | 1 of 2 record(s) left" in out
+    assert "[2/2] atacseq | baseline | run 3 | 2 record(s)" in out
+
+
+def test_resume_skips_a_job_with_nothing_left(data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = _record_jobs(monkeypatch)
+    run_2 = _existing_run(data_root, "baseline", 2)
+    (run_2 / "atacseq-1.json").write_text("{}")
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    run_sweep(plan, first_run=2, resume=True, dry_run=False)
+
+    assert calls == []
+
+
+def test_a_resumed_dry_run_counts_only_what_is_left(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _record_jobs(monkeypatch)
+    _existing_run(data_root, "baseline", 2)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+    capsys.readouterr()
+
+    run_sweep(plan, n_repeat=2, first_run=2, resume=True)
+
+    # run 2 has one of its two records, run 3 none: three migrations left, not four.
+    assert "2 job(s), 3 record migration(s) in total" in capsys.readouterr().out
+
+
+def test_the_refusal_names_resume(data_root: Path, keys: None) -> None:
+    _existing_run(data_root, "baseline", 2)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    with pytest.raises(ValueError, match="pass resume=True"):
+        run_sweep(plan, first_run=2)
+
+
+def test_resume_never_allows_mixing_the_layouts(data_root: Path, keys: None) -> None:
+    _existing_run(data_root, "baseline", 1)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    with pytest.raises(ValueError, match="single run and numbered runs"):
+        run_sweep(plan, resume=True)
+
+
+def test_resume_and_overwrite_together_are_refused(data_root: Path, keys: None) -> None:
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    with pytest.raises(ValueError, match="not both"):
+        run_sweep(plan, overwrite=True, resume=True)
+
+
+def test_a_finished_job_is_reported_as_skipped(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _record_jobs(monkeypatch)
+    run_2 = _existing_run(data_root, "baseline", 2)
+    (run_2 / "atacseq-1.json").write_text("{}")
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+    capsys.readouterr()
+
+    run_sweep(plan, first_run=2, resume=True, dry_run=False)
+
+    assert "[1/1] atacseq | baseline | run 2 | all 2 record(s) done, skipped" in capsys.readouterr().out

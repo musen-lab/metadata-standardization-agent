@@ -34,7 +34,7 @@ from analysis.corpus import get_assay
 from arms_agent.tracing import tracing_enabled
 from assays import ASSAY_SCHEMAS
 from conditions import build_condition, condition_names, get_condition
-from evaluate import refuse_output_clashes, run_experiment
+from evaluate import pending_records, refuse_output_clashes, run_experiment
 from langfuse_prices import register_model_prices
 
 if TYPE_CHECKING:
@@ -181,6 +181,7 @@ def run_sweep(
     n_repeat: int = 1,
     first_run: int = 1,
     overwrite: bool = False,
+    resume: bool = False,
     dry_run: bool = True,
     max_concurrency: int = DEFAULT_CONCURRENCY,
 ) -> None:
@@ -204,20 +205,28 @@ def run_sweep(
     where a single run is -- is refused before any job starts, dry run included.  The
     refusal names the ``first_run`` that would add runs after the last one on disk.
 
+    A sweep stopped partway -- by a dropped connection or a spent budget -- is finished by
+    running the same call again with *resume*: every record that already has a prediction
+    is skipped, a job with none left is skipped whole, and only the rest are migrated.
+
     Args:
         plan: A plan from :func:`plan_sweep`.
         n_repeat: How many runs of the whole plan to make.
         first_run: The number the first of them takes; later runs follow on from it.
         overwrite: Replace predictions already in the directories written to.  Mixing
             the layouts is refused whatever this is.
+        resume: Keep the predictions already there and migrate only the records without
+            one.  Not together with *overwrite*.
         dry_run: While true, list the jobs instead of running them.
         max_concurrency: How many of one job's records are migrated at a time.
 
     Raises:
-        ValueError: If *n_repeat* or *first_run* is less than 1, or the sweep would
-            overwrite predictions without *overwrite*, or mix the two layouts in a
-            condition directory.
+        ValueError: If *n_repeat* or *first_run* is less than 1, or both *overwrite* and
+            *resume* are set, or the sweep would overwrite predictions without either, or
+            mix the two layouts in a condition directory.
     """
+    if overwrite and resume:
+        raise ValueError("Pass overwrite=True to redo every record or resume=True to finish the rest, not both.")
     if n_repeat < 1:
         raise ValueError(f"n_repeat must be at least 1, not {n_repeat}.")
     if first_run < 1:
@@ -227,17 +236,18 @@ def run_sweep(
     )
     refuse_output_clashes(
         [plan.output_dir(assay, condition, run) for run in runs for assay, condition in plan.jobs],
-        overwrite=overwrite,
-        hint=_first_run_hint(plan),
+        overwrite=overwrite or resume,
+        hint=_first_run_hint(plan) + "To finish a sweep that stopped partway, pass resume=True.  ",
     )
     jobs = [(run, assay, condition) for run in runs for assay, condition in plan.jobs]
+    pending = {job: _pending(plan, *job, resume=resume) for job in jobs}
 
     if dry_run:
-        for position, (run, assay, condition) in enumerate(jobs, start=1):
-            print(f"would run  {_describe(plan, position, len(jobs), run, assay, condition)}")
+        for position, job in enumerate(jobs, start=1):
+            print(f"would run  {_describe(plan, position, len(jobs), *job, pending=pending[job])}")
         print(
             f"\nDry run: nothing was run, nothing was spent ({plan}; x {n_repeat} run(s) = "
-            f"{len(jobs)} job(s), {plan.migrations * n_repeat} record migration(s) in total)."
+            f"{len(jobs)} job(s), {sum(pending.values())} record migration(s) in total)."
         )
         print("Pass dry_run=False to run the sweep above.")
         return
@@ -247,9 +257,18 @@ def run_sweep(
     # the tracing context is a context variable, so it is entered inside that thread.
     # One worker, so the sweep waits for each job to finish before starting the next.
     with ThreadPoolExecutor(max_workers=1) as pool:
-        for position, (run, assay, condition) in enumerate(jobs, start=1):
-            print(_describe(plan, position, len(jobs), run, assay, condition))
-            pool.submit(_run_job, plan, run, assay, condition, max_concurrency, overwrite).result()
+        for position, job in enumerate(jobs, start=1):
+            print(_describe(plan, position, len(jobs), *job, pending=pending[job]))
+            if pending[job] == 0:
+                continue
+            pool.submit(_run_job, plan, *job, max_concurrency, overwrite, resume).result()
+
+
+def _pending(plan: SweepPlan, run: int | None, assay: str, condition: str, *, resume: bool) -> int:
+    """How many of one job's records it will migrate: all of them, or when resuming, those with no prediction."""
+    if not resume:
+        return len(plan.input_records(assay))
+    return len(pending_records(get_assay(plan.data_root, assay).input_dir, plan.output_dir(assay, condition, run)))
 
 
 def _first_run_hint(plan: SweepPlan) -> str:
@@ -266,17 +285,23 @@ def _first_run_hint(plan: SweepPlan) -> str:
     return f"To add runs after the last one on disk, pass first_run={highest + 1}.  " if highest else ""
 
 
-def _describe(plan: SweepPlan, position: int, total: int, run: int | None, assay: str, condition: str) -> str:
-    """One line saying which job this is, how big it is, and where it lands."""
+def _describe(
+    plan: SweepPlan, position: int, total: int, run: int | None, assay: str, condition: str, *, pending: int
+) -> str:
+    """One line saying which job this is, how much of it is left, and where it lands."""
     run_part = "" if run is None else f"run {run} | "
-    return (
-        f"[{position}/{total}] {assay} | {condition} | {run_part}"
-        f"{len(plan.input_records(assay))} record(s) -> {plan.output_dir(assay, condition, run)}"
-    )
+    records = len(plan.input_records(assay))
+    if pending == records:
+        size = f"{records} record(s)"
+    elif pending == 0:
+        size = f"all {records} record(s) done, skipped"
+    else:
+        size = f"{pending} of {records} record(s) left"
+    return f"[{position}/{total}] {assay} | {condition} | {run_part}{size} -> {plan.output_dir(assay, condition, run)}"
 
 
 def _run_job(
-    plan: SweepPlan, run: int | None, assay: str, condition: str, max_concurrency: int, overwrite: bool
+    plan: SweepPlan, run: int | None, assay: str, condition: str, max_concurrency: int, overwrite: bool, resume: bool
 ) -> None:
     """Migrate every record of one assay under one condition, as part of run *run* (``None``: the only run)."""
     build_workflow, build_user_prompt = build_condition(condition)
@@ -290,6 +315,7 @@ def _run_job(
             user_prompt_builder=build_user_prompt,
             max_concurrency=max_concurrency,
             overwrite=overwrite,
+            resume=resume,
             config={
                 "tags": ["experiment", condition],
                 "metadata": {"assay": assay, "condition": condition, "run": run or 1, "template_iri": schema_iri},

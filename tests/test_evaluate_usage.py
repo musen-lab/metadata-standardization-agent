@@ -178,3 +178,80 @@ def test_unpriced_model_still_records_tokens(tmp_path: Path) -> None:
     usage = json.loads((output_dir / "usage" / "record-0.json").read_text())
     assert usage["prompt_tokens"] == 1_000_000
     assert usage["estimated_cost_usd"] == 0.0
+
+
+class _FailingWorkflow(_StubWorkflow):
+    """Fails on one record, the way a dropped connection stops a job partway."""
+
+    def __init__(self, fail_on: str) -> None:
+        super().__init__()
+        self.fail_on = fail_on
+        self.seen: list[str] = []
+
+    async def ainvoke(self, state: dict[str, Any], config: dict[str, Any] | None = None) -> dict[str, Any]:
+        name = (config or {})["metadata"]["input_file"]
+        self.seen.append(name)
+        if name == self.fail_on:
+            raise ConnectionError("Connection error.")
+        return await super().ainvoke(state, config)
+
+
+def _run_again(tmp_path: Path, workflow: _StubWorkflow, **kwargs: Any) -> list[Path]:
+    return run_experiment(
+        template_iri=_TEMPLATE_IRI,
+        input_dir=tmp_path / "input",
+        output_dir=tmp_path / "output",
+        workflow_factory=lambda: workflow,
+        user_prompt_builder=_prompt_builder,
+        max_concurrency=1,
+        **kwargs,
+    )
+
+
+def test_resume_migrates_only_the_records_a_failed_run_left(tmp_path: Path) -> None:
+    """A failure writes nothing for its record; the resumed call migrates that one alone."""
+    _write_inputs(tmp_path, 3)
+    with pytest.raises(ConnectionError):
+        _run_again(tmp_path, _FailingWorkflow(fail_on="record-1.json"))
+    output_dir = tmp_path / "output"
+    finished = sorted(path.name for path in output_dir.glob("*.json"))
+    assert "record-1.json" not in finished
+    assert "record-0.json" in finished
+
+    retry = _FailingWorkflow(fail_on="")
+    written = _run_again(tmp_path, retry, resume=True)
+
+    left = [f"record-{index}.json" for index in range(3) if f"record-{index}.json" not in finished]
+    assert retry.seen == left
+    assert [path.name for path in written] == left
+    assert sorted(path.name for path in output_dir.glob("*.json")) == [f"record-{index}.json" for index in range(3)]
+
+
+def test_a_resumed_runs_total_covers_every_record(tmp_path: Path) -> None:
+    """The total is the whole run's, not just the part that finished last."""
+    _write_inputs(tmp_path, 3)
+    with pytest.raises(ConnectionError):
+        _run_again(tmp_path, _FailingWorkflow(fail_on="record-2.json"))
+
+    _run_again(tmp_path, _StubWorkflow(), resume=True)
+
+    total = json.loads((tmp_path / "output" / "usage" / "_sweep_total.json").read_text())
+    assert total["files"] == 3
+    assert total["prompt_tokens"] == 3_000_000
+
+
+def test_a_failed_record_leaves_no_file_behind(tmp_path: Path) -> None:
+    """No prediction, and no stray staging file that a later glob could trip over."""
+    _write_inputs(tmp_path, 1)
+    with pytest.raises(ConnectionError):
+        _run_again(tmp_path, _FailingWorkflow(fail_on="record-0.json"))
+
+    output_dir = tmp_path / "output"
+    assert not list(output_dir.rglob("*.json"))
+    assert not list(output_dir.rglob("*.tmp"))
+
+
+def test_run_experiment_refuses_resume_with_overwrite(tmp_path: Path) -> None:
+    _write_inputs(tmp_path, 1)
+    with pytest.raises(ValueError, match="not both"):
+        _run_again(tmp_path, _StubWorkflow(), overwrite=True, resume=True)

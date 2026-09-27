@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 from typing import TYPE_CHECKING, Any
 
 from arms_agent.token_tracker import TokenUsageTracker
@@ -42,6 +43,31 @@ def _sum_usage(trackers: Iterable[TokenUsageTracker]) -> TokenUsageTracker:
         combined.total_tokens += tracker.total_tokens
         combined.total_cost += tracker.total_cost
     return combined
+
+
+def _tracker_from_record(record: dict[str, Any]) -> TokenUsageTracker:
+    """Rebuild a tracker from a usage record written by an earlier call, so it can be summed."""
+    tracker = TokenUsageTracker()
+    tracker.prompt_tokens = record["prompt_tokens"]
+    tracker.cached_tokens = record["cached_tokens"]
+    tracker.completion_tokens = record["completion_tokens"]
+    tracker.reasoning_tokens = record["reasoning_tokens"]
+    tracker.total_tokens = record["total_tokens"]
+    tracker.total_cost = record["estimated_cost_usd"]
+    return tracker
+
+
+def _write_json(path: Path, data: Any) -> None:
+    """Write *data* to *path* whole or not at all, so a crash never leaves half a file behind."""
+    staging = path.with_name(f".{path.name}.tmp")
+    with open(staging, "w") as f:
+        json.dump(data, f, indent=2)
+    os.replace(staging, path)
+
+
+def pending_records(input_dir: Path, output_dir: Path) -> list[Path]:
+    """The records of *input_dir* with no prediction in *output_dir* yet: what a resumed run migrates."""
+    return [path for path in sorted(input_dir.glob("*.json")) if not (output_dir / path.name).exists()]
 
 
 def _is_run_dir(path: Path) -> bool:
@@ -112,6 +138,7 @@ def run_experiment(
     config: dict[str, Any] | None = None,
     max_concurrency: int = 5,
     overwrite: bool = False,
+    resume: bool = False,
 ) -> list[Path]:
     """Run the migration workflow on all JSON files in *input_dir*.
 
@@ -125,15 +152,28 @@ def run_experiment(
 
     Nothing already in *output_dir* is overwritten unless *overwrite* is true, and a single
     run is never written beside numbered ones: :func:`refuse_output_clashes` raises before
-    the first record is migrated.
+    the first record is migrated.  With *resume*, the records that already have a
+    prediction are skipped and only the rest are migrated, which is how a run stopped
+    partway -- by a dropped connection, say -- is finished.  A prediction is written last
+    and whole, so one that exists is one whose record finished.
 
     Returns the list of output file paths that were written.
+
+    Raises:
+        ValueError: If both *overwrite* and *resume* are set, or the output would clash.
     """
-    refuse_output_clashes([output_dir], overwrite=overwrite)
+    if overwrite and resume:
+        raise ValueError("Pass overwrite=True to redo every record or resume=True to finish the rest, not both.")
+    refuse_output_clashes([output_dir], overwrite=overwrite or resume)
     input_files = sorted(input_dir.glob("*.json"))
     if not input_files:
         logger.warning("No *.json files found in %s", input_dir)
         return []
+
+    to_run = pending_records(input_dir, output_dir) if resume else input_files
+    done = [path for path in input_files if path not in to_run]
+    if done:
+        logger.info("Resuming %s: %d record(s) already done, %d to run", output_dir, len(done), len(to_run))
 
     output_dir.mkdir(parents=True, exist_ok=True)
     workflow = workflow_factory()
@@ -142,7 +182,7 @@ def run_experiment(
         semaphore = asyncio.Semaphore(max_concurrency)
         tasks = [
             _process_file(workflow, input_file, output_dir, template_iri, user_prompt_builder, config, semaphore)
-            for input_file in input_files
+            for input_file in to_run
         ]
         return list(await asyncio.gather(*tasks))
 
@@ -153,14 +193,29 @@ def run_experiment(
         # exporter against the concurrent runs.
         flush_tracing()
 
-    total = _sum_usage(tracker for _, tracker in results)
+    # The total covers every record in the directory, so a resumed run's total is the
+    # whole run's and not just the part that finished last.
+    trackers = [tracker for _, tracker in results] + _earlier_usage(done, output_dir)
+    total = _sum_usage(trackers)
     total_path = output_dir / "usage" / "_sweep_total.json"
     total_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(total_path, "w") as f:
-        json.dump({"files": len(results), **_usage_record(total)}, f, indent=2)
-    logger.info("Sweep usage over %d file(s): %s", len(results), total.usage_summary())
+    _write_json(total_path, {"files": len(trackers), **_usage_record(total)})
+    logger.info("Sweep usage over %d file(s): %s", len(trackers), total.usage_summary())
 
     return [output_path for output_path, _ in results]
+
+
+def _earlier_usage(done: list[Path], output_dir: Path) -> list[TokenUsageTracker]:
+    """The usage an earlier call recorded for each record in *done*, skipping any it did not record."""
+    trackers = []
+    for input_file in done:
+        usage_path = output_dir / "usage" / input_file.name
+        if not usage_path.exists():
+            logger.warning("No usage recorded for %s; the run total leaves it out", input_file.name)
+            continue
+        with open(usage_path) as f:
+            trackers.append(_tracker_from_record(json.load(f)))
+    return trackers
 
 
 async def _process_file(
@@ -213,18 +268,12 @@ async def _process_file(
                 config=run_config,
             )
 
-        output_path = output_dir / input_file.name
-        with open(output_path, "w") as f:
-            json.dump(result["metadata"], f, indent=2)
-        logger.info("[%s] Wrote %s", task_name, output_path)
-
         # The processing log goes in a sibling directory so that *output_dir* keeps
         # one file per input, matching the gold standard for evaluation.
         decisions = result.get("decisions") or []
         decisions_path = output_dir / "decisions" / input_file.name
         decisions_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(decisions_path, "w") as f:
-            json.dump(decisions, f, indent=2)
+        _write_json(decisions_path, decisions)
         if not decisions:
             logger.warning("[%s] No processing-log entries for %s", task_name, input_file.name)
 
@@ -232,8 +281,13 @@ async def _process_file(
         # keeps one file per input so it lines up with the gold standard.
         usage_path = output_dir / "usage" / input_file.name
         usage_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(usage_path, "w") as f:
-            json.dump({"input_file": input_file.name, **_usage_record(tracker)}, f, indent=2)
+        _write_json(usage_path, {"input_file": input_file.name, **_usage_record(tracker)})
         logger.info("[%s] %s: %s", task_name, input_file.name, tracker.usage_summary())
+
+        # Written last, because a resumed run takes an existing prediction to mean the
+        # record finished: its processing log and usage are then already on disk.
+        output_path = output_dir / input_file.name
+        _write_json(output_path, result["metadata"])
+        logger.info("[%s] Wrote %s", task_name, output_path)
 
         return output_path, tracker
