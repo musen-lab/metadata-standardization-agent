@@ -35,6 +35,7 @@ from arms_agent.tracing import tracing_enabled
 from assays import ASSAY_SCHEMAS
 from conditions import build_condition, condition_names, get_condition
 from evaluate import refuse_output_clashes, run_experiment
+from langfuse_prices import register_model_prices
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -112,6 +113,9 @@ def plan_sweep(
     input records, or a key the chosen conditions need and the environment does not have.
     A bad name should cost nothing.
 
+    When tracing is on, it also registers what *model* is billed at in the Langfuse
+    project, so the cost of each traced call is the gateway's and not OpenAI's list price.
+
     Assay outermost, so every condition of one assay finishes before the next assay
     starts and stopping early leaves whole assays comparable across conditions.
 
@@ -166,6 +170,8 @@ def plan_sweep(
     print(f"  assays     {', '.join(plan.assays)}")
     print(f"  conditions {', '.join(plan.conditions)}")
     print(f"  writing to {plan.data_root}/<assay>/output/{plan.model}/<condition>/  (run-<n>/ in it when repeated)")
+    if tracing_enabled():
+        register_model_prices([plan.model])
     return plan
 
 
