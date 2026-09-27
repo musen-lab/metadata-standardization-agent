@@ -223,11 +223,12 @@ def _category_brace(ax: plt.Axes, left: float, right: float, label: str) -> None
 def plot_error_composition(
     data_root: str,
     model: str,
-    run_type: str = "arms-agent",
+    condition: str = "arms-agent",
     *,
     field_type: str | None = None,
     title: str | None = None,
     save_path: str | None = None,
+    run: int = 1,
 ) -> None:
     """What each assay's errors are made of.
 
@@ -241,9 +242,9 @@ def plot_error_composition(
     segments and not at seven, and the category is the confusion case, which is the split a
     reader already knows from the precision/recall tables.
     """
-    errors = collect_field_errors(data_root, model, run_type)
+    errors = collect_field_errors(data_root, model, condition, run=run)
     if errors.empty:
-        raise ValueError(f"no predictions on disk for {run_type!r} under {model!r}")
+        raise ValueError(f"no predictions on disk for {condition!r} under {model!r}")
 
     labels = [label for _key, label in ASSAY_ORDER if label in set(errors["assay"])]
     shares = category_shares(errors, field_type=field_type)
@@ -268,7 +269,7 @@ def plot_error_composition(
 def plot_corpus_error_composition(
     data_root: str,
     model: str,
-    run_type: str = "arms-agent",
+    condition: str = "arms-agent",
     *,
     field_type: str | None = None,
     apply_dedup: bool = False,
@@ -277,6 +278,7 @@ def plot_corpus_error_composition(
     no_color: bool = False,
     title: str | None = None,
     save_path: str | None = None,
+    run: int = 1,
 ) -> None:
     """The whole corpus in one bar: every counted error, at one level of the taxonomy.
 
@@ -307,9 +309,9 @@ def plot_corpus_error_composition(
     single unbroken span to brace.  Every error appears once: the category is the confusion
     case, so a substitution carries one label rather than one per side.
     """
-    errors = collect_field_errors(data_root, model, run_type)
+    errors = collect_field_errors(data_root, model, condition, run=run)
     if errors.empty:
-        raise ValueError(f"no predictions on disk for {run_type!r} under {model!r}")
+        raise ValueError(f"no predictions on disk for {condition!r} under {model!r}")
     if apply_dedup:
         errors = deduplicate_errors(errors)
 

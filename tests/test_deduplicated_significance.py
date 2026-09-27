@@ -143,13 +143,13 @@ class TestDeduplicatedPairedTests:
 
     def test_pairing_units_are_reported(self, tmp_path: Path) -> None:
         self._build_pair(tmp_path)
-        rows = deduplicated_paired_tests(str(tmp_path), "m", baseline_run="base", system_run="sys", n_resamples=200)
+        rows = deduplicated_paired_tests(str(tmp_path), "m", baseline="base", system="sys", n_resamples=200)
         units = {(row["metric"], row["paired on"]) for row in rows}
         assert units == {("recall", "distinct value"), ("precision", "field")}
 
     def test_recall_items_are_distinct_gold_values(self, tmp_path: Path) -> None:
         self._build_pair(tmp_path)
-        rows = deduplicated_paired_tests(str(tmp_path), "m", baseline_run="base", system_run="sys", n_resamples=200)
+        rows = deduplicated_paired_tests(str(tmp_path), "m", baseline="base", system="sys", n_resamples=200)
         ontology_recall = next(r for r in rows if r["metric"] == "recall" and r["field_type"].startswith("Ontology"))
         assert ontology_recall["n_items"] == 4  # four distinct organs
         assert ontology_recall["baseline"] == 0.0
@@ -157,14 +157,14 @@ class TestDeduplicatedPairedTests:
 
     def test_precision_items_are_fields(self, tmp_path: Path) -> None:
         self._build_pair(tmp_path)
-        rows = deduplicated_paired_tests(str(tmp_path), "m", baseline_run="base", system_run="sys", n_resamples=200)
+        rows = deduplicated_paired_tests(str(tmp_path), "m", baseline="base", system="sys", n_resamples=200)
         all_precision = next(r for r in rows if r["metric"] == "precision" and r["field_type"] == "All fields")
         assert all_precision["n_items"] == 2  # tissue and title, whatever values they hold
 
     def test_records_only_one_run_produced_are_skipped(self, tmp_path: Path) -> None:
         self._build_pair(tmp_path)
         (tmp_path / "atacseq" / "output" / "m" / "sys" / "r0.json").unlink()
-        outcomes = collect_deduplicated_outcomes(str(tmp_path), "m", baseline_run="base", system_run="sys")
+        outcomes = collect_deduplicated_outcomes(str(tmp_path), "m", baseline="base", system="sys")
         # organ0 and t0 came only from the dropped record, so their clusters are gone.
         assert not any("organ0" in key[2] or key[2] == '"t0"' for key in outcomes.recall_clusters)
         # Three remaining records, each contributing one tissue and one title cluster.

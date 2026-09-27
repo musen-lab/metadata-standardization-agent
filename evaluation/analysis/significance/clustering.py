@@ -4,8 +4,7 @@ The corpus repeats the same ``(assay, field, gold-value)`` correction across man
 records, so its 839 records do not carry 839 records' worth of independent evidence.
 This module puts a number on that: the intra-cluster correlation of the correctness
 outcome, the resulting design effect, and the effective sample size.  It is the
-justification for why the rest of the package resamples records instead of fields --
-and for reading the field-level McNemar p-values with suspicion.
+justification for why the rest of the package resamples records instead of fields.
 """
 
 from __future__ import annotations
@@ -25,9 +24,10 @@ if TYPE_CHECKING:
 def effective_sample_size(
     data_root: str | Path,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     field_type: str | None = None,
+    run: int = 1,
 ) -> dict[str, float]:
     """Effective number of independent field observations, given the repetition.
 
@@ -49,7 +49,7 @@ def effective_sample_size(
             continue
         ontology_fields = assay.ontology_fields()
 
-        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, run_type)):
+        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition, run=run)):
             if predicted is None:
                 continue
             for field_name, gold_val in gold.items():

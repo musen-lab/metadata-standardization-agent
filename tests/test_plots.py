@@ -25,9 +25,9 @@ from plots.marks import (  # noqa: E402
     NO_COLOR_EDGE_WIDTH,
     NO_COLOR_INK_DIAMETER,
     NO_COLOR_OUTLINE_REACH,
+    _condition_marks,
     _mark_style,
     _no_color_marker_size,
-    _run_marks,
 )
 from plots.segments import (  # noqa: E402
     CATEGORY_RAMP,
@@ -164,28 +164,28 @@ class TestNoColorMarkerSize:
         # measured off a render, so a change in how matplotlib strokes a border is caught
         # here rather than in a figure nobody re-measures.  The solid mark's white border
         # is invisible against the page, so what is measured is the black either way.
-        marks = dict(_run_marks(("baseline",), ("arms-agent",), no_color=True))
+        marks = dict(_condition_marks(("baseline",), ("arms-agent",), no_color=True))
         widths = []
         for marker in FIELD_TYPE_MARKERS.values():
-            for run in ("baseline", "arms-agent"):
-                widths.extend(_drawn_extent(marker, _mark_style(marks[run], marker)))
+            for condition in ("baseline", "arms-agent"):
+                widths.extend(_drawn_extent(marker, _mark_style(marks[condition], marker)))
         # Within a third of a point of each other and of what they are aiming at: below
         # what a reader can see, and above the pixel the measurement is quantised to.
         assert max(widths) - min(widths) < 0.34, sorted(widths)
         assert max(abs(width - NO_COLOR_INK_DIAMETER) for width in widths) < 0.34, sorted(widths)
 
     def test_the_two_groups_take_the_two_fills(self) -> None:
-        # Two runs in the baseline group -- two repetitions of it, say -- so the fill is
-        # shown to belong to the group rather than to the run.
-        marks = dict(_run_marks(("baseline", "baseline-2"), ("arms-agent",), no_color=True))
+        # Two conditions in the baseline group -- an ablation beside it, say -- so the fill is
+        # shown to belong to the group rather than to the condition.
+        marks = dict(_condition_marks(("baseline", "template-tool"), ("arms-agent",), no_color=True))
         assert marks["baseline"].fill is False
-        assert marks["baseline-2"].fill is False
+        assert marks["template-tool"].fill is False
         assert marks["arms-agent"].fill is True
 
-    def test_colour_on_leaves_one_size_for_every_run(self) -> None:
+    def test_colour_on_leaves_one_size_for_every_condition(self) -> None:
         # The giveback is a no-colour concern only: in colour both groups are filled, so
         # neither is spending a border on ink and the sizes have nothing to reconcile.
-        marks = dict(_run_marks(("baseline", "baseline-2"), ("arms-agent",), no_color=False))
+        marks = dict(_condition_marks(("baseline", "template-tool"), ("arms-agent",), no_color=False))
         assert {mark.fill for mark in marks.values()} == {None}
         assert len({mark.style["markersize"] for mark in marks.values()}) == 1
 
@@ -311,7 +311,7 @@ class TestSpreadLabels:
 
     def test_more_labels_than_room_come_back_evenly_spaced(self) -> None:
         # Not a case this figure reaches, but the fallback has to be defined: sliding the
-        # run left far enough would otherwise take it off the left edge instead.
+        # condition left far enough would otherwise take it off the left edge instead.
         placed = _spread_labels([0.9] * 12, min_gap=0.1, upper=1.0)
         assert placed[0] >= 0.0
         assert all(b - a >= 0.1 - 1e-9 for a, b in zip(placed, placed[1:], strict=False))

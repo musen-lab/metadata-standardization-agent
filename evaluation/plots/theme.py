@@ -1,7 +1,7 @@
 """The page every figure is drawn on: its greys, its type, and how it is finished.
 
 Nothing here says what a figure *means*.  The encodings live beside the marks they make --
-:mod:`plots.marks` for the runs, :mod:`plots.segments` for the stacked bars -- and what is
+:mod:`plots.marks` for the conditions, :mod:`plots.segments` for the stacked bars -- and what is
 collected here is everything a reader is not supposed to notice: the grid, the frame, the
 tick colours, the sizes of type, and the one place a finished figure is written or shown.
 

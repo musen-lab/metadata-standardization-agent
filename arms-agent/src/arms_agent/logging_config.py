@@ -50,6 +50,25 @@ def _summarize(value: Any) -> str:
     return text
 
 
+#: What :meth:`~arms_agent.cache.SqliteCache.get` adds to a cache hit.  Logged here, then
+#: dropped, so a cached answer reaches the model exactly as the fresh one did.
+_CACHE_METADATA = ("_cached", "_cache_age_seconds")
+
+
+def _log_result(logger: logging.Logger, name: str, result: Any) -> Any:
+    """Log a tool's *result* and return it as the model should see it.
+
+    A cache hit is logged with its age, then returned without the cache's own
+    bookkeeping keys: the model must not be able to tell a cached answer from a fresh
+    one, or two runs of the same record would see different tool output.
+    """
+    if isinstance(result, dict) and result.get("_cached"):
+        logger.debug("%s cache hit (age=%.1fs): %s", name, result.get("_cache_age_seconds", 0), _summarize(result))
+        return {key: value for key, value in result.items() if key not in _CACHE_METADATA}
+    logger.debug("%s returned: %s", name, _summarize(result))
+    return result
+
+
 def log_tool_call(func):
     """Decorator that logs tool function calls, results, and exceptions."""
     _logger = logging.getLogger(func.__module__)
@@ -64,16 +83,7 @@ def log_tool_call(func):
             except Exception:
                 _logger.exception("Exception in %s", func.__name__)
                 raise
-            if isinstance(result, dict) and result.get("_cached"):
-                _logger.debug(
-                    "%s cache hit (age=%.1fs): %s",
-                    func.__name__,
-                    result.get("_cache_age_seconds", 0),
-                    _summarize(result),
-                )
-            else:
-                _logger.debug("%s returned: %s", func.__name__, _summarize(result))
-            return result
+            return _log_result(_logger, func.__name__, result)
 
         return async_wrapper
 
@@ -85,15 +95,6 @@ def log_tool_call(func):
         except Exception:
             _logger.exception("Exception in %s", func.__name__)
             raise
-        if isinstance(result, dict) and result.get("_cached"):
-            _logger.debug(
-                "%s cache hit (age=%.1fs): %s",
-                func.__name__,
-                result.get("_cache_age_seconds", 0),
-                _summarize(result),
-            )
-        else:
-            _logger.debug("%s returned: %s", func.__name__, _summarize(result))
-        return result
+        return _log_result(_logger, func.__name__, result)
 
     return wrapper

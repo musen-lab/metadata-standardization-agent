@@ -44,6 +44,64 @@ def _sum_usage(trackers: Iterable[TokenUsageTracker]) -> TokenUsageTracker:
     return combined
 
 
+def _is_run_dir(path: Path) -> bool:
+    """Whether *path* is one of a repeated condition's ``run-<n>`` directories."""
+    number = path.name.removeprefix("run-")
+    return path.name.startswith("run-") and number.isdigit()
+
+
+def _holds_predictions(directory: Path) -> bool:
+    return directory.is_dir() and any(directory.glob("*.json"))
+
+
+def find_output_clashes(output_dirs: Iterable[Path]) -> tuple[list[Path], list[Path]]:
+    """The directories in *output_dirs* that cannot be written as they are: ``(mixed, occupied)``.
+
+    *occupied* already hold predictions, which writing would overwrite.  *mixed* would put
+    both layouts in one condition directory -- a ``run-<n>`` directory whose condition
+    directory holds a single run of its own, or a condition directory that already holds
+    ``run-<n>`` directories -- and then a reader could not tell which is run 1.  A
+    directory that does not exist yet, or exists but is empty, clashes with nothing.
+    """
+    mixed: list[Path] = []
+    occupied: list[Path] = []
+    for output_dir in output_dirs:
+        if _is_run_dir(output_dir):
+            if _holds_predictions(output_dir.parent):
+                mixed.append(output_dir)
+        elif output_dir.is_dir() and any(child.is_dir() and _is_run_dir(child) for child in output_dir.iterdir()):
+            mixed.append(output_dir)
+        if _holds_predictions(output_dir):
+            occupied.append(output_dir)
+    return mixed, occupied
+
+
+def refuse_output_clashes(output_dirs: Iterable[Path], *, overwrite: bool = False, hint: str = "") -> None:
+    """Raise before anything is written if writing to *output_dirs* would lose or confuse predictions.
+
+    Predictions already there are overwritten only when *overwrite* is true.  Mixing the two
+    layouts in one condition directory is refused either way, since no reader could then
+    tell which run is run 1.  *hint* is added to the message about occupied directories:
+    what the caller can do instead.
+
+    Raises:
+        ValueError: Naming every directory that clashes.
+    """
+    mixed, occupied = find_output_clashes(output_dirs)
+    if mixed:
+        raise ValueError(
+            "Writing here would put a single run and numbered runs in one condition folder, and the "
+            "analyses could not tell which is run 1.  Move or delete one of them first:\n  "
+            + "\n  ".join(str(path) for path in mixed)
+        )
+    if occupied and not overwrite:
+        raise ValueError(
+            "These folders already hold predictions, and nothing is overwritten unless asked.  "
+            f"{hint}Move or delete them first, or pass overwrite=True to replace them:\n  "
+            + "\n  ".join(str(path) for path in occupied)
+        )
+
+
 def run_experiment(
     template_iri: str,
     input_dir: Path,
@@ -53,6 +111,7 @@ def run_experiment(
     *,
     config: dict[str, Any] | None = None,
     max_concurrency: int = 5,
+    overwrite: bool = False,
 ) -> list[Path]:
     """Run the migration workflow on all JSON files in *input_dir*.
 
@@ -64,8 +123,13 @@ def run_experiment(
     Token usage and estimated cost are recorded per file under
     ``<output_dir>/usage/``, with the sweep total in ``usage/_sweep_total.json``.
 
+    Nothing already in *output_dir* is overwritten unless *overwrite* is true, and a single
+    run is never written beside numbered ones: :func:`refuse_output_clashes` raises before
+    the first record is migrated.
+
     Returns the list of output file paths that were written.
     """
+    refuse_output_clashes([output_dir], overwrite=overwrite)
     input_files = sorted(input_dir.glob("*.json"))
     if not input_files:
         logger.warning("No *.json files found in %s", input_dir)

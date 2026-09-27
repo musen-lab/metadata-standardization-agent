@@ -6,23 +6,33 @@ Measures the quality of agent-predicted metadata against gold-standard reference
 
 The recommended way to run evaluations and explore results is the `experiment.ipynb` notebook in the repository root. It provides an interactive workflow for:
 
-- Running the method evaluations (prompt-only and agent-tool) across all assay types
+- Running the method evaluations (prompt-only and ARMS) across all assay types
 - Computing per-assay and overall accuracy summaries
-- Plotting grouped bar charts comparing baseline vs agent-tool
+- Plotting grouped bar charts comparing baseline vs ARMS
 - Generating error analysis reports
 
-Open the notebook and follow the configuration cells to set your `DATA_ROOT`, `MODEL`, `ASSAYS` and `RUN_TYPES`. Run it from the repository root: its setup cell puts this directory on the import path so the modules below can be imported by name.
+Open the notebook and follow the configuration cells to set your `DATA_ROOT`, `MODEL`, `ASSAYS` and `CONDITIONS`. Run it from the repository root: its setup cell puts this directory on the import path so the modules below can be imported by name.
 
 Running the experiments is two calls, both from `[sweep.py](sweep.py)`:
 
 ```python
 from sweep import plan_sweep, run_sweep
 
-plan = plan_sweep(DATA_ROOT, MODEL, assays=ASSAYS, run_types=RUN_TYPES)
-run_sweep(plan, dry_run=False)
+plan = plan_sweep(DATA_ROOT, MODEL, assays=ASSAYS, conditions=CONDITIONS)
+run_sweep(plan, dry_run=False)             # one run, into each <condition>/
+run_sweep(plan, n_repeat=5, dry_run=False) # the whole plan five times, into <condition>/run-1/ .. run-5/
+run_sweep(plan, n_repeat=2, first_run=2, dry_run=False)  # two more beside an existing run-1: run-2/, run-3/
 ```
 
-`plan_sweep` loads the API keys from `.env` and prints what the sweep covers. It raises on an unknown assay, an unknown condition, an assay with no input records, or a missing key — before anything is spent. `run_sweep` then makes the runs, one at a time, every condition of one assay before the next assay starts. It spends nothing while `dry_run` stands, which is its default.
+`plan_sweep` loads the API keys from `.env` and prints what the sweep covers. It raises on an unknown assay, an unknown condition, an assay with no input records, or a missing key — before anything is spent. `run_sweep` then runs the jobs (one job is one assay under one condition), one at a time, every condition of one assay before the next assay starts. It spends nothing while `dry_run` stands, which is its default.
+A single run writes each job straight into its condition's directory, as the CLI does.
+With `n_repeat=N` above 1 it makes N runs of the whole plan instead, finishing each run before starting the next, and writes run *n* to `<condition>/run-<n>/`.
+`first_run` numbers new runs after ones already on disk.
+Nothing already written is overwritten unless you pass `overwrite=True`: a sweep that would write where predictions already are is refused before it spends anything, and names the `first_run` that follows the last run there.
+The CLI follows the same rule, with `--overwrite`, and asks before it replaces anything.
+A condition directory holds one layout or the other: `run_sweep` refuses, before spending anything, to write one run where `run-<n>` directories already are, or several where a single run already is.
+Every analysis function reads run 1 unless given `run=<n>`, finding it in whichever layout the condition has, for example `create_overall_precision_recall_summary(DATA_ROOT, MODEL, "arms-agent", run=2)`.
+Two views read several runs at once: `create_run_spread_summary(DATA_ROOT, MODEL, "arms-agent", runs=(1, 2, 3))` gives precision and recall per assay as the mean with the lowest and highest run (`notebook_utils.show_run_spread` prints it for several conditions), and `plot_field_stability(DATA_ROOT, MODEL, runs=(1, 2, 3))` shows, per assay, how often each condition gives the same answer to a field in every run.
 
 ## Directory Conventions
 
@@ -44,15 +54,17 @@ DATA_ROOT/
 │   └── output/
 │       └── <MODEL>/              # e.g., "gpt5mini"
 │           ├── baseline/                 # Prompt-only: field and vocabulary names
-│           │   ├── atacseq-<hash>.json
+│           │   ├── atacseq-<hash>.json   # Run once: the predictions sit here
 │           │   └── ...
 │           ├── template-tool/            # Ablation: template fetch, no term search
 │           │   └── ...
 │           ├── term-tool/                # Ablation: term search, no template fetch
 │           │   └── ...
 │           └── arms-agent/               # Agent tool: both
-│               ├── atacseq-<hash>.json
-│               └── ...
+│               ├── run-1/                # Run several times: one directory per run
+│               │   ├── atacseq-<hash>.json
+│               │   └── ...
+│               └── run-2/ ...
 ├── lcms/
 │   ├── input/ ...
 │   ├── gold/ ...
@@ -118,7 +130,7 @@ CONDITION = Condition(
 
 The parameters of `Condition`:
 
-- `name`: what `--condition` and `RUN_TYPES` take, and the name of the output directory. It must be unique across all conditions.
+- `name`: what `--condition` and `CONDITIONS` take, and the name of the output directory. It must be unique across all conditions.
 - `build_workflow`: a function taking `model` and `template_iri` that returns the compiled graph to run.
 - `build_user_prompt`: a function taking the legacy record and the template IRI that returns the user message. It may be imported from another condition.
 - `requires_keys` (optional): environment variables the condition needs beyond `OPENAI_API_KEY` and `CEDAR_API_KEY`. `plan_sweep` stops before any run if one is missing.
@@ -134,19 +146,20 @@ You can also run standardizations from the command line:
 
 ```bash
 python -m evaluation --input <dir> --target-schema <iri> --output <parent-dir> \
-    --condition CONDITION [--run-name NAME] \
+    --condition CONDITION \
     [--model MODEL] [--concurrent N] [--langfuse-environment NAME] \
-    [--debug]
+    [--overwrite [--yes]] [--debug]
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--input DIR` | Directory containing input JSON files |
 | `--target-schema IRI` | IRI of the CEDAR template to standardize to |
-| `--output DIR` | Parent directory for the migrated output JSON files. The run writes to `DIR/<run name>/` |
+| `--output DIR` | Parent directory for the migrated output JSON files. The run writes to `DIR/<condition>/` |
 | `--condition CONDITION` | Which condition to run. The choices are the modules declared under `conditions/`, so a module dropped in is offered here without this flag changing |
-| `--run-name NAME` | What to call this run: the output subdirectory and the trace tag (default: the condition's own name). Use it to keep a repeat run beside the first |
 | `--model MODEL` | GPT model variant: `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol` (default: `gpt-5.6-terra`) |
 | `--concurrent N` | Max number of concurrent file evaluations (default: `5`) |
 | `--langfuse-environment NAME` | Langfuse tracing environment to file this run under (overrides `.env` setting) |
+| `--overwrite` | Replace predictions already in `DIR/<condition>/`. It first says how many it would replace and asks to confirm; anything but `y` stops the run. Without it the run is refused before it starts; a folder holding a sweep's `run-<n>` folders is refused either way |
+| `--yes` | Answer yes to `--overwrite`'s confirmation, for a script with no one to ask. Without it, a script's closed input counts as no |
 | `--debug` | Enable debug logging to stderr |

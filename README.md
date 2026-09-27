@@ -26,7 +26,7 @@ The agent is a standalone package under `arms-agent/`, published to PyPI as [arm
 |---|---|
 | Expert-curated gold standard | `data/<assay>/gold/` |
 | Legacy input records | `data/<assay>/input/`|
-| Baseline output | `data/<assay>/output/<model>/baseline/` |
+| Baseline output | `data/<assay>/output/<model>/baseline/` (`run-<n>/` in it for repeated runs) |
 | ARMS output | `data/<assay>/output/<model>/arms-agent/` |
 | Ablation outputs (template tool only, term search only) | `data/<assay>/output/<model>/{template-tool,term-tool}/` |
 
@@ -56,8 +56,8 @@ To regenerate predictions (this calls the OpenAI, CEDAR, and BioPortal APIs), cr
 uv run python -m evaluation \
   --input data/atacseq/input \
   --target-schema https://repo.metadatacenter.org/templates/dd5e8653-81cf-470b-b71b-15cab421bb84 \
-  --output data/atacseq/output/gpt5mini \
-  --model gpt-5-mini --concurrent 8 --condition arms-agent
+  --output data/atacseq/output/gpt-5.6-terra \
+  --model gpt-5.6-terra --concurrent 8 --condition arms-agent
 ```
 
 ### Tracing agent runs (optional)

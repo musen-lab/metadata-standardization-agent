@@ -3,15 +3,17 @@
 Usage::
 
     evaluate --input <dir> --target-schema <iri> --output <parent-dir> \
-        --condition CONDITION [--run-name NAME] \
+        --condition CONDITION \
         [--model MODEL] [--concurrent N] [--langfuse-environment NAME] \
-        [--debug]
+        [--overwrite [--yes]] [--debug]
 
 ``--condition`` takes any condition declared under ``conditions/``; the list is read
 from there rather than written down here, so a module dropped in is offered without
-this file changing.  The run is named after it, unless ``--run-name`` says otherwise:
-that name tags the trace and is the subdirectory of ``--output`` the predictions are
-written to.
+this file changing.  The predictions are written to ``<--output>/<condition>/``: the CLI
+always makes one run, and repeats are a sweep's business (``sweep.run_sweep``).  A folder
+that already holds predictions is refused unless ``--overwrite`` is given, and even then the
+CLI says how many predictions it is about to replace and asks before going on (``--yes``
+answers for a script).  A folder holding a sweep's ``run-<n>`` folders is refused either way.
 """
 
 from __future__ import annotations
@@ -28,6 +30,25 @@ from dotenv import load_dotenv
 # Load environment variables from .env (project root)
 _project_root = Path(__file__).resolve().parents[1]
 load_dotenv(_project_root / ".env", override=True)
+
+
+def _confirm_overwrite(output_dir: Path) -> bool:
+    """Ask before --overwrite replaces predictions, and say yes only to an explicit yes.
+
+    Asks only when there is something to replace.  With no one to answer -- stdin closed or
+    empty, as in a script -- the answer is no: replacing results is never the default.
+    """
+    predictions = len(list(output_dir.glob("*.json"))) if output_dir.is_dir() else 0
+    if not predictions:
+        return True
+    try:
+        answer = input(
+            f"{output_dir} already holds {predictions} prediction(s); --overwrite will replace them. Continue? [y/N] "
+        )
+    except EOFError:
+        print(file=sys.stderr)
+        return False
+    return answer.strip().lower() in ("y", "yes")
 
 
 def main() -> None:
@@ -47,7 +68,7 @@ def main() -> None:
         "--output",
         required=True,
         type=Path,
-        help="Parent directory for migrated output files.  The run writes to the subdirectory of it named by the run.",
+        help="Parent directory for migrated output files.  The run writes to <output>/<condition>/.",
     )
     # The choices are the declared conditions, so a name outside them is refused here --
     # before the input is read and before anything is spent.
@@ -57,13 +78,6 @@ def main() -> None:
         choices=known,
         help="The condition to run.  Each is a module under conditions/ that declares itself; "
         f"the module says which family it belongs to and what keys it needs.  One of: {', '.join(known)}.",
-    )
-    parser.add_argument(
-        "--run-name",
-        metavar="NAME",
-        help="What to call this run: the subdirectory of --output it writes to, and the tag its "
-        "trace carries (default: the condition's own name).  Name a run to hold a repeat of one "
-        "condition beside the first rather than over it.",
     )
     gpt_models = ["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"]
     parser.add_argument(
@@ -84,6 +98,17 @@ def main() -> None:
         default=None,
         help="Langfuse tracing environment to file this run under, e.g. 'histology-gpt5mini'",
     )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace predictions already in <output>/<condition>/, after asking to confirm.  Without it the run "
+        "is refused before it starts.  A folder holding a sweep's run-<n> folders is refused either way.",
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Answer yes to --overwrite's confirmation, for a script with no one to ask.",
+    )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging to stderr.")
     args = parser.parse_args()
 
@@ -100,14 +125,22 @@ def main() -> None:
     # The template is passed at build time so the answer can be validated against it.
     workflow_factory = partial(condition.build_workflow, model=args.model, template_iri=args.target_schema)
 
-    from evaluate import run_experiment
+    from evaluate import refuse_output_clashes, run_experiment
 
-    # Names the on-disk output directory (data/<assay>/output/<model>/<run_name>/) and is
-    # matched verbatim by the modules under analysis/.  It is the condition's name unless
-    # --run-name overrode it, which is how a repeat run is kept beside the first.
-    run_name = args.run_name or condition.name
-    output_dir = args.output / run_name
-    logging.getLogger(__name__).info("Running condition %s as %s", condition.name, run_name)
+    # The on-disk layout the modules under analysis/ read: data/<assay>/output/<model>/<condition>/.
+    # The CLI makes one run, which lives in the condition's own directory; only a repeated
+    # sweep splits a condition into run-<n> directories.
+    output_dir = args.output / condition.name
+    # Checked here as well as in run_experiment so a clash is reported as a usage error --
+    # exit status 2, with the folder named -- rather than as a traceback.
+    try:
+        refuse_output_clashes([output_dir], overwrite=args.overwrite)
+    except ValueError as clash:
+        parser.error(str(clash).replace("pass overwrite=True", "pass --overwrite"))
+    if args.overwrite and not args.yes and not _confirm_overwrite(output_dir):
+        print(f"Nothing was run: {output_dir} is unchanged.", file=sys.stderr)
+        sys.exit(1)
+    logging.getLogger(__name__).info("Running condition %s", condition.name)
     logging.getLogger(__name__).info("Writing output to %s", output_dir)
     run_experiment(
         template_iri=args.target_schema,
@@ -116,12 +149,13 @@ def main() -> None:
         workflow_factory=workflow_factory,
         user_prompt_builder=condition.build_user_prompt,
         max_concurrency=args.concurrent,
+        overwrite=args.overwrite,
         config={
-            "tags": ["evaluation", run_name],
+            "tags": ["evaluation", condition.name],
             "metadata": {
                 "template_iri": args.target_schema,
-                "workflow_type": run_name,
                 "condition": condition.name,
+                "run": 1,
             },
         },
     )

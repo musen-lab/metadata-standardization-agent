@@ -8,7 +8,9 @@ template's field and vocabulary names and nothing more, and it is what these tab
 compare against ARMS.
 
 Each condition writes to its own directory under ``data/<assay>/output/<model>/``: the
-prompt-only condition under its own name, ARMS under ``agent-tool/``.  The code
+prompt-only condition under ``baseline/``, ARMS under ``arms-agent/``, each holding one
+``run-<n>/`` per run when the condition was run several times, and every function here
+reads run 1 unless given ``run``.  The code
 follows those directories, which is why ``baseline`` and ``arms`` are what the
 parameters, columns and tuple fields below are called.
 
@@ -17,22 +19,20 @@ much of the gap between the two approaches could be an artifact of which records
 happened to be sampled.  It reads the prediction files already on disk (no LLM/API
 calls) and computes:
 
-* **Bootstrap 95% confidence intervals** on per-record accuracy, for the prompt-only
-  run and ARMS separately.
-* **Paired Wilcoxon signed-rank test** on per-record accuracy (same record under
-  both runs).
-* **Paired McNemar test** on per-field correctness (same field of the same record
-  under both runs), reporting ``b`` (only the prompt-only run correct), ``c`` (only
-  ARMS correct), and the p-value.
-* **Record-clustered permutation test** on the same discordant outcomes, but with
-  the record as the independent unit (whole-record label swaps).  Unlike the flat
-  McNemar test, this does not treat duplicated or within-record-correlated fields
-  as independent, so it does not overstate significance.
+* **Bootstrap 95% confidence intervals** on micro precision, recall and F1, for each
+  condition and for the paired difference, resampling whole records.
+* **Record-clustered permutation test** on the difference in precision and recall,
+  swapping whole records between the two conditions, with the per-assay p-values
+  corrected over the table (Holm or Benjamini-Hochberg).
+* **Deduplicated paired tests**, taking the distinct value (recall) or the field
+  (precision) as the unit, so values the corpus repeats are counted once.
+* **Single-condition intervals** on accuracy and precision/recall/F1, for a condition
+  measured on its own.
 
-All four are produced for each of the three field categories used in the paper
-(``ontology``, ``non_ontology``, ``all``) and both per assay and pooled overall.
+Each is produced for the three field categories used in the paper (``ontology``,
+``non_ontology``, ``all``).
 
-Everything is paired -- a record counts only when both runs produced it -- and the
+Everything is paired -- a record counts only when both conditions produced it -- and the
 record, not the field, is the unit of resampling, because the corpus repeats the same
 correction across many records.  :mod:`~analysis.significance.clustering` measures how
 much that repetition costs in independent evidence.
@@ -42,25 +42,15 @@ The modules follow that pipeline:
 * :mod:`~analysis.significance.paired_data` -- one pass over the predictions producing
   every paired view the estimators need.
 * :mod:`~analysis.significance.bootstrap` -- confidence intervals, resampling records.
-* :mod:`~analysis.significance.hypothesis_tests` -- Wilcoxon, McNemar and the
-  record-clustered permutation test.
+* :mod:`~analysis.significance.hypothesis_tests` -- the record-clustered permutation
+  test and the multiple-testing correction.
 * :mod:`~analysis.significance.clustering` -- how much independent evidence the
   repeated corpus actually holds.
 * :mod:`~analysis.significance.tables` -- the reported tables.
-* :mod:`~analysis.significance.cli` -- the command-line entry point.
 
 This package and :mod:`analysis.data_analysis` both walk the corpus through
 :mod:`analysis.corpus`, so an interval and the point estimate it qualifies are computed
 over the same files.
-
-Run from the project root::
-
-    uv run python -m evaluation.analysis.significance --data-root data --model gpt5mini
-    uv run python -m evaluation.analysis.significance --data-root data --model gpt5mini --csv-dir out/
-
-Or, from the ``evaluation/`` directory (same convention as the notebook)::
-
-    uv run python -m analysis.significance --data-root ../data --model gpt5mini
 
 This module re-exports the whole surface, so ``from analysis.significance import ...``
 reaches every name regardless of which module defines it.
@@ -73,11 +63,9 @@ from analysis.significance.bootstrap import (
     bootstrap_ci,
     bootstrap_pooled_accuracy,
     bootstrap_prf,
-    cluster_bootstrap_pooled,
     cluster_bootstrap_prf,
     cluster_bootstrap_prf_delta,
 )
-from analysis.significance.cli import main
 from analysis.significance.clustering import effective_sample_size
 from analysis.significance.deduplicated import (
     DeduplicatedOutcomes,
@@ -87,19 +75,14 @@ from analysis.significance.deduplicated import (
 )
 from analysis.significance.hypothesis_tests import (
     adjust_pvalues,
-    paired_mcnemar,
-    paired_permutation,
     paired_permutation_prf,
-    paired_wilcoxon,
 )
 from analysis.significance.paired_data import CATEGORIES, CATEGORY_LABELS, PairedData, collect_paired_data
-from analysis.significance.single_run import SingleRunData, collect_single_run_data
+from analysis.significance.single_condition import SingleConditionData, collect_single_condition_data
 from analysis.significance.tables import (
-    build_overall_table,
     build_per_assay_precision_recall_table,
-    build_per_assay_table,
     build_precision_recall_table,
-    build_single_run_table,
+    build_single_condition_table,
 )
 
 __all__ = [
@@ -107,29 +90,22 @@ __all__ = [
     "CATEGORY_LABELS",
     "DeduplicatedOutcomes",
     "PairedData",
-    "SingleRunData",
+    "SingleConditionData",
     "_prf_from_sums",
     "adjust_pvalues",
     "bootstrap_ci",
     "bootstrap_pooled_accuracy",
     "bootstrap_prf",
-    "build_overall_table",
     "build_per_assay_precision_recall_table",
-    "build_per_assay_table",
     "build_precision_recall_table",
-    "build_single_run_table",
-    "cluster_bootstrap_pooled",
+    "build_single_condition_table",
     "cluster_bootstrap_prf",
     "cluster_bootstrap_prf_delta",
     "collect_deduplicated_outcomes",
     "collect_paired_data",
-    "collect_single_run_data",
+    "collect_single_condition_data",
     "deduplicated_paired_tests",
     "effective_sample_size",
-    "main",
     "paired_cluster_test",
-    "paired_mcnemar",
-    "paired_permutation",
     "paired_permutation_prf",
-    "paired_wilcoxon",
 ]

@@ -96,9 +96,10 @@ def apply_metrics(input_dir: Path, gold_dir: Path, schema_path: Path) -> pd.Data
 def create_per_assay_accuracy_summary(
     data_root: str,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     decimal_places: int = 2,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Compute average accuracy per assay across all samples.
 
@@ -110,7 +111,7 @@ def create_per_assay_accuracy_summary(
 
     rows: list[dict[str, Any]] = []
     for assay in iter_assays(data_root):
-        df = apply_metrics(assay.output_dir(model, run_type), assay.gold_dir, assay.schema_path)
+        df = apply_metrics(assay.output_dir(model, condition, run=run), assay.gold_dir, assay.schema_path)
         if df.empty:
             continue
         means = df[list(ACCURACY_COLUMNS)].mean()
@@ -126,9 +127,10 @@ def create_per_assay_accuracy_summary(
 def create_overall_accuracy_summary(
     data_root: str,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     decimal_places: int = 2,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Compute aggregate overall accuracy across all assays from raw counts.
 
@@ -142,7 +144,9 @@ def create_overall_accuracy_summary(
 
     tally = _new_tally()
     for assay in iter_assays(data_root):
-        for _pred_file, predicted, gold in iter_predictions(assay.output_dir(model, run_type), assay.gold_dir):
+        for _pred_file, predicted, gold in iter_predictions(
+            assay.output_dir(model, condition, run=run), assay.gold_dir
+        ):
             counts = _compute_field_counts(predicted, gold, assay.schema_path)
             for key in _TALLY_KEYS:
                 tally[key] += counts[key]

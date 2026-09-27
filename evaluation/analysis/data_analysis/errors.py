@@ -43,10 +43,11 @@ _REPORT_COLUMNS = ["error_type", "field_type", "expected_value", "predicted_valu
 def analyze_prediction_errors(
     data_root: str,
     model: str,
-    run_type: str = "baseline",
+    condition: str = "baseline",
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Return a DataFrame of field-level prediction errors.
 
@@ -61,13 +62,15 @@ def analyze_prediction_errors(
         and model outputs.
     model:
         Model name to evaluate (e.g. ``"gpt5mini"``).
-    run_type:
+    condition:
         Output sub-directory under each model: the prompt-only condition
-        (``"baseline"``) or ``"agent-tool"``.
+        (``"baseline"``) or ``"arms-agent"``.
     match_case:
         Whether string comparison is case-sensitive.
     match_whole_word:
         Whether to require exact match (``True``) or substring containment.
+    run:
+        Which run of *condition* to read: ``run-<run>`` under its directory.
     """
     import pandas as pd
 
@@ -78,7 +81,7 @@ def analyze_prediction_errors(
             continue
         ontology_fields = assay.ontology_fields()
 
-        for gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, run_type)):
+        for gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition, run=run)):
             if predicted is None:
                 continue
             for field, gold_val in gold.items():
@@ -112,10 +115,11 @@ def analyze_prediction_errors(
 def create_error_report(
     data_root: str,
     model: str,
-    run_type: str = "baseline",
+    condition: str = "baseline",
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Aggregate field-level prediction errors into a summary report.
 
@@ -132,9 +136,10 @@ def create_error_report(
     errors_df = analyze_prediction_errors(
         data_root,
         model,
-        run_type,
+        condition,
         match_case=match_case,
         match_whole_word=match_whole_word,
+        run=run,
     )
 
     if errors_df.empty:

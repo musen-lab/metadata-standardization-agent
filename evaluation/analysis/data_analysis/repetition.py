@@ -45,9 +45,10 @@ def _macro_over_clusters(clusters: dict[ValueKey, list[int]]) -> tuple[float, in
 def create_deduplicated_accuracy_summary(
     data_root: str,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     populated_only: bool = False,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Accuracy with each unique correction counted once, controlling for repetition.
 
@@ -73,7 +74,7 @@ def create_deduplicated_accuracy_summary(
             continue
         ontology_fields = assay.ontology_fields()
 
-        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, run_type)):
+        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition, run=run)):
             if predicted is None:
                 continue
             for field, gold_val in gold.items():
@@ -108,7 +109,9 @@ def create_deduplicated_accuracy_summary(
 def _accumulate_value_clusters(
     assays: Iterable[Assay],
     model: str,
-    run_type: str,
+    condition: str,
+    *,
+    run: int = 1,
 ) -> tuple[dict[str, dict[ValueKey, list[int]]], dict[str, dict[ValueKey, list[int]]], int]:
     """Cluster every field instance of *assays* by the value it turns on.
 
@@ -132,7 +135,7 @@ def _accumulate_value_clusters(
             continue
         ontology_fields = assay.ontology_fields()
 
-        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, run_type)):
+        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition, run=run)):
             if predicted is None:
                 n_skipped += 1
                 continue
@@ -190,9 +193,10 @@ def _deduplicated_rows(
 def create_deduplicated_precision_recall_summary(
     data_root: str,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     decimal_places: int = 3,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Precision and recall with each distinct value counted once.
 
@@ -223,13 +227,15 @@ def create_deduplicated_precision_recall_summary(
     """
     import pandas as pd
 
-    recall_clusters, precision_clusters, n_skipped = _accumulate_value_clusters(iter_assays(data_root), model, run_type)
+    recall_clusters, precision_clusters, n_skipped = _accumulate_value_clusters(
+        iter_assays(data_root), model, condition, run=run
+    )
     if n_skipped:
         logger.warning(
             "Deduplicated precision/recall skipped %d gold record(s) with no %s/%s prediction",
             n_skipped,
             model,
-            run_type,
+            condition,
         )
     return pd.DataFrame(_deduplicated_rows(recall_clusters, precision_clusters, decimal_places))
 
@@ -237,9 +243,10 @@ def create_deduplicated_precision_recall_summary(
 def create_per_assay_deduplicated_precision_recall_summary(
     data_root: str,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     decimal_places: int = 3,
+    run: int = 1,
 ) -> pd.DataFrame:
     """:func:`create_deduplicated_precision_recall_summary`, broken out per assay.
 
@@ -253,14 +260,14 @@ def create_per_assay_deduplicated_precision_recall_summary(
 
     frames = []
     for assay in iter_assays(data_root):
-        if not assay.has_gold or not any(assay.output_dir(model, run_type).glob("*.json")):
+        if not assay.has_gold or not any(assay.output_dir(model, condition, run=run).glob("*.json")):
             continue
-        recall_clusters, precision_clusters, _skipped = _accumulate_value_clusters([assay], model, run_type)
+        recall_clusters, precision_clusters, _skipped = _accumulate_value_clusters([assay], model, condition, run=run)
         rows = _deduplicated_rows(recall_clusters, precision_clusters, decimal_places)
         frames.append(pd.DataFrame(rows).assign(assay=assay.label))
 
     if not frames:
-        logger.warning("No assay had both gold records and %s/%s predictions", model, run_type)
+        logger.warning("No assay had both gold records and %s/%s predictions", model, condition)
         return pd.DataFrame(columns=["assay", "category"])
     return pd.concat(frames, ignore_index=True)
 
@@ -284,9 +291,10 @@ def _count_value_frequencies(data_root: str, field_type: str | None) -> dict[Val
 def create_frequency_split_accuracy_summary(
     data_root: str,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     field_type: str | None = None,
+    run: int = 1,
 ) -> pd.DataFrame:
     """Instance-weighted accuracy split by how often each value recurs.
 
@@ -308,7 +316,7 @@ def create_frequency_split_accuracy_summary(
             continue
         ontology_fields = assay.ontology_fields()
 
-        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, run_type)):
+        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition, run=run)):
             if predicted is None:
                 continue
             for field, gold_val in gold.items():

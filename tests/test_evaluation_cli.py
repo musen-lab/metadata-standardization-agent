@@ -27,16 +27,16 @@ _CONDITIONS = [
     ["--condition", "arms-agent"],
 ]
 
-# --output is the parent; the leaf directory is the run's name, which is the condition's
-# own name unless --run-name gave it another.
-_RUN_DIRECTORIES = [
+# --output is the parent; below it is the condition's name, which holds the CLI's one run.
+_CONDITION_DIRECTORIES = [
     (["--condition", "baseline"], "baseline"),
     (["--condition", "arms-agent"], "arms-agent"),
-    (["--condition", "arms-agent", "--run-name", "arms-agent-r2"], "arms-agent-r2"),
 ]
 
 
-def _run_cli(tmp_path: Path, workflow_args: list[str]) -> subprocess.CompletedProcess[str]:
+def _run_cli(
+    tmp_path: Path, workflow_args: list[str], *, answer: str | None = None
+) -> subprocess.CompletedProcess[str]:
     """Run the evaluation CLI over an empty input directory.
 
     An empty directory makes ``run_experiment`` return before it builds a
@@ -57,7 +57,9 @@ def _run_cli(tmp_path: Path, workflow_args: list[str]) -> subprocess.CompletedPr
         str(tmp_path / "output"),
         *workflow_args,
     ]
-    return subprocess.run(command, cwd=_PROJECT_ROOT, capture_output=True, text=True, timeout=120, check=False)
+    # *answer* is typed at any prompt; without one stdin is closed, as for a script.
+    stdin = {"input": answer} if answer is not None else {"stdin": subprocess.DEVNULL}
+    return subprocess.run(command, cwd=_PROJECT_ROOT, capture_output=True, text=True, timeout=120, check=False, **stdin)
 
 
 @pytest.mark.parametrize("workflow_args", _CONDITIONS, ids=" ".join)
@@ -75,11 +77,13 @@ def test_condition_reaches_the_runner(tmp_path: Path, workflow_args: list[str]) 
     assert "No *.json files found" in result.stderr, result.stderr
 
 
-@pytest.mark.parametrize(("workflow_args", "run_directory"), _RUN_DIRECTORIES, ids=lambda arg: str(arg))
-def test_output_goes_under_the_run_name(tmp_path: Path, workflow_args: list[str], run_directory: str) -> None:
-    """The run writes to <--output>/<run name>, not to --output itself."""
+@pytest.mark.parametrize(("workflow_args", "condition_directory"), _CONDITION_DIRECTORIES, ids=lambda arg: str(arg))
+def test_output_goes_under_the_condition_as_run_1(
+    tmp_path: Path, workflow_args: list[str], condition_directory: str
+) -> None:
+    """The run writes to <--output>/<condition>, not to --output itself nor to a run-<n> directory."""
     result = _run_cli(tmp_path, workflow_args)
-    assert str(tmp_path / "output" / run_directory) in result.stderr, result.stderr
+    assert f"Writing output to {tmp_path / 'output' / condition_directory}\n" in result.stderr, result.stderr
 
 
 def test_a_condition_is_required(tmp_path: Path) -> None:
@@ -106,8 +110,70 @@ def test_the_declared_conditions_are_offered(tmp_path: Path) -> None:
     assert "--condition {baseline,template-tool,term-tool,arms-agent}" in usage, result.stdout
 
 
-def test_a_run_name_does_not_change_the_condition(tmp_path: Path) -> None:
-    """--run-name names the output; it must not be read as a condition of its own."""
+def test_there_is_no_run_name(tmp_path: Path) -> None:
+    """The output directory is always the condition's: repeats are the sweep's, in run-<n> directories."""
     result = _run_cli(tmp_path, ["--condition", "baseline", "--run-name", "arms-agent"])
+    assert result.returncode != 0
+    assert "unrecognized arguments: --run-name" in result.stderr, result.stderr
+
+
+def _occupied(tmp_path: Path) -> Path:
+    """An output folder for baseline already holding one prediction."""
+    condition_dir = tmp_path / "output" / "baseline"
+    condition_dir.mkdir(parents=True)
+    (condition_dir / "record.json").write_text('{"kept": true}')
+    return condition_dir
+
+
+def test_a_folder_holding_predictions_is_refused_without_overwrite(tmp_path: Path) -> None:
+    """Nothing is overwritten by accident: the run stops before it starts, and says how to proceed."""
+    _occupied(tmp_path)
+    refused = _run_cli(tmp_path, ["--condition", "baseline"])
+    assert refused.returncode == 2
+    assert "already hold predictions" in refused.stderr, refused.stderr
+    assert "pass --overwrite" in refused.stderr, refused.stderr
+
+
+def test_overwrite_asks_first_and_goes_on_at_yes(tmp_path: Path) -> None:
+    _occupied(tmp_path)
+    result = _run_cli(tmp_path, ["--condition", "baseline", "--overwrite"], answer="y\n")
+    assert "already holds 1 prediction(s); --overwrite will replace them. Continue? [y/N]" in result.stdout
     assert result.returncode == 0, result.stderr
-    assert "Running condition baseline as arms-agent" in result.stderr, result.stderr
+    assert "No *.json files found" in result.stderr, "it went on to the run"
+
+
+@pytest.mark.parametrize("answer", ["n\n", "\n", "maybe\n"])
+def test_anything_but_yes_leaves_the_folder_alone(tmp_path: Path, answer: str) -> None:
+    condition_dir = _occupied(tmp_path)
+    result = _run_cli(tmp_path, ["--condition", "baseline", "--overwrite"], answer=answer)
+    assert result.returncode == 1
+    assert "Nothing was run" in result.stderr, result.stderr
+    assert (condition_dir / "record.json").read_text() == '{"kept": true}'
+
+
+def test_with_no_one_to_ask_the_answer_is_no(tmp_path: Path) -> None:
+    """A script with stdin closed cannot confirm, so nothing is replaced."""
+    _occupied(tmp_path)
+    result = _run_cli(tmp_path, ["--condition", "baseline", "--overwrite"])
+    assert result.returncode == 1
+    assert "Nothing was run" in result.stderr, result.stderr
+
+
+def test_yes_answers_for_a_script(tmp_path: Path) -> None:
+    _occupied(tmp_path)
+    result = _run_cli(tmp_path, ["--condition", "baseline", "--overwrite", "--yes"])
+    assert result.returncode == 0, result.stderr
+    assert "Continue?" not in result.stdout
+
+
+def test_nothing_to_replace_means_nothing_to_ask(tmp_path: Path) -> None:
+    result = _run_cli(tmp_path, ["--condition", "baseline", "--overwrite"])
+    assert result.returncode == 0, result.stderr
+    assert "Continue?" not in result.stdout
+
+
+def test_a_folder_holding_numbered_runs_is_refused_even_with_overwrite(tmp_path: Path) -> None:
+    (tmp_path / "output" / "baseline" / "run-1").mkdir(parents=True)
+    result = _run_cli(tmp_path, ["--condition", "baseline", "--overwrite"])
+    assert result.returncode == 2
+    assert "a single run and numbered runs" in result.stderr, result.stderr

@@ -42,12 +42,13 @@ AVAILABILITY_COLUMNS = ["assay", "field_type", "availability", "n_gold_values", 
 def create_availability_summary(
     data_root: str | Path,
     model: str,
-    run_type: str,
+    condition: str,
     *,
     match_case: bool = True,
     match_whole_word: bool = True,
+    run: int = 1,
 ) -> pd.DataFrame:
-    """How often *run_type* gets a field right, by field type and by where gold's value was.
+    """How often *condition* gets a field right, by field type and by where gold's value was.
 
     One row per (assay, field type, availability), holding the number of gold values of
     that kind, how many the run reproduced, and the rate.  Only fields gold actually asks
@@ -66,7 +67,7 @@ def create_availability_summary(
         if not assay.has_gold:
             continue
         ontology_fields = assay.ontology_fields()
-        output_dir = assay.output_dir(model, run_type)
+        output_dir = assay.output_dir(model, condition, run=run)
 
         for gold_path in sorted(assay.gold_dir.glob("*.json")):
             predicted_path = output_dir / gold_path.name

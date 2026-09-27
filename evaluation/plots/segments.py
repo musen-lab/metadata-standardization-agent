@@ -1,7 +1,7 @@
 """How a share becomes a segment of a stacked bar, and how a segment gets its number.
 
 The segments are error categories, which are ordered by how much the error costs to fix,
-so they take a *scale* rather than the pair of hues :mod:`plots.marks` gives the runs: one
+so they take a *scale* rather than the pair of hues :mod:`plots.marks` gives the conditions: one
 hue, light to dark, however many categories there are.  With colour off the scale is spent
 and the pattern carries the distinction instead.
 
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
 
 #: One monotone ramp for the error categories, light to dark in step with how much
-#: the error costs to fix.  A third hue on purpose: blue and orange name *runs* in every
+#: the error costs to fix.  A third hue on purpose: blue and orange name *conditions* in every
 #: other figure, and a reader who learned that would read a coloured segment here as
 #: a condition.  The dark end clears 4.5:1 on white, so a label can sit on it in white.
 CATEGORY_RAMP = ("#BBD5D1", "#7FB0AA", "#4A8A83", "#255F59")

@@ -180,12 +180,12 @@ def get_condition(name: str) -> Condition:
 
 
 def build_condition(
-    run_type: str,
+    condition: str,
 ) -> tuple[Callable[..., CompiledStateGraph], Callable[[dict[str, Any], str], str]]:
-    """Return the workflow builder and the user-prompt builder *run_type* is run with.
+    """Return the workflow builder and the user-prompt builder *condition* is run with.
 
     Args:
-        run_type: One of :func:`condition_names`.
+        condition: One of :func:`condition_names`.
 
     Returns:
         ``(build_workflow, build_user_prompt)``.  The workflow builder takes ``model``
@@ -193,7 +193,7 @@ def build_condition(
         template IRI.
 
     Raises:
-        ValueError: If *run_type* is not a declared condition.
+        ValueError: If *condition* is not a declared condition.
     """
-    condition = get_condition(run_type)
-    return condition.build_workflow, condition.build_user_prompt
+    declared = get_condition(condition)
+    return declared.build_workflow, declared.build_user_prompt
