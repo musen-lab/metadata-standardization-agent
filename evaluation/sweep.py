@@ -173,6 +173,7 @@ def run_sweep(
     plan: SweepPlan,
     *,
     n_repeat: int = 1,
+    first_run: int = 1,
     dry_run: bool = True,
     max_concurrency: int = DEFAULT_CONCURRENCY,
 ) -> None:
@@ -182,30 +183,39 @@ def run_sweep(
     stands: it lists what it would run and stops.  That is the default, so a cell run by
     accident costs nothing.
 
-    With *n_repeat* of 1 each job writes to its condition's own directory, as the CLI
-    does.  Above 1, run *n* writes to ``<condition>/run-<n>/`` instead.  The run is the
-    outermost loop, so every job finishes once before any job runs again, and stopping
-    early leaves every assay and condition with the same number of complete runs.
+    A sweep made once -- *n_repeat* 1, *first_run* 1 -- writes each job to its condition's
+    own directory, as the CLI does.  Otherwise its runs are numbered from *first_run*, and
+    run *n* writes to ``<condition>/run-<n>/``.  So ``n_repeat=3`` makes runs 1 to 3, and
+    ``n_repeat=2, first_run=2`` adds runs 2 and 3 beside a ``run-1`` already there.  The
+    run is the outermost loop, so every job finishes once before any job runs again, and
+    stopping early leaves every assay and condition with the same number of complete runs.
 
-    A condition directory holds one layout or the other, never both, because a reader
-    finds run 1 by looking at which one is there.  So a sweep that would mix them -- one
-    run into a directory holding ``run-<n>`` directories, or several into one holding
-    predictions of its own -- is refused before any job starts, dry run included.
+    Nothing already written is overwritten by a numbered run, and a condition directory
+    holds one layout or the other, never both, because a reader finds run 1 by looking at
+    which one is there.  So a sweep that would write into a ``run-<n>`` directory already
+    holding predictions, or mix the layouts -- one run where ``run-<n>`` directories are,
+    numbered runs where a single run is -- is refused before any job starts, dry run
+    included.
 
     Args:
         plan: A plan from :func:`plan_sweep`.
         n_repeat: How many runs of the whole plan to make.
+        first_run: The number the first of them takes; later runs follow on from it.
         dry_run: While true, list the jobs instead of running them.
         max_concurrency: How many of one job's records are migrated at a time.
 
     Raises:
-        ValueError: If *n_repeat* is less than 1, or the sweep would mix the two layouts
-            in a condition directory.
+        ValueError: If *n_repeat* or *first_run* is less than 1, or the sweep would
+            overwrite a numbered run or mix the two layouts in a condition directory.
     """
     if n_repeat < 1:
         raise ValueError(f"n_repeat must be at least 1, not {n_repeat}.")
-    _refuse_mixed_layouts(plan, n_repeat)
-    runs: list[int | None] = [None] if n_repeat == 1 else list(range(1, n_repeat + 1))
+    if first_run < 1:
+        raise ValueError(f"first_run must be at least 1, not {first_run}.")
+    runs: list[int | None] = (
+        [None] if n_repeat == 1 and first_run == 1 else list(range(first_run, first_run + n_repeat))
+    )
+    _refuse_clashes(plan, runs)
     jobs = [(run, assay, condition) for run in runs for assay, condition in plan.jobs]
 
     if dry_run:
@@ -228,23 +238,47 @@ def run_sweep(
             pool.submit(_run_job, plan, run, assay, condition, max_concurrency).result()
 
 
-def _refuse_mixed_layouts(plan: SweepPlan, n_repeat: int) -> None:
-    """Raise if the sweep would write one layout into a condition directory holding the other."""
-    clashes = []
+def _refuse_clashes(plan: SweepPlan, runs: list[int | None]) -> None:
+    """Raise if the sweep would overwrite a numbered run, or mix the layouts in a condition directory.
+
+    *runs* is ``[None]`` for a single run into the condition's own directory, else the run
+    numbers about to be written.
+    """
+    numbered = runs != [None]
+    mixed: list[Path] = []
+    taken: list[Path] = []
+    highest = 0  # the highest run on disk holding predictions, in any of the plan's conditions
     for assay, condition in plan.jobs:
         condition_dir = plan.output_dir(assay, condition)
         if not condition_dir.is_dir():
             continue
-        has_runs = any(child.is_dir() and child.name.startswith("run-") for child in condition_dir.iterdir())
+        run_dirs = [child for child in condition_dir.iterdir() if child.is_dir() and child.name.startswith("run-")]
+        has_runs = bool(run_dirs)
         has_predictions = any(condition_dir.glob("*.json"))
-        if (n_repeat == 1 and has_runs) or (n_repeat > 1 and has_predictions):
-            clashes.append(condition_dir)
-    if clashes:
-        held = "run-<n> directories" if n_repeat == 1 else "predictions of a single run"
+        for run_dir in run_dirs:
+            number = run_dir.name.removeprefix("run-")
+            if number.isdigit() and any(run_dir.glob("*.json")):
+                highest = max(highest, int(number))
+        if (not numbered and has_runs) or (numbered and has_predictions):
+            mixed.append(condition_dir)
+        if numbered:
+            taken += [
+                plan.output_dir(assay, condition, run)
+                for run in runs
+                if any(plan.output_dir(assay, condition, run).glob("*.json"))
+            ]
+    if mixed:
+        held = "run-<n> directories" if not numbered else "predictions of a single run"
         raise ValueError(
-            f"{'One run' if n_repeat == 1 else f'{n_repeat} runs'} cannot be written where {held} already are, "
+            f"{'One run' if not numbered else 'Numbered runs'} cannot be written where {held} already are, "
             f"or the analyses could not tell which to read.  Move or delete these first:\n  "
-            + "\n  ".join(str(path) for path in clashes)
+            + "\n  ".join(str(path) for path in mixed)
+        )
+    if taken:
+        raise ValueError(
+            "These runs already hold predictions, and a numbered run is never overwritten.  To add runs after "
+            f"the last one on disk pass first_run={highest + 1}; to redo them, move or delete them first:\n  "
+            + "\n  ".join(str(path) for path in taken)
         )
 
 

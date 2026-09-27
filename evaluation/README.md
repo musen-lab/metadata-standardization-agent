@@ -21,11 +21,13 @@ from sweep import plan_sweep, run_sweep
 plan = plan_sweep(DATA_ROOT, MODEL, assays=ASSAYS, conditions=CONDITIONS)
 run_sweep(plan, dry_run=False)             # one run, into each <condition>/
 run_sweep(plan, n_repeat=5, dry_run=False) # the whole plan five times, into <condition>/run-1/ .. run-5/
+run_sweep(plan, n_repeat=2, first_run=2, dry_run=False)  # two more beside an existing run-1: run-2/, run-3/
 ```
 
 `plan_sweep` loads the API keys from `.env` and prints what the sweep covers. It raises on an unknown assay, an unknown condition, an assay with no input records, or a missing key — before anything is spent. `run_sweep` then runs the jobs (one job is one assay under one condition), one at a time, every condition of one assay before the next assay starts. It spends nothing while `dry_run` stands, which is its default.
 A single run writes each job straight into its condition's directory, as the CLI does.
 With `n_repeat=N` above 1 it makes N runs of the whole plan instead, finishing each run before starting the next, and writes run *n* to `<condition>/run-<n>/`.
+`first_run` numbers new runs after ones already on disk, and a numbered run already holding predictions is never overwritten: the sweep refuses and names the `first_run` that follows the last run there.
 A condition directory holds one layout or the other: `run_sweep` refuses, before spending anything, to write one run where `run-<n>` directories already are, or several where a single run already is.
 Every analysis function reads run 1 unless given `run=<n>`, finding it in whichever layout the condition has, for example `create_overall_precision_recall_summary(DATA_ROOT, MODEL, "arms-agent", run=2)`.
 Two views read several runs at once: `create_run_spread_summary(DATA_ROOT, MODEL, "arms-agent", runs=(1, 2, 3))` gives precision and recall per assay as the mean with the lowest and highest run (`notebook_utils.show_run_spread` prints it for several conditions), and `plot_field_stability(DATA_ROOT, MODEL, runs=(1, 2, 3))` shows, per assay, how often each condition gives the same answer to a field in every run.
