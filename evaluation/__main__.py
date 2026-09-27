@@ -5,14 +5,15 @@ Usage::
     evaluate --input <dir> --target-schema <iri> --output <parent-dir> \
         --condition CONDITION \
         [--model MODEL] [--concurrent N] [--langfuse-environment NAME] \
-        [--overwrite] [--debug]
+        [--overwrite [--yes]] [--debug]
 
 ``--condition`` takes any condition declared under ``conditions/``; the list is read
 from there rather than written down here, so a module dropped in is offered without
 this file changing.  The predictions are written to ``<--output>/<condition>/``: the CLI
 always makes one run, and repeats are a sweep's business (``sweep.run_sweep``).  A folder
-that already holds predictions is refused unless ``--overwrite`` is given, and one holding
-a sweep's ``run-<n>`` folders is refused either way.
+that already holds predictions is refused unless ``--overwrite`` is given, and even then the
+CLI says how many predictions it is about to replace and asks before going on (``--yes``
+answers for a script).  A folder holding a sweep's ``run-<n>`` folders is refused either way.
 """
 
 from __future__ import annotations
@@ -29,6 +30,25 @@ from dotenv import load_dotenv
 # Load environment variables from .env (project root)
 _project_root = Path(__file__).resolve().parents[1]
 load_dotenv(_project_root / ".env", override=True)
+
+
+def _confirm_overwrite(output_dir: Path) -> bool:
+    """Ask before --overwrite replaces predictions, and say yes only to an explicit yes.
+
+    Asks only when there is something to replace.  With no one to answer -- stdin closed or
+    empty, as in a script -- the answer is no: replacing results is never the default.
+    """
+    predictions = len(list(output_dir.glob("*.json"))) if output_dir.is_dir() else 0
+    if not predictions:
+        return True
+    try:
+        answer = input(
+            f"{output_dir} already holds {predictions} prediction(s); --overwrite will replace them. Continue? [y/N] "
+        )
+    except EOFError:
+        print(file=sys.stderr)
+        return False
+    return answer.strip().lower() in ("y", "yes")
 
 
 def main() -> None:
@@ -81,8 +101,13 @@ def main() -> None:
     parser.add_argument(
         "--overwrite",
         action="store_true",
-        help="Replace predictions already in <output>/<condition>/.  Without it the run is refused before it "
-        "starts.  A folder holding a sweep's run-<n> folders is refused either way.",
+        help="Replace predictions already in <output>/<condition>/, after asking to confirm.  Without it the run "
+        "is refused before it starts.  A folder holding a sweep's run-<n> folders is refused either way.",
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Answer yes to --overwrite's confirmation, for a script with no one to ask.",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging to stderr.")
     args = parser.parse_args()
@@ -112,6 +137,9 @@ def main() -> None:
         refuse_output_clashes([output_dir], overwrite=args.overwrite)
     except ValueError as clash:
         parser.error(str(clash).replace("pass overwrite=True", "pass --overwrite"))
+    if args.overwrite and not args.yes and not _confirm_overwrite(output_dir):
+        print(f"Nothing was run: {output_dir} is unchanged.", file=sys.stderr)
+        sys.exit(1)
     logging.getLogger(__name__).info("Running condition %s", condition.name)
     logging.getLogger(__name__).info("Writing output to %s", output_dir)
     run_experiment(

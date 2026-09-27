@@ -29,7 +29,7 @@ A single run writes each job straight into its condition's directory, as the CLI
 With `n_repeat=N` above 1 it makes N runs of the whole plan instead, finishing each run before starting the next, and writes run *n* to `<condition>/run-<n>/`.
 `first_run` numbers new runs after ones already on disk.
 Nothing already written is overwritten unless you pass `overwrite=True`: a sweep that would write where predictions already are is refused before it spends anything, and names the `first_run` that follows the last run there.
-The CLI follows the same rule, with `--overwrite`.
+The CLI follows the same rule, with `--overwrite`, and asks before it replaces anything.
 A condition directory holds one layout or the other: `run_sweep` refuses, before spending anything, to write one run where `run-<n>` directories already are, or several where a single run already is.
 Every analysis function reads run 1 unless given `run=<n>`, finding it in whichever layout the condition has, for example `create_overall_precision_recall_summary(DATA_ROOT, MODEL, "arms-agent", run=2)`.
 Two views read several runs at once: `create_run_spread_summary(DATA_ROOT, MODEL, "arms-agent", runs=(1, 2, 3))` gives precision and recall per assay as the mean with the lowest and highest run (`notebook_utils.show_run_spread` prints it for several conditions), and `plot_field_stability(DATA_ROOT, MODEL, runs=(1, 2, 3))` shows, per assay, how often each condition gives the same answer to a field in every run.
@@ -148,7 +148,7 @@ You can also run standardizations from the command line:
 python -m evaluation --input <dir> --target-schema <iri> --output <parent-dir> \
     --condition CONDITION \
     [--model MODEL] [--concurrent N] [--langfuse-environment NAME] \
-    [--overwrite] [--debug]
+    [--overwrite [--yes]] [--debug]
 ```
 
 | Flag | Description |
@@ -160,5 +160,6 @@ python -m evaluation --input <dir> --target-schema <iri> --output <parent-dir> \
 | `--model MODEL` | GPT model variant: `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol` (default: `gpt-5.6-terra`) |
 | `--concurrent N` | Max number of concurrent file evaluations (default: `5`) |
 | `--langfuse-environment NAME` | Langfuse tracing environment to file this run under (overrides `.env` setting) |
-| `--overwrite` | Replace predictions already in `DIR/<condition>/`. Without it the run is refused before it starts; a folder holding a sweep's `run-<n>` folders is refused either way |
+| `--overwrite` | Replace predictions already in `DIR/<condition>/`. It first says how many it would replace and asks to confirm; anything but `y` stops the run. Without it the run is refused before it starts; a folder holding a sweep's `run-<n>` folders is refused either way |
+| `--yes` | Answer yes to `--overwrite`'s confirmation, for a script with no one to ask. Without it, a script's closed input counts as no |
 | `--debug` | Enable debug logging to stderr |
