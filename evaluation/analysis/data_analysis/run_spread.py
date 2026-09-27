@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from analysis.corpus import iter_assays
 from analysis.data_analysis.error_taxonomy import POOLED_ASSAY
 from analysis.data_analysis.precision_recall_tables import (
     create_overall_precision_recall_summary,
@@ -52,7 +53,9 @@ def create_run_spread_summary(
     ``n_records`` is how many records stand behind the row in the first run, and ``range``
     is ``max - min``, how far apart the lowest and highest run landed.
 
-    An assay counts only when every run in *runs* scored it.  Each run is scored exactly
+    An assay counts only when every run in *runs* scored it, so a run with no predictions
+    on disk at all -- not made yet -- leaves the table empty; it is then not scored, which
+    keeps the scoring's warnings about every missing record out of the way.  Each run is scored exactly
     as :func:`~analysis.data_analysis.create_per_assay_precision_recall_summary` scores it,
     so a mean here is the mean of numbers those tables print.
 
@@ -65,6 +68,9 @@ def create_run_spread_summary(
         raise ValueError(f"A spread needs at least two runs, got {list(runs)}.")
     if len(set(runs)) != len(runs):
         raise ValueError(f"Each run may be named once, got {list(runs)}.")
+
+    if any(not _made(data_root, model, condition, run) for run in runs):
+        return pd.DataFrame(columns=SPREAD_COLUMNS)
 
     pooled = {
         run: create_overall_precision_recall_summary(
@@ -111,3 +117,8 @@ def create_run_spread_summary(
                     }
                 )
     return pd.DataFrame(rows, columns=SPREAD_COLUMNS)
+
+
+def _made(data_root: str, model: str, condition: str, run: int) -> bool:
+    """Whether run *run* of *condition* has any predictions on disk, in any assay."""
+    return any(any(assay.output_dir(model, condition, run=run).glob("*.json")) for assay in iter_assays(data_root))

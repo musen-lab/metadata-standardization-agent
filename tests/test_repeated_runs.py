@@ -118,6 +118,13 @@ class TestRunSpread:
         spread = create_run_spread_summary(str(data_root), "m", "baseline", runs=(1, 2), field_types=("all",))
         assert set(spread["field_type"]) == {"all"}
 
+    def test_a_run_not_made_yet_is_not_scored(self, data_root: Path, caplog: pytest.LogCaptureFixture) -> None:
+        """Scoring a run that is not there would warn about every one of its missing records."""
+        with caplog.at_level("WARNING"):
+            spread = create_run_spread_summary(str(data_root), "m", "baseline", runs=(1, 4))
+        assert spread.empty
+        assert caplog.records == []
+
     def test_an_assay_missing_from_a_run_is_left_out(self, data_root: Path) -> None:
         spread = create_run_spread_summary(str(data_root), "m", "baseline", runs=(1, 4))
         assert spread.empty

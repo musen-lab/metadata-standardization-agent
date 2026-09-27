@@ -100,7 +100,8 @@ def show_run_spread(
     if long.empty:
         print(
             f"Nothing to show: no assay has predictions in every one of runs {list(runs)} for "
-            f"{', '.join(conditions)}.  Make the runs first: run_sweep(plan, n_repeat=...)."
+            f"{', '.join(conditions)}.  Make the runs first with run_sweep: n_repeat for how many, first_run to add "
+            "them after runs already on disk."
         )
         return pd.DataFrame(columns=["assay", "field_type"])
     table = (
