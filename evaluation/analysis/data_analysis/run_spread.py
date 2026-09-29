@@ -32,32 +32,31 @@ SPREAD_METRICS = ("precision", "recall")
 
 SPREAD_COLUMNS = ["assay", "field_type", "metric", "n_records", "mean", "min", "max", "range"]
 
+RUN_SCORE_COLUMNS = ["assay", "field_type", "metric", "n_records", "run", "score"]
+
 #: Decimal places kept while the runs are scored, so rounding happens once, on the spread.
 _UNROUNDED = 12
 
 
-def create_run_spread_summary(
+def collect_run_scores(
     data_root: str,
     model: str,
     condition: str,
     *,
     runs: Sequence[int],
     field_types: Sequence[str] = ("ontology", "non_ontology"),
-    decimal_places: int = 3,
 ) -> pd.DataFrame:
-    """Precision and recall of *condition* over *runs*: the mean, the lowest and highest run.
+    """Precision and recall of *condition* in each of *runs*, unrounded: the numbers a spread is taken over.
 
-    One row per (assay, field type, metric), the assays in ``ASSAY_ORDER`` and then a
-    ``POOLED_ASSAY`` row pooled over every record -- pooled, as the single-run tables pool
-    it, rather than averaged over the assays.  Columns are :data:`SPREAD_COLUMNS`:
-    ``n_records`` is how many records stand behind the row in the first run, and ``range``
-    is ``max - min``, how far apart the lowest and highest run landed.
+    One row per (assay, field type, metric, run), the assays in ``ASSAY_ORDER`` and then a
+    ``POOLED_ASSAY`` row pooled over every record.  Columns are :data:`RUN_SCORE_COLUMNS`:
+    ``n_records`` is how many records stand behind the row in the first run.  Each run is
+    scored exactly as :func:`~analysis.data_analysis.create_per_assay_precision_recall_summary`
+    scores it -- instance-weighted, over every field instance rather than deduplicated.
 
     An assay counts only when every run in *runs* scored it, so a run with no predictions
     on disk at all -- not made yet -- leaves the table empty; it is then not scored, which
-    keeps the scoring's warnings about every missing record out of the way.  Each run is scored exactly
-    as :func:`~analysis.data_analysis.create_per_assay_precision_recall_summary` scores it,
-    so a mean here is the mean of numbers those tables print.
+    keeps the scoring's warnings about every missing record out of the way.
 
     Raises:
         ValueError: If *runs* holds fewer than two runs, or the same run twice.
@@ -70,7 +69,7 @@ def create_run_spread_summary(
         raise ValueError(f"Each run may be named once, got {list(runs)}.")
 
     if any(not _made(data_root, model, condition, run) for run in runs):
-        return pd.DataFrame(columns=SPREAD_COLUMNS)
+        return pd.DataFrame(columns=RUN_SCORE_COLUMNS)
 
     pooled = {
         run: create_overall_precision_recall_summary(
@@ -101,22 +100,57 @@ def create_run_spread_summary(
             sources.append((POOLED_ASSAY, {run: summary.loc[field_type] for run, summary in pooled.items()}))
 
         for assay, scores in sources:
+            n_records = int(scores[runs[0]]["n_records"])
             for metric in SPREAD_METRICS:
-                values = [float(scores[run][metric]) for run in runs]
-                low, high = min(values), max(values)
-                rows.append(
+                rows.extend(
                     {
                         "assay": assay,
                         "field_type": field_type,
                         "metric": metric,
-                        "n_records": int(scores[runs[0]]["n_records"]),
-                        "mean": round(sum(values) / len(values), decimal_places),
-                        "min": round(low, decimal_places),
-                        "max": round(high, decimal_places),
-                        "range": round(high - low, decimal_places),
+                        "n_records": n_records,
+                        "run": run,
+                        "score": float(scores[run][metric]),
                     }
+                    for run in runs
                 )
-    return pd.DataFrame(rows, columns=SPREAD_COLUMNS)
+    return pd.DataFrame(rows, columns=RUN_SCORE_COLUMNS)
+
+
+def create_run_spread_summary(
+    data_root: str,
+    model: str,
+    condition: str,
+    *,
+    runs: Sequence[int],
+    field_types: Sequence[str] = ("ontology", "non_ontology"),
+    decimal_places: int = 3,
+) -> pd.DataFrame:
+    """Precision and recall of *condition* over *runs*: the mean, the lowest and highest run.
+
+    One row per (assay, field type, metric), the assays in ``ASSAY_ORDER`` and then a
+    ``POOLED_ASSAY`` row pooled over every record -- pooled, as the single-run tables pool
+    it, rather than averaged over the assays.  Columns are :data:`SPREAD_COLUMNS`:
+    ``n_records`` is how many records stand behind the row in the first run, and ``range``
+    is ``max - min``, how far apart the lowest and highest run landed.
+
+    The runs are :func:`collect_run_scores`'s, so an assay counts only when every run scored
+    it, and a mean here is the mean of numbers the single-run tables print.
+
+    Raises:
+        ValueError: If *runs* holds fewer than two runs, or the same run twice.
+    """
+    import pandas as pd
+
+    scores = collect_run_scores(data_root, model, condition, runs=runs, field_types=field_types)
+    if scores.empty:
+        return pd.DataFrame(columns=SPREAD_COLUMNS)
+    spread = (
+        scores.groupby(["assay", "field_type", "metric", "n_records"], sort=False)["score"]
+        .agg(["mean", "min", "max"])
+        .reset_index()
+    )
+    spread["range"] = spread["max"] - spread["min"]
+    return spread[SPREAD_COLUMNS].round(decimal_places)
 
 
 def _made(data_root: str, model: str, condition: str, run: int) -> bool:

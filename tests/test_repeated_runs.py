@@ -16,10 +16,11 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402
 
-from analysis.data_analysis import create_run_spread_summary  # noqa: E402
+from analysis.data_analysis import collect_run_scores, create_run_spread_summary  # noqa: E402
 from notebook_utils import show_run_spread  # noqa: E402
-from plots import stability  # noqa: E402
+from plots import run_spread, stability  # noqa: E402
 from plots.marks import FIELD_TYPE_LABELS  # noqa: E402
+from plots.run_spread import plot_run_spread  # noqa: E402
 from plots.stability import plot_field_stability  # noqa: E402
 
 if TYPE_CHECKING:
@@ -74,9 +75,10 @@ def data_root(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def captured(monkeypatch: pytest.MonkeyPatch) -> list[plt.Figure]:
-    """The figures the stability plot finishes with, kept open for inspection."""
+    """The figures the stability and run-spread plots finish with, kept open for inspection."""
     figures: list[plt.Figure] = []
     monkeypatch.setattr(stability, "_finish", lambda fig, _save_path: figures.append(fig))
+    monkeypatch.setattr(run_spread, "_finish", lambda fig, _save_path: figures.append(fig))
     yield figures
     for fig in figures:
         plt.close(fig)
@@ -157,6 +159,73 @@ class TestRunSpread:
         table = show_run_spread(str(data_root), "m", ["baseline"], runs=(1, 4))
         assert table.empty
         assert "no assay has predictions in every one of runs [1, 4]" in capsys.readouterr().out
+
+
+class TestRunScores:
+    def test_one_row_per_run(self, data_root: Path) -> None:
+        scores = collect_run_scores(str(data_root), "m", "arms-agent", runs=(1, 2, 3))
+        row = scores.query("assay == 'ATACseq' and field_type == 'non_ontology' and metric == 'precision'")
+        assert row["run"].tolist() == [1, 2, 3]
+        assert row["score"].tolist() == [1.0, 0.5, 1.0]
+
+    def test_the_spread_is_taken_over_these_scores(self, data_root: Path) -> None:
+        scores = collect_run_scores(str(data_root), "m", "baseline", runs=(1, 2, 3))
+        spread = create_run_spread_summary(str(data_root), "m", "baseline", runs=(1, 2, 3))
+        by_row = scores.groupby(["assay", "field_type", "metric"], sort=False)["score"]
+        assert by_row.mean().round(3).tolist() == spread["mean"].tolist()
+        assert (by_row.max() - by_row.min()).round(3).tolist() == spread["range"].tolist()
+
+    def test_a_run_not_made_yet_leaves_it_empty(self, data_root: Path) -> None:
+        assert collect_run_scores(str(data_root), "m", "baseline", runs=(1, 4)).empty
+
+
+def _panel_offsets(ax: plt.Axes) -> list[float]:
+    """The x of every dot in *ax*, rounded to a hundredth of a point."""
+    return sorted(round(float(line.get_xdata()[0]), 2) for line in ax.get_lines() if line.get_marker() == "o")
+
+
+class TestRunSpreadFigure:
+    def test_a_row_per_assay_and_no_pooled_row(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_run_spread(str(data_root), "m", runs=(1, 2, 3))
+        labels = [tick.get_text() for tick in captured[0].axes[0].get_yticklabels()]
+        assert labels == ["ATACseq (n=2)"]
+
+    def test_a_panel_per_field_type_and_metric(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_run_spread(str(data_root), "m", runs=(1, 2, 3))
+        titles = [ax.get_title() for ax in captured[0].axes]
+        assert titles == [
+            f"{FIELD_TYPE_LABELS[field_type].capitalize()}\n{metric}"
+            for field_type in ("ontology", "non_ontology")
+            for metric in ("Precision", "Recall")
+        ]
+
+    def test_each_run_is_its_distance_from_the_mean_in_points(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        plot_run_spread(str(data_root), "m", systems=("arms-agent",), runs=(1, 2, 3))
+        non_ontology_precision = captured[0].axes[2]
+        # Baseline: 1/1 in every run, so on 0.  ARMS: 2/2, 1/2, 2/2 against a mean of 5/6.
+        assert _panel_offsets(non_ontology_precision) == [-33.33, 0.0, 0.0, 0.0, 16.67, 16.67]
+
+    def test_the_axis_label_names_the_unit_and_can_be_replaced(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        plot_run_spread(str(data_root), "m", runs=(1, 2))
+        plot_run_spread(str(data_root), "m", runs=(1, 2), x_label="Run minus mean")
+        default, replaced = ({text.get_text() for text in fig.texts} for fig in captured)
+        assert "Difference from the mean of 2 runs (percentage points)" in default
+        assert "Run minus mean" in replaced
+
+    def test_the_title_is_written_only_when_given(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_run_spread(str(data_root), "m", runs=(1, 2))
+        plot_run_spread(str(data_root), "m", runs=(1, 2), title="Variability")
+        untitled, titled = captured
+        assert untitled._suptitle is None
+        assert titled._suptitle.get_text() == "Variability"
+
+    def test_runs_not_made_are_refused(self, data_root: Path) -> None:
+        with pytest.raises(ValueError, match="No assay was scored"):
+            plot_run_spread(str(data_root), "m", runs=(1, 4))
 
 
 class TestFieldStabilityFigure:

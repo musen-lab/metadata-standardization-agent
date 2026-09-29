@@ -18,6 +18,8 @@ On top of those sits one module per figure, each holding the public function, th
 constants that place it, and nothing else:
 
 * :mod:`plots.pr_space` -- operating points in precision/recall space, the main figure.
+* :mod:`plots.run_spread` -- across repeated runs, how far each run's precision and recall
+  land from the mean of the runs.
 * :mod:`plots.stability` -- across repeated runs, how often each condition gives the same
   answer: how deterministic it is.
 * :mod:`plots.pr_bars` -- the same measurement as heights rather than as position.
@@ -41,6 +43,7 @@ from plots.availability import plot_availability_difficulty
 from plots.error_composition import plot_corpus_error_composition, plot_error_composition
 from plots.pr_bars import plot_pr_bar_chart
 from plots.pr_space import plot_pr_space
+from plots.run_spread import plot_run_spread
 from plots.stability import plot_field_stability
 
 __all__ = [
@@ -51,4 +54,5 @@ __all__ = [
     "plot_grouped_bar_chart",
     "plot_pr_bar_chart",
     "plot_pr_space",
+    "plot_run_spread",
 ]
