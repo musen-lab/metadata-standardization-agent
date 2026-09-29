@@ -8,7 +8,7 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 if TYPE_CHECKING:
     from langchain_core.messages import AnyMessage
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from arms_agent.state import AgentState
 
-from arms_agent.schema import build_output_model
+from arms_agent.schema import build_output_model, build_response_model
 from arms_agent.tools import get_cedar_template
 from arms_agent.tracing import record_migrated_record, record_processing_log
 
@@ -34,6 +34,35 @@ def _fenced_block_re(marker: str) -> re.Pattern[str]:
 
 _RECORD_BLOCK_RE = _fenced_block_re("record")
 _LOG_BLOCK_RE = _fenced_block_re("log")
+
+# A ```json block with any marker or none.  An agent offered its answer as a tool can
+# still write the answer as text instead, in a block like this.
+_JSON_BLOCK_RE = re.compile(r"```json[^\n]*\r?\n(.*?)\r?\n[ \t]*```", re.DOTALL)
+
+
+def _parse_text_answer(text: str, response_model: type[BaseModel]) -> BaseModel | None:
+    """Return the answer written as text in *text*, validated against *response_model*, or ``None``.
+
+    An agent offered its answer as a tool -- ``OPENAI_STRUCTURED_OUTPUT=tool`` -- can end
+    its turn with that answer in its message instead of calling the tool: qwen3.8 on a
+    LiteLLM proxy does so for some records and not others.  The answer is the same
+    object either way, so it is held to the same schema the tool call would have been,
+    and taken as the agent's own when it passes.  The last block that holds one wins,
+    then the whole message read as JSON.
+    """
+    for candidate in [*reversed(_JSON_BLOCK_RE.findall(text)), text.strip()]:
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(parsed, dict) or "record" not in parsed:
+            continue
+        try:
+            return response_model.model_validate(parsed)
+        except ValidationError as error:
+            logger.warning("The answer written as text does not satisfy the response schema: %s", error)
+            return None
+    return None
 
 
 def _parse_fenced_json(text: str, pattern: re.Pattern[str], label: str) -> Any | None:
@@ -135,10 +164,12 @@ def extract_output_metadata(
     validated object, so this reads it straight out of state: no text parsing and
     no second model between the agent and the recorded result.
 
-    Without a response format — the prompt-only evaluation conditions, which answer
-    in free text — it falls back to parsing the ```json record and ```json log
-    blocks out of the response, and then to an extraction LLM call if the record
-    block is missing or does not satisfy the template.
+    Without one, it first looks for that same validated object written as text -- an
+    agent offered its answer as a tool may write the answer in its message instead.
+    Failing that -- the prompt-only evaluation conditions, which answer in free text --
+    it parses the ```json record and ```json log blocks out of the response, and then
+    calls an extraction LLM if the record block is missing or does not satisfy the
+    template.
 
     Args:
         state: The current agent state containing messages and cedar_template_iri.
@@ -154,14 +185,14 @@ def extract_output_metadata(
     return _from_response_text(state, config)
 
 
-def _from_structured_response(structured: Any) -> dict[str, Any]:
+def _from_structured_response(structured: Any, source: str = "structured_response") -> dict[str, Any]:
     """Split a validated agent answer into the record and the processing log."""
     payload = structured.model_dump() if isinstance(structured, BaseModel) else dict(structured)
     metadata = payload.get("record") or {}
     decisions = payload.get("log") or []
     logger.debug("Read a validated response with %d field(s) and %d log entr(ies)", len(metadata), len(decisions))
-    record_migrated_record(metadata, source="structured_response")
-    record_processing_log(decisions, source="structured_response")
+    record_migrated_record(metadata, source=source)
+    record_processing_log(decisions, source=source)
     return {"metadata": metadata, "decisions": decisions}
 
 
@@ -171,6 +202,12 @@ def _from_response_text(state: AgentState, config: RunnableConfig | None = None)
     logger.debug("Raw agent response:\n%s", final_text)
 
     template_dict = get_cedar_template.invoke({"template_id": state["cedar_template_iri"]})
+
+    answer = _parse_text_answer(final_text, build_response_model(template_dict))
+    if answer is not None:
+        logger.info("Read the answer the agent wrote as text rather than as its answer tool")
+        return _from_structured_response(answer, source="text_answer")
+
     output_model = build_output_model(template_dict)
 
     decisions = _extract_log(final_text)

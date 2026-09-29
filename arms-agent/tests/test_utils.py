@@ -173,6 +173,67 @@ class TestStructuredResponse:
         ]
 
 
+class TestTextAnswer:
+    """An agent offered its answer as a tool may write that same answer as text instead.
+
+    It has to be held to the schema the tool call would have been, and then recorded as
+    the agent's own answer, log included, with no extraction call in between.
+    """
+
+    ANSWER: dict[str, Any] = {"record": {"manufacturer": "Acme", "model": "X100"}, "log": [LOG_ENTRY]}
+
+    @pytest.fixture(autouse=True)
+    def _stub_template(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(utils.get_cedar_template, "func", lambda template_id: TEMPLATE)
+
+    @pytest.fixture
+    def no_extraction(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        def _fail() -> None:
+            raise AssertionError("an answer that satisfies the schema must not be re-extracted")
+
+        monkeypatch.setattr(utils, "_get_extraction_llm", _fail)
+
+    def _state(self, text: str) -> dict[str, Any]:
+        return {"messages": [AIMessage(content=text)], "cedar_template_iri": "iri"}
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            f"Here is the record.\n\n```json\n{json.dumps(ANSWER)}\n```",
+            f"```json answer\n{json.dumps(ANSWER)}\n```",
+            json.dumps(ANSWER),
+        ],
+        ids=["plain-fence", "marked-fence", "bare"],
+    )
+    def test_is_recorded_as_the_agents_answer(self, text: str, no_extraction: None) -> None:
+        result = utils.extract_output_metadata(self._state(text))
+        assert result["metadata"] == self.ANSWER["record"]
+        assert result["decisions"] == [LOG_ENTRY]
+
+    def test_is_traced_as_a_text_answer(self, no_extraction: None, monkeypatch: pytest.MonkeyPatch) -> None:
+        sources: list[str] = []
+        monkeypatch.setattr(utils, "record_migrated_record", lambda _record, *, source: sources.append(source))
+        monkeypatch.setattr(utils, "record_processing_log", lambda _log, *, source: sources.append(source))
+        utils.extract_output_metadata(self._state(json.dumps(self.ANSWER)))
+        assert sources == ["text_answer", "text_answer"]
+
+    def test_the_last_answer_wins(self, no_extraction: None) -> None:
+        """A block the agent restated or corrected later supersedes the earlier one."""
+        first = {"record": {"manufacturer": "Old", "model": None}, "log": []}
+        text = f"```json\n{json.dumps(first)}\n```\nCorrected:\n```json\n{json.dumps(self.ANSWER)}\n```"
+        assert utils.extract_output_metadata(self._state(text))["metadata"]["manufacturer"] == "Acme"
+
+    def test_one_that_breaks_the_schema_falls_back(self) -> None:
+        """Not the agent's answer as the schema defines it, so the old path decides."""
+        bad = {"record": {"manufacturer": "Acme", "model": "X100", "colour": "red"}, "log": "not a list"}
+        assert utils._parse_text_answer(json.dumps(bad), build_response_model(TEMPLATE)) is None
+
+    def test_a_record_block_alone_is_not_an_answer(self) -> None:
+        """The prompt-only conditions' ```json record blocks keep their own path."""
+        text = _response(record='{"manufacturer": "Acme", "model": "X100"}')
+        assert utils._parse_text_answer(text, build_response_model(TEMPLATE)) is None
+
+
 class TestExtractOutputMetadata:
     """Tests for the extraction node, including the LLM fallback."""
 
