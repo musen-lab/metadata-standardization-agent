@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from arms_agent.agent import build_migration_agent, build_response_format
+from arms_agent.agent import DEFAULT_REASONING_EFFORT, ReasoningEffort, build_migration_agent, build_response_format
 from arms_agent.workflow import build_workflow
 from conditions.prompt_only import template_spec
 from conditions.prompt_only.prompts.baseline import SYSTEM_PROMPT
@@ -19,7 +19,9 @@ if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
 
 
-def build_baseline_workflow(model: str, template_iri: str | None = None) -> CompiledStateGraph:
+def build_baseline_workflow(
+    model: str, template_iri: str | None = None, reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT
+) -> CompiledStateGraph:
     """Build this condition's workflow: single LLM migrate followed by structured extraction.
 
     Args:
@@ -27,6 +29,8 @@ def build_baseline_workflow(model: str, template_iri: str | None = None) -> Comp
         template_iri: The CEDAR template the sweep targets.  When given, the migration
             call's answer is validated against it, so the extraction node reads an
             object instead of parsing the response text.
+        reasoning_effort: How much the model reasons before answering; a model on another
+            server may accept other levels than OpenAI's.
 
     Returns:
         A compiled LangGraph produced by ``arms_agent.workflow.build_workflow``.
@@ -37,7 +41,7 @@ def build_baseline_workflow(model: str, template_iri: str | None = None) -> Comp
             system_prompt=SYSTEM_PROMPT,
             response_format=build_response_format(template_iri) if template_iri else None,
             tools=(),  # No tools
-            reasoning_effort="high",
+            reasoning_effort=reasoning_effort,
             reasoning_mode="standard",
         )
     )

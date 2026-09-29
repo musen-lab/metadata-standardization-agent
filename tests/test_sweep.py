@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 import sweep
+from arms_agent.agent import DEFAULT_REASONING_EFFORT
 from conditions import CONDITIONS, build_condition
 from sweep import SweepPlan, plan_sweep, run_sweep
 
@@ -167,6 +168,32 @@ def test_run_sweep_runs_every_job_in_order(
     out = capsys.readouterr().out
     assert "[1/2] atacseq | baseline | 2 record(s)" in out
     assert "run-" not in out, "a single run writes to the condition's own directory"
+
+
+def test_a_sweep_reasons_at_the_agents_default_effort_unless_told(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The effort is always sent and recorded by name, so a trace never hides which it was."""
+    calls = _record_jobs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+    assert f"reasoning  {DEFAULT_REASONING_EFFORT}" in capsys.readouterr().out
+    run_sweep(plan, dry_run=False)
+    assert calls[0]["workflow_factory"].keywords["reasoning_effort"] == DEFAULT_REASONING_EFFORT
+    assert calls[0]["config"]["metadata"]["reasoning_effort"] == DEFAULT_REASONING_EFFORT
+
+
+def test_a_sweep_can_set_the_effort_of_every_job(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """qwen3.8-27b refuses the conditions' high, so the sweep has to be able to say medium."""
+    calls = _record_jobs(monkeypatch)
+    plan = plan_sweep(
+        data_root, "test-model", assays=["atacseq"], conditions=["baseline", "arms-agent"], reasoning_effort="medium"
+    )
+    assert "reasoning  medium" in capsys.readouterr().out
+    run_sweep(plan, dry_run=False)
+    assert [call["workflow_factory"].keywords["reasoning_effort"] for call in calls] == ["medium", "medium"]
+    assert [call["config"]["metadata"]["reasoning_effort"] for call in calls] == ["medium", "medium"]
 
 
 def test_each_run_repeats_the_whole_plan_into_its_own_directory(

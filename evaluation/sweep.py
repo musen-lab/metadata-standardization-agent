@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, Any
 from dotenv import load_dotenv
 
 from analysis.corpus import get_assay
+from arms_agent.agent import DEFAULT_REASONING_EFFORT
 from arms_agent.tracing import tracing_enabled
 from assays import ASSAY_SCHEMAS
 from conditions import build_condition, condition_names, get_condition
@@ -40,6 +41,8 @@ from langfuse_prices import register_model_prices
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from contextlib import AbstractContextManager
+
+    from arms_agent.agent import ReasoningEffort
 
 #: How many of one job's records are migrated at a time.  Within a job only: the sweep
 #: never starts a job before the one before it has finished.
@@ -64,6 +67,8 @@ class SweepPlan:
     data_root: Path
     model: str
     jobs: tuple[tuple[str, str], ...]
+    #: The effort every job's model reasons at.
+    reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT
 
     @property
     def assays(self) -> list[str]:
@@ -105,6 +110,7 @@ def plan_sweep(
     *,
     assays: Sequence[str],
     conditions: Sequence[str] | None = None,
+    reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT,
 ) -> SweepPlan:
     """Check what a sweep over *assays* x *conditions* would run, print its size, return it.
 
@@ -125,6 +131,8 @@ def plan_sweep(
         assays: The assays to cover, by key -- the keys of ``assays.ASSAY_SCHEMAS``.
         conditions: The conditions to run each assay through (default: every condition
             declared under ``conditions/``, so a module dropped in is covered).
+        reasoning_effort: How much the model reasons before answering, for every job
+            (default: the agent's own, :data:`arms_agent.agent.DEFAULT_REASONING_EFFORT`).
 
     Returns:
         The checked :class:`SweepPlan`, ready to hand to :func:`run_sweep`.
@@ -160,7 +168,7 @@ def plan_sweep(
             f"Put it in {_PROJECT_ROOT / '.env'} or in the environment."
         )
 
-    plan = SweepPlan(Path(data_root), model, tuple(product(assays, conditions)))
+    plan = SweepPlan(Path(data_root), model, tuple(product(assays, conditions)), reasoning_effort)
     for assay in plan.assays:
         if not plan.input_records(assay):
             raise FileNotFoundError(f"No input records found in {get_assay(data_root, assay).input_dir}")
@@ -169,6 +177,7 @@ def plan_sweep(
     print(f"  model      {plan.model}")
     print(f"  assays     {', '.join(plan.assays)}")
     print(f"  conditions {', '.join(plan.conditions)}")
+    print(f"  reasoning  {plan.reasoning_effort}")
     print(f"  writing to {plan.data_root}/<assay>/output/{plan.model}/<condition>/  (run-<n>/ in it when repeated)")
     if tracing_enabled():
         register_model_prices([plan.model])
@@ -311,14 +320,22 @@ def _run_job(
             template_iri=schema_iri,
             input_dir=get_assay(plan.data_root, assay).input_dir,
             output_dir=plan.output_dir(assay, condition, run),
-            workflow_factory=partial(build_workflow, model=plan.model, template_iri=schema_iri),
+            workflow_factory=partial(
+                build_workflow, model=plan.model, template_iri=schema_iri, reasoning_effort=plan.reasoning_effort
+            ),
             user_prompt_builder=build_user_prompt,
             max_concurrency=max_concurrency,
             overwrite=overwrite,
             resume=resume,
             config={
                 "tags": ["experiment", condition],
-                "metadata": {"assay": assay, "condition": condition, "run": run or 1, "template_iri": schema_iri},
+                "metadata": {
+                    "assay": assay,
+                    "condition": condition,
+                    "run": run or 1,
+                    "template_iri": schema_iri,
+                    "reasoning_effort": plan.reasoning_effort,
+                },
             },
         )
 

@@ -30,9 +30,21 @@ _O_SERIES = re.compile(r"^o\d")
 # request outright with "'reasoning.effort' is not supported with this model".
 _REASONING_MODELS = re.compile(r"^(o\d|gpt-5)")
 
+# OpenAI's own model names.  Any other model -- an open-weight one behind a LiteLLM
+# proxy, such as qwen3.8-27b -- is sent its effort the chat-completions way, as
+# ``reasoning_effort``: ``reasoning`` would move the client to /v1/responses, which such
+# a server need not offer.  The server says which levels it accepts; qwen3.8-27b takes
+# low, medium and xhigh, and refuses high.
+_OPENAI_MODELS = re.compile(r"^(o\d|gpt-|chatgpt-)")
+
 # The values the API accepts, as it reports them when given anything else.
 ReasoningEffort = Literal["none", "minimal", "low", "medium", "high", "xhigh", "max"]
 ReasoningMode = Literal["standard", "pro"]
+
+# The effort a migration run reasons at unless told otherwise: what the CLI, every
+# evaluation condition and the sweep default to.  Not the default of
+# ``build_migration_agent`` itself, which stays lower for a caller that builds its own.
+DEFAULT_REASONING_EFFORT: ReasoningEffort = "high"
 
 # Where the OpenAI-compatible API lives.  ``OPENAI_BASE_URL`` is the OpenAI SDK's own
 # name for this, so a gateway configured for any other OpenAI client works here
@@ -74,8 +86,11 @@ def _reasoning_kwargs(
 ) -> dict[str, Any]:
     """Return the reasoning settings to hand ``ChatOpenAI``.
 
-    A model that does not reason gets nothing, since it rejects the request outright.
+    An OpenAI model that does not reason gets nothing, since it rejects the request
+    outright.  A model from elsewhere gets the effort alone: *reasoning_mode* is OpenAI's.
     """
+    if not _OPENAI_MODELS.match(model):
+        return {"reasoning_effort": reasoning_effort}
     if not _REASONING_MODELS.match(model):
         return {}
     return {"reasoning": {"effort": reasoning_effort, "mode": reasoning_mode}}
@@ -126,7 +141,9 @@ def build_migration_agent(
             ``None`` leaves the answer unconstrained, as free text the extraction node then has to parse.
         tools: The tools this agent may call.
         reasoning_effort: How much reasoning the model spends before answering.
-            Ignored by models that do not reason.
+            Ignored by OpenAI models that do not reason.  A model from another server
+            is sent it as ``reasoning_effort``, and that server decides which levels
+            it accepts.
         reasoning_mode: Which reasoning behaviour to use.  Ignored by models that
             do not reason.
 

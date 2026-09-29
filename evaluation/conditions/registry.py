@@ -54,7 +54,8 @@ class Condition:
 
     Attributes:
         name: The name the CLI takes, the sweep prints and the output directory carries.
-        build_workflow: Takes ``model`` and ``template_iri``, returns a compiled graph.
+        build_workflow: Takes ``model``, ``template_iri`` and ``reasoning_effort``,
+            returns a compiled graph.
         build_user_prompt: Takes the legacy record and the template IRI, returns the
             user message.
         requires_keys: Environment variables this condition calls out to, beyond the

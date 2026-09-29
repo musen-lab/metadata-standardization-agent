@@ -9,11 +9,12 @@ import logging
 import tempfile
 import time
 from pathlib import Path
+from typing import get_args
 
 from dotenv import find_dotenv, load_dotenv
 from langchain_core.messages import HumanMessage
 
-from arms_agent.agent import build_migration_agent, build_response_format
+from arms_agent.agent import DEFAULT_REASONING_EFFORT, ReasoningEffort, build_migration_agent, build_response_format
 from arms_agent.logging_config import configure_logging
 from arms_agent.prompts import SYSTEM_PROMPT
 from arms_agent.token_tracker import TokenUsageTracker
@@ -48,6 +49,12 @@ def main() -> None:
         default="gpt-5.6-terra",
         help="LLM model identifier (default: gpt-5.6-terra).",
     )
+    parser.add_argument(
+        "--reasoning-effort",
+        choices=get_args(ReasoningEffort),
+        default=DEFAULT_REASONING_EFFORT,
+        help=f"How much the model reasons before answering (default: {DEFAULT_REASONING_EFFORT}).",
+    )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging to stderr.")
     args = parser.parse_args()
 
@@ -70,7 +77,7 @@ def main() -> None:
         system_prompt=SYSTEM_PROMPT,
         response_format=build_response_format(args.target_schema),
         tools=all_tools,
-        reasoning_effort="high",
+        reasoning_effort=args.reasoning_effort,
         reasoning_mode="standard",
     )
     workflow = build_workflow(agent)
