@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from arms_agent.token_tracker import TokenUsageTracker
 from arms_agent.tracing import flush_tracing, instrument, traced_run
+from arms_agent.workflow import RECURSION_LIMIT
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -246,7 +247,7 @@ async def _process_file(
 
         tracker = TokenUsageTracker()
         run_config = dict(config) if config else {}
-        run_config.setdefault("recursion_limit", 30)
+        run_config.setdefault("recursion_limit", RECURSION_LIMIT)
         run_config["run_name"] = f"evaluate-{input_file.stem}"
         run_config.setdefault("tags", [])
         run_config["tags"] = [*run_config["tags"], input_file.stem]

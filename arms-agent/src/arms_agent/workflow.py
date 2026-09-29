@@ -16,6 +16,14 @@ from arms_agent.utils import extract_output_metadata
 
 logger = logging.getLogger(__name__)
 
+# How many graph steps one migration may take before LangGraph stops it.  Each turn of
+# the ReAct agent is two steps, the model's and its tools', so this is the room for about
+# 50 turns.  A model that searches one term per turn, as qwen3.8-27b does, needs far
+# more of them than one that batches its searches, as gpt-5.6-terra does: at the
+# earlier 30, qwen ran out after 14 searches on an ATACseq record, before answering.
+# No gpt-5.6-terra record reached 30, so the higher limit leaves its runs unchanged.
+RECURSION_LIMIT = 100
+
 
 def build_workflow(agent: RunnableLike) -> CompiledStateGraph:
     """Wire *agent* into the migration workflow: migrate followed by extract.

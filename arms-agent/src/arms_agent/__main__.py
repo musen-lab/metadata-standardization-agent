@@ -19,7 +19,7 @@ from arms_agent.prompts import SYSTEM_PROMPT
 from arms_agent.token_tracker import TokenUsageTracker
 from arms_agent.tools import all_tools
 from arms_agent.tracing import flush_tracing, instrument, traced_run
-from arms_agent.workflow import build_workflow
+from arms_agent.workflow import RECURSION_LIMIT, build_workflow
 
 # Load environment variables from the nearest .env, searching upward from the working
 # directory.  Counting parent directories from this file would only work inside a source
@@ -83,7 +83,7 @@ def main() -> None:
     }
     run_config = instrument(
         {
-            "recursion_limit": 30,
+            "recursion_limit": RECURSION_LIMIT,
             "callbacks": [tracker],
             "run_name": f"migrate-{input_stem}",
             "tags": ["cli", "migrate"],

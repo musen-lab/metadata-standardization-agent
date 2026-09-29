@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from arms_agent import __main__ as migrate_cli
+from arms_agent.workflow import RECURSION_LIMIT
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -29,10 +30,12 @@ class _StubWorkflow:
 
     def __init__(self) -> None:
         self.invoked_with: dict[str, Any] | None = None
+        self.config: dict[str, Any] | None = None
 
     async def ainvoke(self, state: dict[str, Any], config: dict[str, Any] | None = None) -> dict[str, Any]:
         """Record the input state and return a minimal successful result."""
         self.invoked_with = state
+        self.config = config
         return {"metadata": {"title": "migrated"}, "decisions": [{"key": "title", "resolution": "copied"}]}
 
 
@@ -114,6 +117,14 @@ def test_cli_passes_the_default_model_to_the_workflow(
     """The CLI must build a workflow, which requires supplying a model."""
     _run(monkeypatch, tmp_path)
     assert stub_build["model"] == "gpt-5.6-terra"
+
+
+def test_cli_runs_the_workflow_with_the_shared_recursion_limit(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, stub_build: dict[str, Any]
+) -> None:
+    """The same limit the evaluation sweep uses, so a record behaves the same in both."""
+    _run(monkeypatch, tmp_path)
+    assert stub_build["workflow"].config["recursion_limit"] == RECURSION_LIMIT
 
 
 def test_cli_model_flag_overrides_the_default(

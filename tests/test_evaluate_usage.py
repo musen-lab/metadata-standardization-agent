@@ -255,3 +255,25 @@ def test_run_experiment_refuses_resume_with_overwrite(tmp_path: Path) -> None:
     _write_inputs(tmp_path, 1)
     with pytest.raises(ValueError, match="not both"):
         _run_again(tmp_path, _StubWorkflow(), overwrite=True, resume=True)
+
+
+class _ConfigRecordingWorkflow(_StubWorkflow):
+    """Records the run config each record was invoked with."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.configs: list[dict[str, Any]] = []
+
+    async def ainvoke(self, state: dict[str, Any], config: dict[str, Any] | None = None) -> dict[str, Any]:
+        self.configs.append(dict(config or {}))
+        return await super().ainvoke(state, config)
+
+
+def test_each_record_gets_the_agents_recursion_limit(tmp_path: Path) -> None:
+    """The sweep and the CLI share one limit, so a record cannot stop in one and finish in the other."""
+    from arms_agent.workflow import RECURSION_LIMIT
+
+    _write_inputs(tmp_path, 2)
+    workflow = _ConfigRecordingWorkflow()
+    _run_again(tmp_path, workflow)
+    assert [config["recursion_limit"] for config in workflow.configs] == [RECURSION_LIMIT, RECURSION_LIMIT]
