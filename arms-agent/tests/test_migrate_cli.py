@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from arms_agent import __main__ as migrate_cli
+from arms_agent.agent import DEFAULT_SAMPLING, Sampling
 from arms_agent.workflow import RECURSION_LIMIT
 
 if TYPE_CHECKING:
@@ -64,6 +65,7 @@ def stub_build(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         tools: Any,
         reasoning_effort: str,
         reasoning_mode: str,
+        sampling: Sampling,
     ) -> str:
         recorded["model"] = model
         recorded["system_prompt"] = system_prompt
@@ -71,6 +73,7 @@ def stub_build(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         recorded["template_iri"] = (response_format or "").removeprefix("format-for-") or None
         # Positional-or-keyword without defaults, so the CLI omitting either would fail here.
         recorded["reasoning"] = {"effort": reasoning_effort, "mode": reasoning_mode}
+        recorded["sampling"] = sampling
         recorded["agent"] = f"agent-for-{model}"
         return recorded["agent"]
 
@@ -177,3 +180,28 @@ def test_cli_reasoning_effort_flag_overrides_the_default(
     """qwen3.8-27b refuses high, so a run on it has to be able to ask for medium."""
     _run(monkeypatch, tmp_path, "--model", "qwen3.8-27b", "--reasoning-effort", "medium")
     assert stub_build["reasoning"] == {"effort": "medium", "mode": "standard"}
+
+
+def test_cli_samples_greedily_by_default(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, stub_build: dict[str, Any]
+) -> None:
+    _run(monkeypatch, tmp_path)
+    assert stub_build["sampling"] == DEFAULT_SAMPLING
+
+
+def test_cli_sampling_flag_takes_json(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, stub_build: dict[str, Any]
+) -> None:
+    _run(
+        monkeypatch, tmp_path, "--sampling", '{"temperature": 0.7, "top_p": 0.8, "top_k": 20, "presence_penalty": 1.5}'
+    )
+    assert stub_build["sampling"] == Sampling(temperature=0.7, top_p=0.8, top_k=20, presence_penalty=1.5)
+
+
+@pytest.mark.parametrize("value", ['{"top-k": 20}', "not json"])
+def test_cli_refuses_a_sampling_it_cannot_read(
+    value: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, stub_build: dict[str, Any]
+) -> None:
+    """A misspelt setting must stop the run, not be sent to the server or dropped."""
+    with pytest.raises(SystemExit):
+        _run(monkeypatch, tmp_path, "--sampling", value)

@@ -8,13 +8,21 @@ import json
 import logging
 import tempfile
 import time
+from dataclasses import fields
 from pathlib import Path
 from typing import get_args
 
 from dotenv import find_dotenv, load_dotenv
 from langchain_core.messages import HumanMessage
 
-from arms_agent.agent import DEFAULT_REASONING_EFFORT, ReasoningEffort, build_migration_agent, build_response_format
+from arms_agent.agent import (
+    DEFAULT_REASONING_EFFORT,
+    DEFAULT_SAMPLING,
+    ReasoningEffort,
+    Sampling,
+    build_migration_agent,
+    build_response_format,
+)
 from arms_agent.logging_config import configure_logging
 from arms_agent.prompts import SYSTEM_PROMPT
 from arms_agent.token_tracker import TokenUsageTracker
@@ -30,6 +38,17 @@ from arms_agent.workflow import RECURSION_LIMIT, build_workflow
 load_dotenv(find_dotenv(usecwd=True), override=True)
 
 logger = logging.getLogger("arms_agent.__main__")
+
+
+def _parse_sampling(value: str) -> Sampling:
+    """Parse ``--sampling`` JSON into :class:`Sampling`, refusing a name it does not have."""
+    try:
+        return Sampling(**json.loads(value))
+    except (json.JSONDecodeError, TypeError) as error:
+        msg = f"not a sampling object ({error}); expected JSON naming any of " + ", ".join(
+            field.name for field in fields(Sampling)
+        )
+        raise argparse.ArgumentTypeError(msg) from error
 
 
 def main() -> None:
@@ -55,6 +74,14 @@ def main() -> None:
         default=DEFAULT_REASONING_EFFORT,
         help=f"How much the model reasons before answering (default: {DEFAULT_REASONING_EFFORT}).",
     )
+    parser.add_argument(
+        "--sampling",
+        type=_parse_sampling,
+        default=DEFAULT_SAMPLING,
+        help='How the model picks each token, as JSON, e.g. \'{"temperature": 0.7, "top_p": 0.8, "top_k": 20}\'. '
+        f"Takes {', '.join(field.name for field in fields(Sampling))}; only the ones given are sent "
+        "(default: temperature 0).",
+    )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging to stderr.")
     args = parser.parse_args()
 
@@ -78,6 +105,7 @@ def main() -> None:
         response_format=build_response_format(args.target_schema),
         tools=all_tools,
         reasoning_effort=args.reasoning_effort,
+        sampling=args.sampling,
         reasoning_mode="standard",
     )
     workflow = build_workflow(agent)

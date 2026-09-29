@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Any
 from dotenv import load_dotenv
 
 from analysis.corpus import get_assay
-from arms_agent.agent import DEFAULT_REASONING_EFFORT
+from arms_agent.agent import DEFAULT_REASONING_EFFORT, DEFAULT_SAMPLING, Sampling
 from arms_agent.tracing import tracing_enabled
 from assays import ASSAY_SCHEMAS
 from conditions import build_condition, condition_names, get_condition
@@ -69,6 +69,8 @@ class SweepPlan:
     jobs: tuple[tuple[str, str], ...]
     #: The effort every job's model reasons at.
     reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT
+    #: How every job's model picks each token.
+    sampling: Sampling = DEFAULT_SAMPLING
 
     @property
     def assays(self) -> list[str]:
@@ -111,6 +113,7 @@ def plan_sweep(
     assays: Sequence[str],
     conditions: Sequence[str] | None = None,
     reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT,
+    sampling: Sampling = DEFAULT_SAMPLING,
 ) -> SweepPlan:
     """Check what a sweep over *assays* x *conditions* would run, print its size, return it.
 
@@ -133,6 +136,10 @@ def plan_sweep(
             declared under ``conditions/``, so a module dropped in is covered).
         reasoning_effort: How much the model reasons before answering, for every job
             (default: the agent's own, :data:`arms_agent.agent.DEFAULT_REASONING_EFFORT`).
+        sampling: How the model picks each token, for every job (default: greedy,
+            :data:`arms_agent.agent.DEFAULT_SAMPLING`).  Settings beyond temperature,
+            such as Qwen's recommended ``top_k`` and ``presence_penalty``, reach the
+            server only when given.
 
     Returns:
         The checked :class:`SweepPlan`, ready to hand to :func:`run_sweep`.
@@ -168,7 +175,7 @@ def plan_sweep(
             f"Put it in {_PROJECT_ROOT / '.env'} or in the environment."
         )
 
-    plan = SweepPlan(Path(data_root), model, tuple(product(assays, conditions)), reasoning_effort)
+    plan = SweepPlan(Path(data_root), model, tuple(product(assays, conditions)), reasoning_effort, sampling)
     for assay in plan.assays:
         if not plan.input_records(assay):
             raise FileNotFoundError(f"No input records found in {get_assay(data_root, assay).input_dir}")
@@ -178,6 +185,7 @@ def plan_sweep(
     print(f"  assays     {', '.join(plan.assays)}")
     print(f"  conditions {', '.join(plan.conditions)}")
     print(f"  reasoning  {plan.reasoning_effort}")
+    print(f"  sampling   {plan.sampling}")
     print(f"  writing to {plan.data_root}/<assay>/output/{plan.model}/<condition>/  (run-<n>/ in it when repeated)")
     if tracing_enabled():
         register_model_prices([plan.model])
@@ -321,7 +329,11 @@ def _run_job(
             input_dir=get_assay(plan.data_root, assay).input_dir,
             output_dir=plan.output_dir(assay, condition, run),
             workflow_factory=partial(
-                build_workflow, model=plan.model, template_iri=schema_iri, reasoning_effort=plan.reasoning_effort
+                build_workflow,
+                model=plan.model,
+                template_iri=schema_iri,
+                reasoning_effort=plan.reasoning_effort,
+                sampling=plan.sampling,
             ),
             user_prompt_builder=build_user_prompt,
             max_concurrency=max_concurrency,
@@ -335,6 +347,7 @@ def _run_job(
                     "run": run or 1,
                     "template_iri": schema_iri,
                     "reasoning_effort": plan.reasoning_effort,
+                    "sampling": plan.sampling.settings(),
                 },
             },
         )

@@ -54,6 +54,18 @@ arms-migrate \
 system's temp directory. `--model` defaults to `gpt-5.6-terra`. Add `--debug` for step-by-step
 logging on stderr.
 
+For a model on another OpenAI-compatible server, set how it reasons and samples:
+
+```bash
+arms-migrate ... --model qwen3.8-flash-next-fast \
+  --reasoning-effort medium \
+  --sampling '{"temperature": 0.7, "top_p": 0.8, "top_k": 20, "presence_penalty": 1.5}'
+```
+
+`--reasoning-effort` defaults to `high`; the server decides which levels it accepts.
+`--sampling` defaults to temperature 0 and sends only the settings it names.
+`top_k`, `min_p` and `repetition_penalty` are not OpenAI parameters, so they go in the request body for a server such as vLLM or SGLang to read.
+
 ## Integration in Python
 
 ```python

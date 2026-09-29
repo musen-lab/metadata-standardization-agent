@@ -10,7 +10,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from arms_agent.agent import DEFAULT_REASONING_EFFORT, ReasoningEffort, build_migration_agent, build_response_format
+from arms_agent.agent import (
+    DEFAULT_REASONING_EFFORT,
+    DEFAULT_SAMPLING,
+    ReasoningEffort,
+    Sampling,
+    build_migration_agent,
+    build_response_format,
+)
 from arms_agent.tools import get_cedar_template
 from arms_agent.workflow import build_workflow
 from conditions.ablation.prompts.template_tool import SYSTEM_PROMPT
@@ -25,7 +32,10 @@ TOOLS = (get_cedar_template,)
 
 
 def build_template_tool_workflow(
-    model: str, template_iri: str | None = None, reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT
+    model: str,
+    template_iri: str | None = None,
+    reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT,
+    sampling: Sampling = DEFAULT_SAMPLING,
 ) -> CompiledStateGraph:
     """Build this condition's workflow: the ReAct agent with the template tool only.
 
@@ -35,6 +45,7 @@ def build_template_tool_workflow(
             answer is constrained to it.
         reasoning_effort: How much the model reasons before answering; a model on another
             server may accept other levels than OpenAI's.
+        sampling: How the model picks each token (default: greedy, temperature 0).
 
     Returns:
         A compiled LangGraph produced by ``arms_agent.workflow.build_workflow``.
@@ -47,6 +58,7 @@ def build_template_tool_workflow(
             tools=TOOLS,
             reasoning_effort=reasoning_effort,
             reasoning_mode="standard",
+            sampling=sampling,
         )
     )
 

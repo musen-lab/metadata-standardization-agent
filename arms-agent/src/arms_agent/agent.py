@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
 from langchain.agents import create_agent
@@ -45,6 +46,47 @@ ReasoningMode = Literal["standard", "pro"]
 # evaluation condition and the sweep default to.  Not the default of
 # ``build_migration_agent`` itself, which stays lower for a caller that builds its own.
 DEFAULT_REASONING_EFFORT: ReasoningEffort = "high"
+
+
+@dataclass(frozen=True)
+class Sampling:
+    """How the model picks each token.
+
+    Only *temperature* is always sent.  Every other setting is sent only when given, so
+    OpenAI is never handed a parameter it would reject: ``top_k``, ``min_p`` and
+    ``repetition_penalty`` are not OpenAI parameters and go in the request body as
+    extras, for a server such as vLLM or SGLang that reads them.  The server decides
+    what each one does; Qwen, for instance, publishes one set for thinking and another
+    for non-thinking use.
+    """
+
+    temperature: float = 0.0
+    top_p: float | None = None
+    top_k: int | None = None
+    min_p: float | None = None
+    presence_penalty: float | None = None
+    repetition_penalty: float | None = None
+
+    def settings(self) -> dict[str, float | int]:
+        """Return the settings that are sent, by name."""
+        return {name: value for name, value in asdict(self).items() if value is not None}
+
+    def client_kwargs(self) -> dict[str, Any]:
+        """Return the settings as ``ChatOpenAI`` takes them, the non-OpenAI ones under ``extra_body``."""
+        settings = self.settings()
+        extra_body = {name: settings.pop(name) for name in _EXTRA_BODY_SETTINGS if name in settings}
+        return {**settings, "extra_body": extra_body} if extra_body else settings
+
+    def __str__(self) -> str:
+        return " ".join(f"{name}={value}" for name, value in self.settings().items())
+
+
+# The sampling settings OpenAI's API does not take, which go in the request body instead.
+_EXTRA_BODY_SETTINGS = ("top_k", "min_p", "repetition_penalty")
+
+# How a migration run samples unless told otherwise: greedy, with nothing else sent, as
+# every published run did.
+DEFAULT_SAMPLING = Sampling()
 
 # Where the OpenAI-compatible API lives.  ``OPENAI_BASE_URL`` is the OpenAI SDK's own
 # name for this, so a gateway configured for any other OpenAI client works here
@@ -131,6 +173,7 @@ def build_migration_agent(
     tools: Sequence[BaseTool],
     reasoning_effort: ReasoningEffort = "low",
     reasoning_mode: ReasoningMode = "standard",
+    sampling: Sampling = DEFAULT_SAMPLING,
 ) -> CompiledStateGraph:
     """Build the agent that performs the migration.
 
@@ -146,6 +189,7 @@ def build_migration_agent(
             it accepts.
         reasoning_mode: Which reasoning behaviour to use.  Ignored by models that
             do not reason.
+        sampling: How the model picks each token (default: greedy, temperature 0).
 
     Returns:
         A compiled agent graph.
@@ -158,13 +202,14 @@ def build_migration_agent(
 
     logger.info(
         "Building migration agent with model=%s, tools=%d, structured_output=%s, reasoning=%s, endpoint=%s, "
-        "streaming=%s",
+        "streaming=%s, sampling=%s",
         model,
         len(tools),
         response_format is not None,
         reasoning_kwargs or None,
         base_url or "api.openai.com",
         bool(stream_kwargs),
+        sampling,
     )
     model_kwargs: dict[str, Any] = {}
     if tools and not _O_SERIES.match(model):
@@ -172,8 +217,8 @@ def build_migration_agent(
     llm = ChatOpenAI(
         base_url=base_url,
         model=model,
-        temperature=0,
         model_kwargs=model_kwargs,
+        **sampling.client_kwargs(),
         **reasoning_kwargs,
         **stream_kwargs,
     )

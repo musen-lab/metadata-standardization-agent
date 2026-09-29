@@ -306,6 +306,43 @@ class TestReasoningAcrossEndpoints:
         assert llm_kwargs["base_url"] == endpoint
 
 
+class TestSampling:
+    """Only temperature is always sent; the other settings only when given, non-OpenAI ones as extras."""
+
+    @pytest.fixture
+    def llm_kwargs(self, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+        seen: dict[str, Any] = {}
+        monkeypatch.setattr(agent_module, "create_agent", lambda _llm, **_kw: "compiled")
+        monkeypatch.setattr("langchain_openai.ChatOpenAI", lambda **kwargs: seen.update(kwargs))
+        return seen
+
+    def _build(self, **extra: Any) -> None:
+        agent_module.build_migration_agent(
+            model="qwen3.8-flash-next-fast", system_prompt="p", response_format=None, tools=(), **extra
+        )
+
+    def test_the_default_is_greedy_and_nothing_else(self, llm_kwargs: dict[str, Any]) -> None:
+        """What every published run sent: OpenAI must not be handed a setting it would reject."""
+        self._build()
+        assert llm_kwargs["temperature"] == 0
+        for name in ("top_p", "presence_penalty", "extra_body"):
+            assert name not in llm_kwargs
+
+    def test_openai_settings_are_sent_as_fields(self, llm_kwargs: dict[str, Any]) -> None:
+        self._build(sampling=agent_module.Sampling(temperature=0.7, top_p=0.8, presence_penalty=1.5))
+        assert (llm_kwargs["temperature"], llm_kwargs["top_p"], llm_kwargs["presence_penalty"]) == (0.7, 0.8, 1.5)
+        assert "extra_body" not in llm_kwargs
+
+    def test_the_others_go_in_the_request_body(self, llm_kwargs: dict[str, Any]) -> None:
+        """top_k, min_p and repetition_penalty are vLLM's and SGLang's, not OpenAI's."""
+        self._build(sampling=agent_module.Sampling(temperature=1.0, top_k=20, min_p=0.0, repetition_penalty=1.0))
+        assert llm_kwargs["extra_body"] == {"top_k": 20, "min_p": 0.0, "repetition_penalty": 1.0}
+        assert "top_k" not in llm_kwargs
+
+    def test_it_reads_as_its_settings(self) -> None:
+        assert str(agent_module.Sampling(temperature=0.7, top_k=20)) == "temperature=0.7 top_k=20"
+
+
 class TestStreaming:
     """``OPENAI_STREAMING=true`` streams both clients, for an endpoint that cuts off slow replies."""
 

@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 import sweep
-from arms_agent.agent import DEFAULT_REASONING_EFFORT
+from arms_agent.agent import DEFAULT_REASONING_EFFORT, DEFAULT_SAMPLING, Sampling
 from conditions import CONDITIONS, build_condition
 from sweep import SweepPlan, plan_sweep, run_sweep
 
@@ -194,6 +194,32 @@ def test_a_sweep_can_set_the_effort_of_every_job(
     run_sweep(plan, dry_run=False)
     assert [call["workflow_factory"].keywords["reasoning_effort"] for call in calls] == ["medium", "medium"]
     assert [call["config"]["metadata"]["reasoning_effort"] for call in calls] == ["medium", "medium"]
+
+
+def test_a_sweep_samples_greedily_unless_told(data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = _record_jobs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+    run_sweep(plan, dry_run=False)
+    assert calls[0]["workflow_factory"].keywords["sampling"] == DEFAULT_SAMPLING
+    assert calls[0]["config"]["metadata"]["sampling"] == {"temperature": 0.0}
+
+
+def test_a_sweep_can_set_the_sampling_of_every_job(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Qwen publishes its own settings, and the paper has to report which ones a run used."""
+    calls = _record_jobs(monkeypatch)
+    sampling = Sampling(temperature=0.7, top_p=0.8, top_k=20, presence_penalty=1.5)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"], sampling=sampling)
+    assert "sampling   temperature=0.7 top_p=0.8 top_k=20 presence_penalty=1.5" in capsys.readouterr().out
+    run_sweep(plan, dry_run=False)
+    assert calls[0]["workflow_factory"].keywords["sampling"] == sampling
+    assert calls[0]["config"]["metadata"]["sampling"] == {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "top_k": 20,
+        "presence_penalty": 1.5,
+    }
 
 
 def test_each_run_repeats_the_whole_plan_into_its_own_directory(

@@ -15,6 +15,7 @@ from typing import Any
 import pytest
 
 from arms_agent import agent as agent_module
+from arms_agent.agent import Sampling
 from arms_agent.prompts import SYSTEM_PROMPT as ARMS_PROMPT
 from arms_agent.schema import build_response_model
 from arms_agent.state import AgentState
@@ -160,6 +161,13 @@ class TestEveryArmIsBuiltAlike:
         getattr(module, builder_name)(model="gpt-4.1-mini", template_iri="iri")
         assert "reasoning" not in built["llm"]
         assert "reasoning_effort" not in built["llm"]
+
+    def test_the_sweep_can_set_the_sampling(self, module: Any, builder_name: str, built: dict[str, Any]) -> None:
+        getattr(module, builder_name)(
+            model="qwen3.8-flash-next-fast", template_iri="iri", sampling=Sampling(temperature=0.7, top_k=20)
+        )
+        assert built["llm"]["temperature"] == 0.7
+        assert built["llm"]["extra_body"] == {"top_k": 20}
 
     def test_the_sweep_can_set_the_effort(self, module: Any, builder_name: str, built: dict[str, Any]) -> None:
         """qwen3.8-27b refuses the default high, so the sweep has to be able to say medium."""

@@ -9,7 +9,14 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from arms_agent.agent import DEFAULT_REASONING_EFFORT, ReasoningEffort, build_migration_agent, build_response_format
+from arms_agent.agent import (
+    DEFAULT_REASONING_EFFORT,
+    DEFAULT_SAMPLING,
+    ReasoningEffort,
+    Sampling,
+    build_migration_agent,
+    build_response_format,
+)
 from arms_agent.workflow import build_workflow
 from conditions.prompt_only import template_spec
 from conditions.prompt_only.prompts.baseline import SYSTEM_PROMPT
@@ -20,7 +27,10 @@ if TYPE_CHECKING:
 
 
 def build_baseline_workflow(
-    model: str, template_iri: str | None = None, reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT
+    model: str,
+    template_iri: str | None = None,
+    reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT,
+    sampling: Sampling = DEFAULT_SAMPLING,
 ) -> CompiledStateGraph:
     """Build this condition's workflow: single LLM migrate followed by structured extraction.
 
@@ -31,6 +41,7 @@ def build_baseline_workflow(
             object instead of parsing the response text.
         reasoning_effort: How much the model reasons before answering; a model on another
             server may accept other levels than OpenAI's.
+        sampling: How the model picks each token (default: greedy, temperature 0).
 
     Returns:
         A compiled LangGraph produced by ``arms_agent.workflow.build_workflow``.
@@ -43,6 +54,7 @@ def build_baseline_workflow(
             tools=(),  # No tools
             reasoning_effort=reasoning_effort,
             reasoning_mode="standard",
+            sampling=sampling,
         )
     )
 
