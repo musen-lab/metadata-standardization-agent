@@ -298,3 +298,24 @@ class TestExtractionModel:
         monkeypatch.setattr("langchain_openai.ChatOpenAI", lambda **kwargs: seen.update(kwargs))
         utils._get_extraction_llm()
         assert seen["model"] == "gpt-4.1"
+
+    def test_the_client_is_reused_while_the_settings_hold(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr("langchain_openai.ChatOpenAI", lambda **_kwargs: object())
+        assert utils._get_extraction_llm() is utils._get_extraction_llm()
+
+    @pytest.mark.parametrize(
+        ("name", "value"),
+        [
+            ("OPENAI_BASE_URL", "https://proxy.example.com/v1"),
+            ("OPENAI_API_KEY", "proxy-key"),
+            ("OPENAI_EXTRACTION_MODEL", "qwen3.8-27b"),
+        ],
+    )
+    def test_a_changed_setting_rebuilds_the_client(
+        self, name: str, value: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A notebook that reloads ``.env`` to switch endpoints must not keep the old client."""
+        monkeypatch.setattr("langchain_openai.ChatOpenAI", lambda **_kwargs: object())
+        before = utils._get_extraction_llm()
+        monkeypatch.setenv(name, value)
+        assert utils._get_extraction_llm() is not before
