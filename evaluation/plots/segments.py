@@ -124,8 +124,9 @@ def _stack_row(
     height: float = 0.7,
     hatches: list[str] | None = None,
     no_color: bool = False,
+    label_size: float = 8,
 ) -> list[tuple[float, str]]:
-    """One 100%-wide bar, drawn left to right in *categories* order.
+    """One 100%-wide bar, drawn left to right in *categories* order, its numbers at *label_size* points.
 
     Returns the ``(centre, number)`` of every segment too narrow to hold its own number, for
     a caller that wants to set them outside; an empty list when nothing was too narrow or
@@ -171,7 +172,7 @@ def _stack_row(
                 f"{share:.0%}",
                 ha="center",
                 va="center",
-                fontsize=8,
+                fontsize=label_size,
                 # Measured against the fill the number lands on, which is what makes the
                 # filled pattern legible: white lettering there, ink on every other segment
                 # of a colourless row, and the usual grey when there is colour to sit on.

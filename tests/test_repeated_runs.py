@@ -85,8 +85,8 @@ def captured(monkeypatch: pytest.MonkeyPatch) -> list[plt.Figure]:
 
 
 def _legend(fig: plt.Figure) -> tuple[list, list]:
-    """The texts and the handles of the one axes legend of *fig*."""
-    legend = fig.axes[0].get_legend()
+    """The texts and the handles of the one figure legend of *fig*."""
+    [legend] = fig.legends
     return legend.get_texts(), legend.legend_handles
 
 
@@ -229,22 +229,20 @@ class TestRunSpreadFigure:
 
 
 class TestFieldStabilityFigure:
-    def test_a_bar_per_condition_for_each_assay_and_no_pooled_rows(
+    def test_a_column_per_condition_and_a_row_per_assay_without_pooled_rows(
         self, data_root: Path, captured: list[plt.Figure]
     ) -> None:
         plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
-        ax = captured[0].axes[0]
-        assert [tick.get_text() for tick in ax.get_yticklabels()] == ["Baseline", "ARMS"]
-        names = {text.get_text() for text in ax.texts}
-        assert "ATACseq" in names
-        assert "All assays" not in names
+        axes = captured[0].axes
+        assert [ax.get_title() for ax in axes] == ["Baseline", "ARMS"]
+        assert [tick.get_text() for tick in axes[0].get_yticklabels()] == ["ATACseq"]
 
     def test_the_bars_carry_their_shares_and_nothing_else(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
-        ax = captured[0].axes[0]
-        written = {text.get_text() for text in ax.texts} - {"ATACseq"}
-        assert written and all(text.endswith("%") for text in written), written
-        assert list(ax.get_lines()) == [], "no dot beside a condition's name"
+        for ax in captured[0].axes:
+            written = {text.get_text() for text in ax.texts}
+            assert written and all(text.endswith("%") for text in written), written
+            assert list(ax.get_lines()) == [], "no dot beside a bar"
 
     def test_the_consistent_band_is_the_dark_one(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
@@ -254,13 +252,30 @@ class TestFieldStabilityFigure:
         )
         assert sum(dark[:3]) < sum(light[:3])
 
+    def test_the_legend_sits_below_the_columns(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
+        fig = captured[0]
+        fig.canvas.draw()
+        [legend] = fig.legends
+        legend_top = legend.get_window_extent().y1
+        assert all(legend_top < ax.get_window_extent().y0 for ax in fig.axes)
+
     def test_the_axis_says_what_is_measured(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
-        assert captured[0].axes[0].get_xlabel() == "Share of field instances"
+        assert "Share of field instances" in {text.get_text() for text in captured[0].texts}
 
     def test_a_restricted_figure_names_its_field_type(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_field_stability(str(data_root), "m", runs=(1, 2), field_type="ontology")
-        assert FIELD_TYPE_LABELS["ontology"] in captured[0].axes[0].get_xlabel()
+        labels = {text.get_text() for text in captured[0].texts}
+        assert f"Share of {FIELD_TYPE_LABELS['ontology']}" in labels
+
+    def test_the_title_and_the_axis_label_can_be_given(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_field_stability(str(data_root), "m", runs=(1, 2), title="Consistency", x_label="Share of fields")
+        fig = captured[0]
+        assert fig._suptitle.get_text() == "Consistency"
+        labels = {text.get_text() for text in fig.texts}
+        assert "Share of fields" in labels
+        assert "Share of field instances" not in labels
 
     def test_one_run_is_refused(self, data_root: Path) -> None:
         with pytest.raises(ValueError, match="two runs"):

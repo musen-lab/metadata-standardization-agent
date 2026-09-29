@@ -1,4 +1,4 @@
-"""How deterministic each condition is: one stacked bar per condition, per assay.
+"""How deterministic each condition is: a column per condition, a stacked bar per assay.
 
 The companion to :func:`~analysis.data_analysis.create_run_spread_summary`.  That table shows
 how far a condition's score moves between runs; this shows how often its answers change.  Every
@@ -23,10 +23,15 @@ from plots.marks import FIELD_TYPE_LABELS, condition_label
 from plots.segments import _stack_row
 from plots.theme import (
     AXIS_COLOUR,
+    AXIS_LABEL_SIZE,
     FIGURE_TITLE_SIZE,
     GRID_COLOUR,
     LABEL_COLOUR,
+    LEGEND_LINE_INCHES,
+    LEGEND_TEXT_SIZE,
     NO_COLOR_INK,
+    PANEL_TITLE_SIZE,
+    TICK_LABEL_SIZE,
     _finish,
 )
 
@@ -43,17 +48,21 @@ STABILITY_LABELS = {
     "inconsistent": "answer changed between runs",
 }
 
-#: Height allowed per bar, and the air between one assay's bars and the next assay's.
-STABILITY_BAR_INCHES = 0.26
-ASSAY_GAP = 0.6
+#: The figure is drawn as wide as the run-spread figure beside it, whatever the number of
+#: columns.  Type is set in points and the figure in inches, so two figures shown at the same
+#: width only carry the same size of type when they are drawn at the same width too: drawn
+#: narrower, this one's labels would come out half as large again on the page.
+STABILITY_FIGURE_INCHES = 13.9
 
-#: Width of the bars and of the strip of names to their left.
-STABILITY_PANEL_INCHES = 5.2
-STABILITY_LABEL_INCHES = 1.9
+#: Height allowed per assay row, as the run-spread figure allows, so the rows keep its
+#: proportions at its width.
+STABILITY_ROW_INCHES = 0.42
 
-#: How far left of the bars an assay's name sits, in points: clear of the condition names,
-#: which sit between them.
-ASSAY_LABEL_OFFSET = 58
+#: Height the column titles, the shared x-axis label and the legend take whatever the rows hold.
+STABILITY_CHROME_INCHES = 1.4
+
+#: Height kept between the tick numbers and the legend for the one x-axis label the columns share.
+X_LABEL_INCHES = 0.3
 
 
 def plot_field_stability(
@@ -64,15 +73,17 @@ def plot_field_stability(
     runs: Sequence[int] = (1, 2, 3),
     field_type: str | None = None,
     title: str | None = None,
+    x_label: str | None = None,
     save_path: str | None = None,
 ) -> None:
     """For each assay, how often each condition gives the same answer in every run.
 
-    One 100%-wide bar per condition within each assay.  The bar splits the condition's field
-    instances into those whose answer was the same in every run in *runs* and those whose
-    answer changed; a short light end means the condition is close to deterministic.  Right
-    or wrong does not enter: a condition that gives the same wrong answer every time is
-    consistent.  Conditions are named as :data:`~plots.marks.CONDITION_LABELS` names them.
+    One column per condition, named as :data:`~plots.marks.CONDITION_LABELS` names it, and one
+    100%-wide bar per assay in each.  The bar splits the condition's field instances into those
+    whose answer was the same in every run in *runs* and those whose answer changed; a short
+    light end means the condition is close to deterministic.  Right or wrong does not enter: a
+    condition that gives the same wrong answer every time is consistent.  The columns share
+    their rows, so one assay's bars are read across.
 
     Shares rather than counts, because the assays differ in size by more than tenfold.  A
     segment too narrow to hold its number goes unlabelled; the exact shares, and how many
@@ -80,7 +91,9 @@ def plot_field_stability(
     :func:`~analysis.data_analysis.summarize_field_stability`.
 
     *field_type* restricts every bar to ``"ontology"`` or ``"non_ontology"`` fields, and the
-    axis says which.  When *save_path* is given the figure is written there instead of shown.
+    axis label says which.  *title* is written above the figure.  *x_label* replaces the axis
+    label under the columns.  When *save_path* is given the figure is written there instead
+    of shown.
 
     Raises:
         ValueError: If *runs* holds fewer than two distinct runs, or no condition has
@@ -97,75 +110,90 @@ def plot_field_stability(
     if not assays:
         raise ValueError(f"No field instances for any of {conditions} in runs {list(runs)} under {model!r}")
 
-    # Positions top to bottom, each assay's bars together.
-    rows: list[tuple[float, str, str]] = []
-    position = 0.0
-    for group_index, assay in enumerate(assays):
-        if group_index:
-            position += ASSAY_GAP
-        for condition in conditions:
-            rows.append((position, assay, condition))
-            position += 1.0
-
-    fig, ax = plt.subplots(
-        figsize=(STABILITY_PANEL_INCHES + STABILITY_LABEL_INCHES, STABILITY_BAR_INCHES * position + 1.4)
+    fig, axes = plt.subplots(
+        1,
+        len(conditions),
+        figsize=(
+            STABILITY_FIGURE_INCHES,
+            STABILITY_ROW_INCHES * len(assays) + STABILITY_CHROME_INCHES,
+        ),
+        sharey=True,
+        squeeze=False,
     )
+    axes = axes[0]
     colours = list(STABILITY_COLOURS)
-    for position, assay, condition in rows:
+    for ax, condition in zip(axes, conditions, strict=True):
         table = tables[condition]
-        if assay not in table.index or not table.loc[assay, "n_instances"]:
-            continue
-        shares = {band: float(table.loc[assay, band]) for band in STABILITY_BANDS}
-        _stack_row(ax, position, shares, STABILITY_BANDS, colours, label_segments=True, height=0.78)
+        for position, assay in enumerate(assays):
+            if assay not in table.index or not table.loc[assay, "n_instances"]:
+                continue
+            shares = {band: float(table.loc[assay, band]) for band in STABILITY_BANDS}
+            _stack_row(
+                ax,
+                position,
+                shares,
+                STABILITY_BANDS,
+                colours,
+                label_segments=True,
+                height=0.72,
+                label_size=TICK_LABEL_SIZE,
+            )
+        ax.set_title(condition_label(condition), fontsize=PANEL_TITLE_SIZE)
+        ax.set_xlim(0.0, 1.0)
+        ax.set_xticks([0.0, 0.25, 0.5, 0.75, 1.0])
+        ax.set_xticklabels(["0", "25%", "50%", "75%", "100%"])
+        ax.grid(axis="x", color=GRID_COLOUR, linewidth=0.8, zorder=0)
+        ax.set_axisbelow(True)
+        for side in ("top", "right", "left"):
+            ax.spines[side].set_visible(False)
+        ax.spines["bottom"].set_color(AXIS_COLOUR)
+        ax.tick_params(colors=LABEL_COLOUR, labelsize=TICK_LABEL_SIZE, left=False)
 
-    positions = [position for position, _assay, _condition in rows]
-    ax.set_yticks(positions)
-    ax.set_yticklabels([condition_label(condition) for _position, _assay, condition in rows], fontsize=8)
-    transform = ax.get_yaxis_transform()
-    for assay in assays:
-        group = [position for position, name, _condition in rows if name == assay]
-        ax.annotate(
-            assay,
-            xy=(0.0, (group[0] + group[-1]) / 2),
-            xycoords=transform,
-            xytext=(-ASSAY_LABEL_OFFSET, 0),
-            textcoords="offset points",
-            ha="right",
-            va="center",
-            fontsize=9,
-            color=NO_COLOR_INK,
-        )
+    axes[0].set_yticks(range(len(assays)))
+    axes[0].set_yticklabels(assays, fontsize=TICK_LABEL_SIZE, color=NO_COLOR_INK)
+    axes[0].set_ylim(len(assays) - 0.4, -0.6)
 
-    ax.set_xlim(0.0, 1.0)
-    ax.set_ylim(max(positions) + 0.7, -0.7)
-    ax.set_xticks([0.0, 0.25, 0.5, 0.75, 1.0])
-    ax.set_xticklabels(["0", "25%", "50%", "75%", "100%"])
-    ax.grid(axis="x", color=GRID_COLOUR, linewidth=0.8, zorder=0)
-    ax.set_axisbelow(True)
-    for side in ("top", "right", "left"):
-        ax.spines[side].set_visible(False)
-    ax.spines["bottom"].set_color(AXIS_COLOUR)
-    ax.tick_params(colors=LABEL_COLOUR, labelsize=8, left=False)
-    # A restricted figure says so on its axis, since the bars look the same either way.
+    strip = _legend(fig, colours)
+    label_height = X_LABEL_INCHES / fig.get_size_inches()[1]
+    # Room between the columns for one's "100%" and the next one's "0" to stay apart.
+    fig.tight_layout(rect=(0.0, strip + label_height, 1.0, 1.0), w_pad=3.0)
+    # One label for every column, since they share the axis, centred under the bars rather
+    # than under the figure, whose left part is the assay names.  A restricted figure says
+    # so here, since the bars look the same either way.
     counted = "field instances" if field_type is None else FIELD_TYPE_LABELS[field_type]
-    ax.set_xlabel(f"Share of {counted}", fontsize=9, color=LABEL_COLOUR)
+    left, right = axes[0].get_position().x0, axes[-1].get_position().x1
+    fig.text(
+        (left + right) / 2,
+        strip,
+        x_label if x_label is not None else f"Share of {counted}",
+        ha="center",
+        va="bottom",
+        fontsize=AXIS_LABEL_SIZE,
+        color=LABEL_COLOUR,
+    )
+    if title:
+        # After tight_layout, which would otherwise reserve room for a title that may not be there.
+        fig.suptitle(title, fontsize=FIGURE_TITLE_SIZE, y=1.0, va="bottom")
+    _finish(fig, save_path)
 
-    ax.legend(
+
+def _legend(fig: plt.Figure, colours: list[str]) -> float:
+    """One key per band under the columns, as large as the precision/recall figures' keys.
+
+    Returns the fraction of figure height it takes.
+    """
+    fig.legend(
         handles=[
             Patch(facecolor=colour, edgecolor="white", label=STABILITY_LABELS[band])
             for band, colour in zip(STABILITY_BANDS, colours, strict=True)
         ],
         loc="lower center",
-        bbox_to_anchor=(0.5, 1.0),
+        bbox_to_anchor=(0.5, 0.0),
         ncol=len(STABILITY_BANDS),
         frameon=False,
-        fontsize=8.5,
+        fontsize=LEGEND_TEXT_SIZE,
         labelcolor=LABEL_COLOUR,
-        handlelength=1.4,
-        columnspacing=1.4,
+        handletextpad=0.5,
+        columnspacing=3.0,
     )
-
-    fig.tight_layout()
-    if title:
-        fig.suptitle(title, fontsize=FIGURE_TITLE_SIZE, y=1.0, va="bottom")
-    _finish(fig, save_path)
+    return 1.3 * LEGEND_LINE_INCHES / fig.get_size_inches()[1]
