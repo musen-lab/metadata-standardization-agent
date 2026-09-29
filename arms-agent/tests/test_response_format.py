@@ -144,6 +144,13 @@ class TestReasoningSettings:
         assert "reasoning" not in llm_kwargs
         assert "reasoning_effort" not in llm_kwargs
 
+    @pytest.mark.parametrize("model", ["qwen3.8-27b", "qwen3.8-27b-fast"])
+    def test_other_servers_models_are_sent_the_effort_alone(self, model: str, llm_kwargs: dict[str, Any]) -> None:
+        """The chat-completions form: ``reasoning`` would move the client to /v1/responses."""
+        self._build(model, reasoning_effort="medium", reasoning_mode="pro")
+        assert llm_kwargs["reasoning_effort"] == "medium"
+        assert "reasoning" not in llm_kwargs
+
     def test_the_defaults_are_low_and_standard(self, llm_kwargs: dict[str, Any]) -> None:
         self._build("gpt-5.6-terra")
         assert llm_kwargs["reasoning"] == {"effort": "low", "mode": "standard"}

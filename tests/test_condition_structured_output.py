@@ -161,6 +161,11 @@ class TestEveryArmIsBuiltAlike:
         assert "reasoning" not in built["llm"]
         assert "reasoning_effort" not in built["llm"]
 
+    def test_the_sweep_can_set_the_effort(self, module: Any, builder_name: str, built: dict[str, Any]) -> None:
+        """qwen3.8-27b refuses the default high, so the sweep has to be able to say medium."""
+        getattr(module, builder_name)(model="qwen3.8-27b", template_iri="iri", reasoning_effort="medium")
+        assert built["llm"]["reasoning_effort"] == "medium"
+
 
 @pytest.mark.parametrize(("module", "builder_name"), PROMPT_ONLY)
 class TestOnlyInformationAccessDiffers:

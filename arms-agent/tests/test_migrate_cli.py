@@ -169,3 +169,11 @@ def test_cli_asks_for_high_reasoning_effort(
     """The shipped run reasons hard; the builder's own default is deliberately lower."""
     _run(monkeypatch, tmp_path)
     assert stub_build["reasoning"] == {"effort": "high", "mode": "standard"}
+
+
+def test_cli_reasoning_effort_flag_overrides_the_default(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, stub_build: dict[str, Any]
+) -> None:
+    """qwen3.8-27b refuses high, so a run on it has to be able to ask for medium."""
+    _run(monkeypatch, tmp_path, "--model", "qwen3.8-27b", "--reasoning-effort", "medium")
+    assert stub_build["reasoning"] == {"effort": "medium", "mode": "standard"}
