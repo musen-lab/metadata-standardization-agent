@@ -14,6 +14,7 @@ from math import ceil
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 from analysis.data_analysis import (
     create_overall_precision_recall_summary,
@@ -26,6 +27,7 @@ from plots.marks import (
     FIELD_TYPE_LABELS,
     FIELD_TYPE_MARKERS,
     MARKER_ZORDER,
+    NO_COLOR_EDGE_WIDTH,
     ConditionMark,
     _condition_marks,
     _mark_style,
@@ -213,16 +215,18 @@ def _pr_legends(
     repeat what the reader has already been told.  Returns the fraction of figure height
     to keep clear for the keys, a constant physical size however tall the figure is.
     """
-    # The letter goes in the label rather than inside the key's marker: with the sizes
-    # gone, three hollow circles would otherwise be three identical keys.
+    # A swatch, not a marker: every marker shape in the panels stands for a field type, so a
+    # circle here would read as "ontology-constrained" before it read as a colour.  The
+    # swatch keeps what the key does mean -- the colour, or with colour off the fill,
+    # hollow or solid -- and the letter goes in the label, where a swatch has no room for it.
     run_keys = [
-        Line2D(
-            [],
-            [],
-            marker="o",
-            linestyle="",
+        Patch(
+            facecolor=mark.style["markerfacecolor"],
+            # A hollow key keeps its dark rim; a solid one is bordered in its own fill,
+            # since the white seam its mark carries in a panel would thin it here.
+            edgecolor=mark.style["markerfacecolor"] if mark.fill is not False else mark.style["markeredgecolor"],
+            linewidth=NO_COLOR_EDGE_WIDTH,
             label=f"{mark.letter}  {label}" if mark.letter else label,
-            **_mark_style(mark, "o"),
         )
         for label, mark in keys
     ]

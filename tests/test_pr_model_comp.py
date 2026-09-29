@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 import matplotlib
 import pytest
 from matplotlib.colors import to_hex
+from matplotlib.patches import Patch
 
 matplotlib.use("Agg")
 
@@ -154,3 +155,13 @@ class TestConditionLegend:
             "Non-ontology-constrained Fields",
             "All Fields",
         ]
+
+    @pytest.mark.parametrize("no_color", [False, True])
+    def test_what_is_compared_is_keyed_by_swatch_not_by_a_field_type_s_shape(
+        self, data_root: Path, captured: list[plt.Figure], no_color: bool
+    ) -> None:
+        """A circle in the condition key would read as the ontology-constrained fields' circle."""
+        plot_pr_model_comp(str(data_root), ("good", "half"), no_color=no_color)
+        compared, field_types = captured[0].legends
+        assert all(isinstance(handle, Patch) for handle in compared.legend_handles)
+        assert [handle.get_marker() for handle in field_types.legend_handles] == ["o", "s", "^"]
