@@ -1,0 +1,479 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": null,
+    "legacy_fields": [
+      "donor_id",
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "PSUCU0001",
+      "PSUCU0001-LV-1"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record identifies a donor and tissue but does not identify a parent sample."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [
+      "pi",
+      "operator"
+    ],
+    "legacy_values": [
+      "Brent R Stockwell",
+      "Presha Rajbhandari"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "Named people do not provide a laboratory identifier."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "10.17504/protocols.io.e6nvwjmjzlmk/v1",
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.e6nvwjmjzlmk/v1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The section-preparation protocol DOI directly supplies the preparation protocol."
+  },
+  {
+    "key": "dataset_type",
+    "value": null,
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "mass_spectrometry_imaging"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The HRAVS search returned no label denoting the recorded assay category."
+  },
+  {
+    "key": "analyte_class",
+    "value": null,
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "lipids and metabolites"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "None of the returned HRAVS labels denotes the combined analyte description."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Waters",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Waters Corp."
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Waters"
+    ],
+    "reasoning": "The HRAVS label Waters denotes the recorded vendor."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "SYNAPT G2-Si",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "Synapt G2-Si"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "SYNAPT G2-Si",
+      "SYNAPT XS"
+    ],
+    "reasoning": "SYNAPT G2-Si is the returned label denoting the recorded model."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source-storage duration was recorded."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source-storage duration unit was recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No instrument-calibration interval was recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No instrument-calibration interval unit was recorded."
+  },
+  {
+    "key": "ms_ionization_technique",
+    "value": "DESI",
+    "legacy_fields": [
+      "ms_source"
+    ],
+    "legacy_values": [
+      "DESI"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "DESI"
+    ],
+    "reasoning": "DESI is the returned HRAVS label for the recorded MS source."
+  },
+  {
+    "key": "ms_scan_mode",
+    "value": "ms",
+    "legacy_fields": [
+      "ms_scan_mode"
+    ],
+    "legacy_values": [
+      "MS"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "ms"
+    ],
+    "reasoning": "The HRAVS label ms denotes the recorded scan mode."
+  },
+  {
+    "key": "mass_analysis_polarity",
+    "value": "Negative ion mode",
+    "legacy_fields": [
+      "polarity"
+    ],
+    "legacy_values": [
+      "negative ion mode"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Negative ion mode",
+      "Negative and positive ion mode",
+      "Positive ion mode"
+    ],
+    "reasoning": "Negative ion mode exactly denotes the recorded polarity."
+  },
+  {
+    "key": "mass_to_charge_range_low_value",
+    "value": 100,
+    "legacy_fields": [
+      "mz_range_low_value"
+    ],
+    "legacy_values": [
+      "100"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The recorded lower m/z limit was parsed as the numeric target value."
+  },
+  {
+    "key": "mass_to_charge_range_high_value",
+    "value": 1000,
+    "legacy_fields": [
+      "mz_range_high_value"
+    ],
+    "legacy_values": [
+      "1000"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The recorded upper m/z limit was parsed as the numeric target value."
+  },
+  {
+    "key": "mass_resolving_power",
+    "value": 26000,
+    "legacy_fields": [
+      "mass_resolving_power"
+    ],
+    "legacy_values": [
+      "26000"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The recorded resolving power was parsed as a numeric value."
+  },
+  {
+    "key": "mass_to_charge_resolving_power",
+    "value": 554,
+    "legacy_fields": [
+      "mz_resolving_power"
+    ],
+    "legacy_values": [
+      "554"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The recorded m/z resolving power was parsed as the numeric target value."
+  },
+  {
+    "key": "ion_mobility",
+    "value": "TWIMS",
+    "legacy_fields": [
+      "ion_mobility"
+    ],
+    "legacy_values": [
+      "TWIMS"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "TWIMS"
+    ],
+    "reasoning": "TWIMS is the returned HRAVS label denoting the recorded ion-mobility method."
+  },
+  {
+    "key": "matrix_deposition_method",
+    "value": null,
+    "legacy_fields": [
+      "preparation_type"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The preparation-type field is empty and does not specify a matrix-deposition method."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": null,
+    "legacy_fields": [
+      "preparation_instrument_vendor"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The preparation instrument vendor is empty."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": null,
+    "legacy_fields": [
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The preparation instrument model is empty."
+  },
+  {
+    "key": "preparation_matrix",
+    "value": null,
+    "legacy_fields": [
+      "preparation_maldi_matrix"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The recorded preparation-matrix field is empty."
+  },
+  {
+    "key": "desorption_solvent",
+    "value": null,
+    "legacy_fields": [
+      "desi_solvent"
+    ],
+    "legacy_values": [
+      "methanol: water 95:5 (v/v) with 0.01 percent formic acid and 20pg/ul leucine enkephalin"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "Methanol",
+      "Water",
+      "Formic acid in water"
+    ],
+    "reasoning": "No returned HRAVS label denotes the recorded multicomponent solvent mixture."
+  },
+  {
+    "key": "desorption_solvent_flow_rate_value",
+    "value": 1.5,
+    "legacy_fields": [
+      "desi_solvent_flow_rate"
+    ],
+    "legacy_values": [
+      "1.5"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The recorded solvent flow rate was parsed as a numeric value."
+  },
+  {
+    "key": "desorption_solvent_flow_rate_unit",
+    "value": "uL/min",
+    "legacy_fields": [
+      "desi_solvent_flow_rate_unit"
+    ],
+    "legacy_values": [
+      "uL/minute"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "uL/min",
+      "minute"
+    ],
+    "reasoning": "uL/min is the returned HRAVS label denoting the recorded flow-rate unit."
+  },
+  {
+    "key": "analysis_protocol_doi",
+    "value": "10.17504/protocols.io.ewov1nze7gr2/v1",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.ewov1nze7gr2/v1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The recorded protocol DOI supplies the analysis protocol DOI."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": null,
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "2"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "A version number does not identify a metadata schema."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "description"
+    ],
+    "legacy_values": [
+      "DESI dataset"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The description has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "6/6/2021 20:07"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The execution date and time have no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email"
+    ],
+    "legacy_values": [
+      "Presha Rajbhandari",
+      "pr2162@columbia.edu",
+      "Brent R Stockwell",
+      "bstockwell@columbia.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Personnel names and email addresses have no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "overall_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.kxygx913zg8j/v1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The overall protocol DOI does not specifically identify the requested analysis or preparation protocol."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "processing_protocols_io_doi"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The processing protocol field is empty and has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_unit",
+      "resolution_x_value",
+      "resolution_y_unit",
+      "resolution_y_value"
+    ],
+    "legacy_values": [
+      "um",
+      "40",
+      "um",
+      "40"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Spatial-resolution measurements have no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "DESI"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The assay type duplicates the recorded MS source and has no separate target field."
+  }
+]

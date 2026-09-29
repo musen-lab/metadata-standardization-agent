@@ -1,0 +1,667 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "VAN0013",
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "VAN0013"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The donor identifier is the only legacy identifier that can serve as the parent sample identifier."
+  },
+  {
+    "key": "lab_id",
+    "value": "Vanderbilt_TMC",
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "Vanderbilt_TMC"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The operator value identifies the laboratory context."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "10.17504/protocols.io.7ethjen",
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.7ethjen"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The section preparation protocol DOI corresponds to the preparation protocol field."
+  },
+  {
+    "key": "dataset_type",
+    "value": "LC-MS",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "LC-MS Bottom-Up"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "LC-MS"
+    ],
+    "reasoning": "The LC-MS Bottom-Up assay type denotes the permissible LC-MS dataset type."
+  },
+  {
+    "key": "analyte_class",
+    "value": null,
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "peptides"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No HRAVS label was returned that denotes the legacy peptides value."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Thermo Fisher Scientific",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "ThermoFisher Scientific"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Thermo Fisher Scientific"
+    ],
+    "reasoning": "The returned HRAVS label is the vendor denoted by the legacy value."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "Orbitrap Fusion Tribrid",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "Orbitrap Fusion"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Orbitrap Fusion Tribrid",
+      "Orbitrap Fusion Lumos Tribrid"
+    ],
+    "reasoning": "The legacy model name denotes the Orbitrap Fusion Tribrid label rather than the Lumos variant."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration was recorded."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration unit was recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No time since instrument calibration was recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No time since instrument calibration unit was recorded."
+  },
+  {
+    "key": "ms_ionization_technique",
+    "value": "ESI",
+    "legacy_fields": [
+      "ms_source"
+    ],
+    "legacy_values": [
+      "ESI"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "ESI"
+    ],
+    "reasoning": "The source abbreviation matches the returned ESI label."
+  },
+  {
+    "key": "ms_scan_mode",
+    "value": null,
+    "legacy_fields": [
+      "ms_scan_mode"
+    ],
+    "legacy_values": [
+      "MS/MS"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "ms",
+      "LC-MS",
+      "MS scan mode"
+    ],
+    "reasoning": "No returned HRAVS label denotes the MS/MS scan-mode value."
+  },
+  {
+    "key": "mass_analysis_polarity",
+    "value": "Positive ion mode",
+    "legacy_fields": [
+      "polarity"
+    ],
+    "legacy_values": [
+      "positive ion mode"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Positive ion mode",
+      "Negative ion mode",
+      "Negative and positive ion mode"
+    ],
+    "reasoning": "The legacy polarity denotes the returned Positive ion mode label."
+  },
+  {
+    "key": "mass_to_charge_range_low_value",
+    "value": 375,
+    "legacy_fields": [
+      "mz_range_low_value"
+    ],
+    "legacy_values": [
+      "375"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy low m/z range value was converted to the required numeric type."
+  },
+  {
+    "key": "mass_to_charge_range_high_value",
+    "value": 1500,
+    "legacy_fields": [
+      "mz_range_high_value"
+    ],
+    "legacy_values": [
+      "1500"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy high m/z range value was converted to the required numeric type."
+  },
+  {
+    "key": "mass_resolving_power",
+    "value": 60000,
+    "legacy_fields": [
+      "mass_resolving_power"
+    ],
+    "legacy_values": [
+      "60000"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The resolving-power string was converted to the required numeric type."
+  },
+  {
+    "key": "mass_to_charge_resolving_power",
+    "value": 200,
+    "legacy_fields": [
+      "mz_resolving_power"
+    ],
+    "legacy_values": [
+      "200"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy m/z resolving-power string was converted to the required numeric type."
+  },
+  {
+    "key": "ion_mobility",
+    "value": null,
+    "legacy_fields": [
+      "ion_mobility"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The ion mobility field is empty."
+  },
+  {
+    "key": "data_collection_mode",
+    "value": "DDA",
+    "legacy_fields": [
+      "data_collection_mode"
+    ],
+    "legacy_values": [
+      "DDA"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "DDA"
+    ],
+    "reasoning": "The legacy value exactly matches the returned HRAVS label."
+  },
+  {
+    "key": "label_name",
+    "value": "NO",
+    "legacy_fields": [
+      "labeling",
+      "description"
+    ],
+    "legacy_values": [
+      "NO",
+      "label-free lc-ms/ms bottom-up"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "Both legacy fields indicate that no label was used."
+  },
+  {
+    "key": "lc_instrument_vendor",
+    "value": "Evosep",
+    "legacy_fields": [
+      "lc_instrument_vendor"
+    ],
+    "legacy_values": [
+      "EvoSep"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Evosep"
+    ],
+    "reasoning": "The legacy vendor spelling denotes the returned Evosep label."
+  },
+  {
+    "key": "lc_column_vendor",
+    "value": "Evosep",
+    "legacy_fields": [
+      "lc_column_vendor"
+    ],
+    "legacy_values": [
+      "EvoSep"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Evosep"
+    ],
+    "reasoning": "The legacy vendor spelling denotes the returned Evosep label."
+  },
+  {
+    "key": "lc_column_length_value",
+    "value": 15,
+    "legacy_fields": [
+      "lc_length_value"
+    ],
+    "legacy_values": [
+      "15"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy column-length string was converted to the required numeric type."
+  },
+  {
+    "key": "lc_column_length_unit",
+    "value": "cm",
+    "legacy_fields": [
+      "lc_length_unit"
+    ],
+    "legacy_values": [
+      "cm"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "cm",
+      "cm^3"
+    ],
+    "reasoning": "The returned cm label denotes the legacy length unit."
+  },
+  {
+    "key": "lc_temperature_value",
+    "value": 21,
+    "legacy_fields": [
+      "lc_temp_value"
+    ],
+    "legacy_values": [
+      "21"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy temperature string was converted to the required numeric type."
+  },
+  {
+    "key": "lc_temperature_unit",
+    "value": null,
+    "legacy_fields": [
+      "lc_temp_unit"
+    ],
+    "legacy_values": [
+      "C"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No HRAVS label was returned that denotes the legacy C unit."
+  },
+  {
+    "key": "lc_inner_diameter_value",
+    "value": 100,
+    "legacy_fields": [
+      "lc_id_value"
+    ],
+    "legacy_values": [
+      "100"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The legacy inner-diameter string was converted to the required numeric type."
+  },
+  {
+    "key": "lc_inner_diameter_unit",
+    "value": "um",
+    "legacy_fields": [
+      "lc_id_unit"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "um",
+      "um^2",
+      "um^3"
+    ],
+    "reasoning": "The returned um label denotes the legacy inner-diameter unit."
+  },
+  {
+    "key": "lc_flow_rate_value",
+    "value": 500,
+    "legacy_fields": [
+      "lc_flow_rate_value"
+    ],
+    "legacy_values": [
+      "500"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The flow-rate string was converted to the required numeric type."
+  },
+  {
+    "key": "lc_flow_rate_unit",
+    "value": "nL/min",
+    "legacy_fields": [
+      "lc_flow_rate_unit"
+    ],
+    "legacy_values": [
+      "nL/min"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "nL/min",
+      "mL/min",
+      "uL/min"
+    ],
+    "reasoning": "The legacy value exactly matches the returned HRAVS label."
+  },
+  {
+    "key": "lc_gradient_value",
+    "value": 44,
+    "legacy_fields": [
+      "lc_gradient"
+    ],
+    "legacy_values": [
+      "44 min"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The numeric gradient duration is stated within the legacy gradient value."
+  },
+  {
+    "key": "lc_gradient_unit",
+    "value": null,
+    "legacy_fields": [
+      "lc_gradient"
+    ],
+    "legacy_values": [
+      "44 min"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "nL/min",
+      "mL/min",
+      "uL/min"
+    ],
+    "reasoning": "No returned HRAVS label denotes the minute unit in the legacy gradient value."
+  },
+  {
+    "key": "spatial_sampling_technique",
+    "value": null,
+    "legacy_fields": [
+      "spatial_type"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No spatial sampling technique was recorded."
+  },
+  {
+    "key": "spatial_sampling_target",
+    "value": null,
+    "legacy_fields": [
+      "spatial_target"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No spatial sampling target was recorded."
+  },
+  {
+    "key": "spatial_sampling_type",
+    "value": null,
+    "legacy_fields": [
+      "spatial_sampling_type",
+      "spatial_type"
+    ],
+    "legacy_values": [
+      "",
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No spatial sampling type was recorded."
+  },
+  {
+    "key": "analysis_protocol_doi",
+    "value": "10.17504/protocols.io.bsu5ney6",
+    "legacy_fields": [
+      "processing_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bsu5ney6"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The processing protocol DOI is the available analysis protocol DOI."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No metadata schema identifier was recorded."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "mass_spectrometry"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The assay category is broader than the assay type used for dataset type and has no separate target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2021-02-07 02:03"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records an execution date or time."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "overall_protocols_io_doi"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This empty overall protocol field has no distinct target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "processing_search"
+    ],
+    "legacy_values": [
+      "MaxQuant 1.6.17.0"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records the processing software."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "d.gutierrez@vanderbilt.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records an operator email address."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Jeffrey Spraggins"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records a principal investigator."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "jeff.spraggins@vanderbilt.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records a principal investigator email address."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bs7hnhj6"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The generic protocol DOI cannot be assigned to preparation or analysis over their more specific legacy DOI fields."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_unit",
+      "resolution_x_value",
+      "resolution_y_unit",
+      "resolution_y_value"
+    ],
+    "legacy_values": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records spatial resolution."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0013-LK-203-1,VAN0013-LK-203-2,VAN0013-LK-203-3,VAN0013-LK-203-4,VAN0013-LK-203-5"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records the listed tissue sample identifiers."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "2"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "A version number alone does not identify a metadata schema."
+  }
+]
