@@ -72,6 +72,14 @@ class Assay:
         )
         return self.run_output_dir(model, condition, run if repeated or run != 1 else None)
 
+    def has_predictions(self, model: str, condition: str, *, run: int = 1) -> bool:
+        """Whether *model* wrote any prediction under *condition* in its *run*-th run.
+
+        A run not made yet has none, so it can be told apart from a run that left some
+        records out -- the one worth warning about -- without scoring either.
+        """
+        return any(self.output_dir(model, condition, run=run).glob("*.json"))
+
     @property
     def has_gold(self) -> bool:
         """Whether this assay has both a schema and gold records to score against.

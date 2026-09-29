@@ -155,4 +155,4 @@ def create_run_spread_summary(
 
 def _made(data_root: str, model: str, condition: str, run: int) -> bool:
     """Whether run *run* of *condition* has any predictions on disk, in any assay."""
-    return any(any(assay.output_dir(model, condition, run=run).glob("*.json")) for assay in iter_assays(data_root))
+    return any(assay.has_predictions(model, condition, run=run) for assay in iter_assays(data_root))

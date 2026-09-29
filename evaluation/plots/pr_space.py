@@ -16,6 +16,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
+from analysis.corpus import get_assay, iter_assays
 from analysis.data_analysis import (
     create_overall_precision_recall_summary,
     create_per_assay_precision_recall_summary,
@@ -394,21 +395,46 @@ def plot_pr_model_comp(
     *shared_window*, *error_axes*, *show_f1_contours*, *title* and *save_path* -- means what
     it means there.
 
+    A model is drawn where it has predictions, so *models* can name a model whose run has
+    not been made, or not finished, yet.  With *assays*, each model is drawn in the panels of
+    the assays it has predictions for, and a model with none of them is left out of the
+    figure and its legend.  Pooled, a model is drawn only when it has predictions for every
+    assay: pooled over fewer, its score would stand on different assays from the others'
+    and could not be compared with them.
+
     Each model takes a hue from :data:`~plots.marks.MODEL_COLOURS`, which shares none with the
-    conditions, so a model is never read as the baseline or ARMS.  With *no_color* the model is
-    the letter written inside its mark, ``A``, ``B``, ``C`` in the order *models* lists them,
-    on marks alternately solid and hollow.
+    conditions, so a model is never read as the baseline or ARMS.  The hues go to the models
+    drawn, in the order *models* lists them.  With *no_color* the model is the letter written
+    inside its mark, ``A``, ``B``, ``C``, on marks alternately solid and hollow.
 
     Raises:
-        ValueError: If *models* is empty or holds more models than there are colours, a
-            field type or assay key is unknown, or no requested assay has predictions from
-            every model.
+        ValueError: If *models* is empty or names a model twice, more models are drawn than
+            there are colours, a field type or assay key is unknown, or no model has
+            anything to draw.
     """
     _check_pr_arguments((condition,), (condition,), field_types)
-    marked = _model_marks(models, no_color=no_color)
+    if not models:
+        raise ValueError("models needs at least one model")
+    if len(set(models)) != len(models):
+        raise ValueError(f"Each model may be named once, got {list(models)}")
+    _check_assay_keys(assays)
+    # Pooled, a model has to cover the whole corpus; broken out, one requested assay will do.
+    if assays:
+        wanted = [get_assay(data_root, key) for key in assays]
+        covers = any
+    else:
+        wanted = [assay for assay in iter_assays(data_root) if assay.has_gold]
+        covers = all
+    drawn = tuple(
+        model for model in models if covers(assay.has_predictions(model, condition, run=run) for assay in wanted)
+    )
+    if not drawn:
+        where = f"assays {list(assays)}" if assays else "every assay"
+        raise ValueError(f"None of {list(models)} has {condition} predictions in run {run} for {where}")
+    marked = _model_marks(drawn, no_color=no_color)
     _plot_pr_points(
         data_root,
-        [(model, condition) for model in models],
+        [(model, condition) for model in drawn],
         # Hollow marks first, as the baseline group is drawn first in plot_pr_condition_comp: a hollow
         # mark is white inside, and laid over a solid one it would hide it.
         sorted(
@@ -424,7 +450,16 @@ def plot_pr_model_comp(
         title=title,
         save_path=save_path,
         run=run,
+        partial=True,
     )
+
+
+def _check_assay_keys(assays: tuple[str, ...]) -> None:
+    """Reject an assay key ``ASSAY_ORDER`` does not know before anything is read."""
+    known = dict(ASSAY_ORDER)
+    unknown = [key for key in assays if key not in known]
+    if unknown:
+        raise ValueError(f"Unknown assay key(s): {unknown}")
 
 
 def _plot_pr_points(
@@ -441,41 +476,66 @@ def _plot_pr_points(
     title: str | None,
     save_path: str | None,
     run: int,
+    partial: bool = False,
 ) -> None:
     """Draw and finish a precision/recall figure: the layout both public figures share.
 
     *points* is one (model, condition) per operating point.  *groups* splits them, by index
     into *points*, into the groups drawn one after another, each with its marks.  *keys* is
     the legend, one (label, mark) per thing compared.
+
+    An assay is drawn only when every point has predictions for it, unless *partial*: then
+    an assay is drawn when any point has, and each panel holds the points it has.  Only the
+    assays asked for are scored, and with *partial* only those a point has predictions for,
+    so an assay no run reached is never scored and never warns about its missing records.
     """
+    _check_assay_keys(assays)
     labels = dict(ASSAY_ORDER)
-    unknown = [key for key in assays if key not in labels]
-    if unknown:
-        raise ValueError(f"Unknown assay key(s): {unknown}")
 
     if assays:
         frames = {
             (index, field_type): create_per_assay_precision_recall_summary(
-                data_root, model, condition, category=field_type, run=run
+                data_root,
+                model,
+                condition,
+                category=field_type,
+                run=run,
+                assays=[
+                    key
+                    for key in assays
+                    if not partial or get_assay(data_root, key).has_predictions(model, condition, run=run)
+                ],
             ).set_index("assay")
             for index, (model, condition) in enumerate(points)
             for field_type in field_types
         }
         wanted = {labels[key] for key in assays}
+        covered = any if partial else all
         rows = [
             label
             for _key, label in ASSAY_ORDER
-            if label in wanted and all(label in frame.index for frame in frames.values())
+            if label in wanted and covered(label in frame.index for frame in frames.values())
         ]
         if not rows:
             raise ValueError(f"No requested assay has predictions for every one of {points}")
+
+        def present(index: int, row: str) -> bool:
+            return row in frames[(index, field_types[0])].index
 
         def score(index: int, field_type: str, row: str) -> tuple[float, float]:
             frame = frames[(index, field_type)]
             return frame.loc[row, "recall"], frame.loc[row, "precision"]
 
-        first = frames[(0, field_types[0])]
-        n_records = {row: int(first.loc[row, "n_records"]) for row in rows}
+        # The records behind the row: the most any point was scored on, which is the whole
+        # assay once every run behind the panel has finished it.
+        n_records = {
+            row: max(
+                int(frames[(index, field_types[0])].loc[row, "n_records"])
+                for index in range(len(points))
+                if present(index, row)
+            )
+            for row in rows
+        }
     else:
         summaries = [
             create_overall_precision_recall_summary(data_root, model, condition, run=run).set_index("category")
@@ -488,6 +548,9 @@ def _plot_pr_points(
             return summary.loc[field_type, "recall"], summary.loc[field_type, "precision"]
 
         n_records = {POOLED_LABEL: int(summaries[0].loc[field_types[0], "n_records"])}
+
+        def present(_index: int, _row: str) -> bool:
+            return True
 
     def panel_title(row: str) -> str:
         """The row's name with the records standing behind it.
@@ -510,11 +573,21 @@ def _plot_pr_points(
         so two field types on one spot both stay visible; where two conditions put the same
         shape on the same spot, the later group -- the system -- is the one left legible.
         """
-        return [
-            ([placed(index, field_type, row) for index in group], group_marks, FIELD_TYPE_MARKERS[field_type])
-            for group, group_marks in groups
-            for field_type in drawn
-        ]
+        drawn_series = []
+        for group, group_marks in groups:
+            # A point with nothing for this row is left out of it, with its mark.
+            kept = [(index, mark) for index, mark in zip(group, group_marks, strict=True) if present(index, row)]
+            if not kept:
+                continue
+            for field_type in drawn:
+                drawn_series.append(
+                    (
+                        [placed(index, field_type, row) for index, _mark in kept],
+                        [mark for _index, mark in kept],
+                        FIELD_TYPE_MARKERS[field_type],
+                    )
+                )
+        return drawn_series
 
     if shared_window:
         columns = min(PANELS_PER_ROW, len(rows))

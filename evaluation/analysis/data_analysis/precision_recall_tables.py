@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from analysis.corpus import iter_assays, iter_pairs
+from analysis.corpus import get_assay, iter_assays, iter_pairs
 from analysis.metrics import (
     CONFUSION_CATEGORIES,
     CONFUSION_KEYS,
@@ -23,7 +23,7 @@ from analysis.metrics import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
     import pandas as pd
 
@@ -128,12 +128,15 @@ def create_per_assay_precision_recall_summary(
     category: str = "all",
     decimal_places: int = 3,
     run: int = 1,
+    assays: Sequence[str] | None = None,
 ) -> pd.DataFrame:
     """Precision, recall and F1 per assay, micro-averaged within each assay.
 
     *category* selects the field grouping and must be one of
     :data:`CONFUSION_CATEGORIES`.  Returns one row per assay in ``ASSAY_ORDER``,
-    skipping assays with no evaluated pairs.
+    skipping assays with no evaluated pairs.  *assays* names the assays to score, by key;
+    left out, every assay is.  Naming them keeps an assay the run never reached from being
+    scored at all, and so from warning about every one of its records.
     """
     import pandas as pd
 
@@ -141,7 +144,8 @@ def create_per_assay_precision_recall_summary(
         raise ValueError(f"category must be one of {CONFUSION_CATEGORIES}, got {category!r}")
 
     rows: list[dict[str, Any]] = []
-    for assay in iter_assays(data_root):
+    scored = iter_assays(data_root) if assays is None else (get_assay(data_root, key) for key in assays)
+    for assay in scored:
         counts, n_pairs, _ = _accumulate_confusion([assay], model, condition, run=run)
         if not n_pairs:
             continue

@@ -117,9 +117,41 @@ class TestModelFigure:
         plot_pr_model_comp(str(data_root), ("good", "half"), assays=("atacseq",))
         assert captured[0].axes[0].get_title() == "ATACseq (n=2)"
 
-    def test_a_model_without_predictions_is_refused(self, data_root: Path) -> None:
-        with pytest.raises(ValueError, match="No requested assay"):
-            plot_pr_model_comp(str(data_root), ("good", "absent"), assays=("atacseq",))
+    def test_a_model_with_no_predictions_yet_is_left_out_quietly(
+        self, data_root: Path, captured: list[plt.Figure], caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with caplog.at_level("WARNING"):
+            plot_pr_model_comp(str(data_root), ("good", "absent", "half"), assays=("atacseq",))
+        labels = [text.get_text() for text in captured[0].legends[0].get_texts()]
+        assert labels == ["good", "half"]
+        assert caplog.records == []
+
+    def test_a_model_is_drawn_in_the_assays_it_has(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        """ "half" has not reached RNAseq yet: that panel holds "good" alone."""
+        _write(data_root / "schemas" / "rnaseq.json", json.loads((data_root / "schemas" / "atacseq.json").read_text()))
+        for name, gold in _GOLD.items():
+            _write(data_root / "rnaseq" / "gold" / f"{name}.json", gold)
+            _write(data_root / "rnaseq" / "output" / "good" / "arms-agent" / f"{name}.json", _PREDICTIONS["good"][name])
+        plot_pr_model_comp(str(data_root), ("good", "half"), assays=("atacseq", "rnaseq"))
+        atacseq, rnaseq = captured[0].axes[:2]
+        assert set(_points(atacseq)) == {MODEL_COLOURS[0], MODEL_COLOURS[1]}
+        assert set(_points(rnaseq)) == {MODEL_COLOURS[0]}
+        assert rnaseq.get_title() == "RNAseq (n=2)"
+
+    def test_pooled_a_model_must_cover_every_assay(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        """Pooled over fewer assays, a model's score would not be comparable with the others'."""
+        _write(data_root / "schemas" / "rnaseq.json", json.loads((data_root / "schemas" / "atacseq.json").read_text()))
+        for name, gold in _GOLD.items():
+            _write(data_root / "rnaseq" / "gold" / f"{name}.json", gold)
+            _write(data_root / "rnaseq" / "output" / "good" / "arms-agent" / f"{name}.json", _PREDICTIONS["good"][name])
+        plot_pr_model_comp(str(data_root), ("good", "half"))
+        labels = [text.get_text() for text in captured[0].legends[0].get_texts()]
+        assert labels[0] == "good"
+        assert "half" not in labels
+
+    def test_nothing_to_draw_is_refused(self, data_root: Path) -> None:
+        with pytest.raises(ValueError, match="None of"):
+            plot_pr_model_comp(str(data_root), ("absent", "missing"), assays=("atacseq",))
 
 
 class TestShapeStacking:
