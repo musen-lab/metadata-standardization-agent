@@ -146,4 +146,5 @@ def create_per_assay_precision_recall_summary(
         if not n_pairs:
             continue
         rows.append({"assay": assay.label, **_scores_row(counts[category], n_pairs, decimal_places)})
-    return pd.DataFrame(rows)
+    # Named even when no assay was scored, so an empty table still has an ``assay`` to index by.
+    return pd.DataFrame(rows, columns=["assay", "n_records", *CONFUSION_KEYS, "precision", "recall", "f1"])

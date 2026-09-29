@@ -33,7 +33,7 @@ def plot_pr_bar_chart(
     The two metrics get a panel each, stacked and sharing both the x axis and the y
     span, so an assay's precision sits directly above its recall and the two are read
     against one scale.  A metric is a panel rather than a hatch, which leaves colour
-    free to carry the condition, exactly as it does in :func:`~plots.pr_space.plot_pr_space`.
+    free to carry the condition, exactly as it does in :func:`~plots.pr_space.plot_pr_condition_comp`.
 
     *baselines* and *systems* may each hold several conditions -- the ablations
     leading up to ARMS, say -- and each condition gets its own bar in both panels, drawn in the order

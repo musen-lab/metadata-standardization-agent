@@ -200,3 +200,57 @@ def _condition_marks(
             lettered += bool(letter)
             marks.append((condition, ConditionMark(style, letter, fill=filled)))
     return marks
+
+
+#: One colour per model, in the order the models are listed, for the figures that compare
+#: models under one condition.  None of the three is a condition's hue, so a model is never
+#: mistaken for the baseline or ARMS.  Violet, aqua and yellow clear colour-vision-deficiency
+#: separation between every pair (the check a scatter needs, not only neighbours); the aqua
+#: and the yellow fall below 3:1 against a white page, so a model is always named in the
+#: legend rather than left to its colour.  A fourth model would need a fourth hue validated
+#: with them, not one generated.
+MODEL_COLOURS = ("#4a3aa7", "#1baf7a", "#eda100")
+
+
+def _model_marks(models: tuple[str, ...], *, no_color: bool) -> list[tuple[str, ConditionMark]]:
+    """Every model in the order given, with the mark it takes.
+
+    In colour, each model takes its hue from :data:`MODEL_COLOURS`.  With colour off the model
+    is the letter written inside its mark, ``A``, ``B``, ``C``, and the marks alternate solid
+    and hollow so that overlapping ones stay apart.  A lone model has no letter, as a lone
+    condition has none.
+
+    Raises:
+        ValueError: If *models* is empty, names a model twice, or holds more models than
+            :data:`MODEL_COLOURS` has colours.
+    """
+    if not models:
+        raise ValueError("models needs at least one model")
+    if len(set(models)) != len(models):
+        raise ValueError(f"Each model may be named once, got {list(models)}")
+    if len(models) > len(MODEL_COLOURS):
+        raise ValueError(f"At most {len(MODEL_COLOURS)} models can be told apart by colour, got {len(models)}")
+    if not no_color:
+        return [
+            (
+                model,
+                ConditionMark(
+                    {"color": colour, "markerfacecolor": colour, "markeredgecolor": "white", "markersize": 9}, None
+                ),
+            )
+            for model, colour in zip(models, MODEL_COLOURS, strict=False)
+        ]
+    marks = []
+    for index, model in enumerate(models):
+        # Solid and hollow in turn, as the baseline and system groups are, so two models
+        # that land on one spot still show as two marks rather than one black blob.
+        filled = index % 2 == 0
+        style = {
+            "color": NO_COLOR_INK,
+            "markerfacecolor": NO_COLOR_INK if filled else "white",
+            "markeredgecolor": "white" if filled else NO_COLOR_INK,
+            "markeredgewidth": NO_COLOR_EDGE_WIDTH,
+        }
+        letter = chr(ord("A") + index) if len(models) > 1 else None
+        marks.append((model, ConditionMark(style, letter, fill=filled)))
+    return marks

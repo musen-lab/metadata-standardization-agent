@@ -89,7 +89,7 @@ def plot_run_spread(
     The scores are :func:`~analysis.data_analysis.collect_run_scores`'s: instance-weighted,
     not deduplicated.  The corpus pooled over the assays is left out; see the module notes.
 
-    Conditions are marked as in :func:`~plots.pr_space.plot_pr_space`, colour for the
+    Conditions are marked as in :func:`~plots.pr_space.plot_pr_condition_comp`, colour for the
     condition or, with *no_color*, hollow for the baselines and solid for the systems.
     *title* is written above the figure.  *x_label* replaces the axis label under the
     panels, which by default names what a dot's position means.  When *save_path* is given

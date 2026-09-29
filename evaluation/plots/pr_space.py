@@ -1,9 +1,10 @@
 """Operating points in precision/recall space: one panel per assay, or one for the corpus.
 
 The paper's main figure.  A panel is a window on the unit square with a mark per (condition,
-field type), which is why this module is mostly furniture: the window, the constant-F1
-contours behind the marks, the two legends under them, and the two ways of laying the
-panels out.  What the marks themselves look like is :mod:`plots.marks`.
+field type) -- or, in :func:`plot_pr_model_comp`, per (model, field type) under one condition --
+which is why this module is mostly furniture: the window, the constant-F1 contours behind
+the marks, the two legends under them, and the two ways of laying the panels out.  What the
+marks themselves look like is :mod:`plots.marks`.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from plots.marks import (
     ConditionMark,
     _condition_marks,
     _mark_style,
+    _model_marks,
 )
 from plots.pr_scores import POOLED_LABEL, _check_pr_arguments
 from plots.theme import (
@@ -190,14 +192,15 @@ def _pr_panel_series(
 
 def _pr_legends(
     fig: plt.Figure,
-    baselines: tuple[str, ...],
-    systems: tuple[str, ...],
+    keys: list[tuple[str, ConditionMark]],
     field_types: tuple[str, ...],
     *,
     show_field_keys: bool = True,
-    no_color: bool = False,
 ) -> float:
-    """Colour for the condition, and -- when a panel holds more than one -- marker for the field type.
+    """Colour for what the points compare, and -- when a panel holds more than one -- marker for the field type.
+
+    *keys* is one (label, mark) per thing compared: a condition in :func:`plot_pr_condition_comp`, a
+    model in :func:`plot_pr_model_comp`.
 
     Stacked rather than side by side: on one line the condition names and the field-type names
     collide as soon as either list grows.  *show_field_keys* is ``False`` when every
@@ -213,10 +216,10 @@ def _pr_legends(
             [],
             marker="o",
             linestyle="",
-            label=f"{mark.letter}  {condition}" if mark.letter else condition,
+            label=f"{mark.letter}  {label}" if mark.letter else label,
             **_mark_style(mark, "o"),
         )
-        for condition, mark in _condition_marks(baselines, systems, no_color=no_color)
+        for label, mark in keys
     ]
     field_keys = (
         []
@@ -267,7 +270,7 @@ def _pr_legends(
     return 2.4 * line
 
 
-def plot_pr_space(
+def plot_pr_condition_comp(
     data_root: str,
     model: str,
     *,
@@ -337,6 +340,105 @@ def plot_pr_space(
     """
     _check_pr_arguments(baselines, systems, field_types)
     conditions = (*baselines, *systems)
+    marked = _condition_marks(baselines, systems, no_color=no_color)
+    marks = [mark for _condition, mark in marked]
+    indices = list(range(len(conditions)))
+    _plot_pr_points(
+        data_root,
+        [(model, condition) for condition in conditions],
+        [
+            (indices[: len(baselines)], marks[: len(baselines)]),
+            (indices[len(baselines) :], marks[len(baselines) :]),
+        ],
+        list(marked),
+        assays=assays,
+        field_types=field_types,
+        shared_window=shared_window,
+        error_axes=error_axes,
+        show_f1_contours=show_f1_contours,
+        title=title,
+        save_path=save_path,
+        run=run,
+    )
+
+
+def plot_pr_model_comp(
+    data_root: str,
+    models: tuple[str, ...],
+    *,
+    condition: str = "arms-agent",
+    run: int = 1,
+    assays: tuple[str, ...] = (),
+    field_types: tuple[str, ...] = ("ontology", "non_ontology", "all"),
+    shared_window: bool = True,
+    error_axes: bool = False,
+    show_f1_contours: bool = True,
+    no_color: bool = False,
+    title: str | None = None,
+    save_path: str | None = None,
+) -> None:
+    """One condition's operating points in precision/recall space, one colour per model.
+
+    The same figure as :func:`plot_pr_condition_comp`, with the model in place of the condition:
+    every point is *condition* in run *run*, and what changes from one colour to the next is
+    the model that produced it.  Everything else -- *assays*, *field_types*,
+    *shared_window*, *error_axes*, *show_f1_contours*, *title* and *save_path* -- means what
+    it means there.
+
+    Each model takes a hue from :data:`~plots.marks.MODEL_COLOURS`, which shares none with the
+    conditions, so a model is never read as the baseline or ARMS.  With *no_color* the model is
+    the letter written inside its mark, ``A``, ``B``, ``C`` in the order *models* lists them,
+    on marks alternately solid and hollow.
+
+    Raises:
+        ValueError: If *models* is empty or holds more models than there are colours, a
+            field type or assay key is unknown, or no requested assay has predictions from
+            every model.
+    """
+    _check_pr_arguments((condition,), (condition,), field_types)
+    marked = _model_marks(models, no_color=no_color)
+    _plot_pr_points(
+        data_root,
+        [(model, condition) for model in models],
+        # Hollow marks first, as the baseline group is drawn first in plot_pr_condition_comp: a hollow
+        # mark is white inside, and laid over a solid one it would hide it.
+        sorted(
+            (([index], [mark]) for index, (_model, mark) in enumerate(marked)),
+            key=lambda group: group[1][0].fill is not False,
+        ),
+        marked,
+        assays=assays,
+        field_types=field_types,
+        shared_window=shared_window,
+        error_axes=error_axes,
+        show_f1_contours=show_f1_contours,
+        title=title,
+        save_path=save_path,
+        run=run,
+    )
+
+
+def _plot_pr_points(
+    data_root: str,
+    points: list[tuple[str, str]],
+    groups: list[tuple[list[int], list[ConditionMark]]],
+    keys: list[tuple[str, ConditionMark]],
+    *,
+    assays: tuple[str, ...],
+    field_types: tuple[str, ...],
+    shared_window: bool,
+    error_axes: bool,
+    show_f1_contours: bool,
+    title: str | None,
+    save_path: str | None,
+    run: int,
+) -> None:
+    """Draw and finish a precision/recall figure: the layout both public figures share.
+
+    *points* is one (model, condition) per operating point.  *groups* splits them, by index
+    into *points*, into the groups drawn one after another, each with its marks.  *keys* is
+    the legend, one (label, mark) per thing compared.
+    """
     labels = dict(ASSAY_ORDER)
     unknown = [key for key in assays if key not in labels]
     if unknown:
@@ -344,10 +446,10 @@ def plot_pr_space(
 
     if assays:
         frames = {
-            (condition, field_type): create_per_assay_precision_recall_summary(
+            (index, field_type): create_per_assay_precision_recall_summary(
                 data_root, model, condition, category=field_type, run=run
             ).set_index("assay")
-            for condition in conditions
+            for index, (model, condition) in enumerate(points)
             for field_type in field_types
         }
         wanted = {labels[key] for key in assays}
@@ -357,28 +459,26 @@ def plot_pr_space(
             if label in wanted and all(label in frame.index for frame in frames.values())
         ]
         if not rows:
-            raise ValueError(f"No requested assay has predictions for every one of {conditions}")
+            raise ValueError(f"No requested assay has predictions for every one of {points}")
 
-        def score(condition: str, field_type: str, row: str) -> tuple[float, float]:
-            frame = frames[(condition, field_type)]
+        def score(index: int, field_type: str, row: str) -> tuple[float, float]:
+            frame = frames[(index, field_type)]
             return frame.loc[row, "recall"], frame.loc[row, "precision"]
 
-        first = frames[(conditions[0], field_types[0])]
+        first = frames[(0, field_types[0])]
         n_records = {row: int(first.loc[row, "n_records"]) for row in rows}
     else:
-        summaries = {
-            condition: create_overall_precision_recall_summary(data_root, model, condition, run=run).set_index(
-                "category"
-            )
-            for condition in conditions
-        }
+        summaries = [
+            create_overall_precision_recall_summary(data_root, model, condition, run=run).set_index("category")
+            for model, condition in points
+        ]
         rows = [POOLED_LABEL]
 
-        def score(condition: str, field_type: str, _row: str) -> tuple[float, float]:
-            summary = summaries[condition]
+        def score(index: int, field_type: str, _row: str) -> tuple[float, float]:
+            summary = summaries[index]
             return summary.loc[field_type, "recall"], summary.loc[field_type, "precision"]
 
-        n_records = {POOLED_LABEL: int(summaries[conditions[0]].loc[field_types[0], "n_records"])}
+        n_records = {POOLED_LABEL: int(summaries[0].loc[field_types[0], "n_records"])}
 
     def panel_title(row: str) -> str:
         """The row's name with the records standing behind it.
@@ -388,12 +488,9 @@ def plot_pr_space(
         """
         return f"{row} (n={n_records[row]})"
 
-    marks = [mark for _condition, mark in _condition_marks(baselines, systems, no_color=no_color)]
-    groups = ((baselines, marks[: len(baselines)]), (systems, marks[len(baselines) :]))
-
-    def placed(condition: str, field_type: str, row: str) -> tuple[float, float]:
-        """One condition's point, with recall turned into its miss rate when asked for."""
-        recall, precision = score(condition, field_type, row)
+    def placed(index: int, field_type: str, row: str) -> tuple[float, float]:
+        """One point, with recall turned into its miss rate when asked for."""
+        recall, precision = score(index, field_type, row)
         return (1.0 - recall if error_axes else recall, precision)
 
     def series(row: str, drawn: tuple[str, ...]) -> list[tuple[list[tuple[float, float]], list[str], str]]:
@@ -404,7 +501,7 @@ def plot_pr_space(
         one left legible, rather than whichever field type happened to be drawn last.
         """
         return [
-            ([placed(condition, field_type, row) for condition in group], group_marks, FIELD_TYPE_MARKERS[field_type])
+            ([placed(index, field_type, row) for index in group], group_marks, FIELD_TYPE_MARKERS[field_type])
             for group, group_marks in groups
             for field_type in drawn
         ]
@@ -482,7 +579,7 @@ def plot_pr_space(
 
     # With one field type per panel, named in the column title, a marker key would only
     # repeat it.
-    strip = _pr_legends(fig, baselines, systems, field_types, show_field_keys=shared_window, no_color=no_color)
+    strip = _pr_legends(fig, keys, field_types, show_field_keys=shared_window)
     fig.tight_layout(rect=(0.0, strip, 1.0, 1.0))
     if title:
         # After tight_layout, which does not know about a suptitle added later: adding it
