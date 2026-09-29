@@ -54,6 +54,19 @@ def resolve_base_url() -> str | None:
     return None
 
 
+def streaming_kwargs() -> dict[str, Any]:
+    """Return the streaming settings to hand ``ChatOpenAI``, empty unless ``OPENAI_STREAMING`` is ``true``.
+
+    Streaming is for an endpoint behind a proxy that cuts off a slow response, such as
+    Cloudflare, which answers 524 when no byte has arrived for 100 seconds: a streamed
+    reply keeps bytes flowing while a slow model is still generating.  The usage is
+    asked for too, since a streamed reply otherwise carries no token counts.
+    """
+    if os.environ.get("OPENAI_STREAMING", "").strip().lower() != "true":
+        return {}
+    return {"streaming": True, "stream_usage": True}
+
+
 def _reasoning_kwargs(
     model: str,
     reasoning_effort: ReasoningEffort,
@@ -110,14 +123,17 @@ def build_migration_agent(
 
     base_url = resolve_base_url()
     reasoning_kwargs = _reasoning_kwargs(model, reasoning_effort, reasoning_mode)
+    stream_kwargs = streaming_kwargs()
 
     logger.info(
-        "Building migration agent with model=%s, tools=%d, structured_output=%s, reasoning=%s, endpoint=%s",
+        "Building migration agent with model=%s, tools=%d, structured_output=%s, reasoning=%s, endpoint=%s, "
+        "streaming=%s",
         model,
         len(tools),
         response_format is not None,
         reasoning_kwargs or None,
         base_url or "api.openai.com",
+        bool(stream_kwargs),
     )
     model_kwargs: dict[str, Any] = {}
     if tools and not _O_SERIES.match(model):
@@ -128,6 +144,7 @@ def build_migration_agent(
         temperature=0,
         model_kwargs=model_kwargs,
         **reasoning_kwargs,
+        **stream_kwargs,
     )
     return create_agent(
         llm,

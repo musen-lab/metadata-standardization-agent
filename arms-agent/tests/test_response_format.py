@@ -276,6 +276,50 @@ class TestReasoningAcrossEndpoints:
         assert llm_kwargs["base_url"] == endpoint
 
 
+class TestStreaming:
+    """``OPENAI_STREAMING=true`` streams both clients, for an endpoint that cuts off slow replies."""
+
+    @pytest.fixture
+    def llm_kwargs(self, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+        seen: dict[str, Any] = {}
+        monkeypatch.setattr(agent_module, "create_agent", lambda _llm, **_kw: "compiled")
+        monkeypatch.setattr("langchain_openai.ChatOpenAI", lambda **kwargs: seen.update(kwargs))
+        monkeypatch.setattr(utils, "_extraction_llm", None)
+        return seen
+
+    def _build(self) -> None:
+        agent_module.build_migration_agent(model="qwen3.8-27b", system_prompt="p", response_format=None, tools=())
+
+    def test_off_by_default(self, llm_kwargs: dict[str, Any]) -> None:
+        self._build()
+        assert "streaming" not in llm_kwargs
+        assert "stream_usage" not in llm_kwargs
+
+    @pytest.mark.parametrize("value", ["false", "1", "yes", ""])
+    def test_only_true_turns_it_on(
+        self, value: str, monkeypatch: pytest.MonkeyPatch, llm_kwargs: dict[str, Any]
+    ) -> None:
+        monkeypatch.setenv("OPENAI_STREAMING", value)
+        self._build()
+        assert "streaming" not in llm_kwargs
+
+    @pytest.mark.parametrize("value", ["true", "True", " TRUE "])
+    def test_the_agent_streams_with_usage(
+        self, value: str, monkeypatch: pytest.MonkeyPatch, llm_kwargs: dict[str, Any]
+    ) -> None:
+        """Without the usage chunk a streamed reply would record no tokens."""
+        monkeypatch.setenv("OPENAI_STREAMING", value)
+        self._build()
+        assert llm_kwargs["streaming"] is True
+        assert llm_kwargs["stream_usage"] is True
+
+    def test_the_extraction_llm_streams_too(self, monkeypatch: pytest.MonkeyPatch, llm_kwargs: dict[str, Any]) -> None:
+        monkeypatch.setenv("OPENAI_STREAMING", "true")
+        utils._get_extraction_llm()
+        assert llm_kwargs["streaming"] is True
+        assert llm_kwargs["stream_usage"] is True
+
+
 class TestExtractionModel:
     """The fallback extraction model, overridable for endpoints that do not offer it."""
 
@@ -309,6 +353,7 @@ class TestExtractionModel:
             ("OPENAI_BASE_URL", "https://proxy.example.com/v1"),
             ("OPENAI_API_KEY", "proxy-key"),
             ("OPENAI_EXTRACTION_MODEL", "qwen3.8-27b"),
+            ("OPENAI_STREAMING", "true"),
         ],
     )
     def test_a_changed_setting_rebuilds_the_client(

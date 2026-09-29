@@ -23,8 +23,8 @@ from arms_agent.tracing import record_migrated_record, record_processing_log
 
 logger = logging.getLogger(__name__)
 
-# The shared extraction client, with the settings it was built from: model, endpoint, key.
-_extraction_llm: tuple[tuple[str, str | None, str | None], ChatOpenAI] | None = None
+# The shared extraction client, with the settings it was built from: model, endpoint, key, streaming.
+_extraction_llm: tuple[tuple[str, str | None, str | None, bool], ChatOpenAI] | None = None
 
 
 def _fenced_block_re(marker: str) -> re.Pattern[str]:
@@ -104,20 +104,21 @@ def _get_extraction_llm() -> ChatOpenAI:
     ``gpt-4.1-mini``, and an unavailable model here would only surface on the fallback
     path, long after the run started.
 
-    The client is rebuilt whenever the model, endpoint, or key in the environment has
+    The client is rebuilt whenever the model, endpoint, key, or streaming in the environment has
     changed since, so a notebook that reloads ``.env`` to switch endpoints does not keep
     sending the extraction call, and the old key, to the old one.
     """
     global _extraction_llm  # noqa: PLW0603
-    from arms_agent.agent import resolve_base_url
+    from arms_agent.agent import resolve_base_url, streaming_kwargs
 
     model = os.environ.get("OPENAI_EXTRACTION_MODEL", "").strip() or "gpt-4.1-mini"
-    settings = (model, resolve_base_url(), os.environ.get("OPENAI_API_KEY"))
+    stream_kwargs = streaming_kwargs()
+    settings = (model, resolve_base_url(), os.environ.get("OPENAI_API_KEY"), bool(stream_kwargs))
     if _extraction_llm is None or _extraction_llm[0] != settings:
         from langchain_openai import ChatOpenAI as _ChatOpenAI
 
         logger.debug("Creating the extraction client with model=%s", model)
-        _extraction_llm = (settings, _ChatOpenAI(model=model, temperature=0, base_url=settings[1]))
+        _extraction_llm = (settings, _ChatOpenAI(model=model, temperature=0, base_url=settings[1], **stream_kwargs))
     return _extraction_llm[1]
 
 
