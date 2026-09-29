@@ -1,0 +1,586 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "STAN0003-SI-1-8",
+    "legacy_fields": [
+      "tissue_id",
+      "donor_id"
+    ],
+    "legacy_values": [
+      "STAN0003-SI-1-8",
+      "STAN0003"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The tissue identifier identifies the source sample more specifically than the donor identifier."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No laboratory identifier is provided."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "10.17504/protocols.io.bfwajpae",
+    "legacy_fields": [
+      "library_construction_protocols_io_doi",
+      "protocols_io_doi",
+      "sc_isolation_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bfwajpae",
+      "10.17504/protocols.io.bfwajpae",
+      "10.17504/protocols.io.bfwajpae"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "All reported preparation-related protocol DOI fields contain the same DOI."
+  },
+  {
+    "key": "dataset_type",
+    "value": "snRNAseq",
+    "legacy_fields": [
+      "assay_type",
+      "description",
+      "assay_category"
+    ],
+    "legacy_values": [
+      "snRNAseq-10xGenomics-v3",
+      "snrnaseq",
+      "sequence"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "snRNAseq",
+      "scRNAseq",
+      "RNAseq"
+    ],
+    "reasoning": "The assay type and description specifically denote single-nucleus RNA sequencing."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "NovaSeq 6000",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "NovaSeq6000"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "NovaSeq 6000"
+    ],
+    "reasoning": "The recorded model denotes the NovaSeq 6000 vocabulary label."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration is reported."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration unit is reported."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2020-07-02 07:09"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The execution timestamp does not report an instrument calibration interval."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2020-07-02 07:09"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The execution timestamp provides no calibration interval unit."
+  },
+  {
+    "key": "barcode_offset",
+    "value": null,
+    "legacy_fields": [
+      "cell_barcode_offset"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The cell barcode offset is empty."
+  },
+  {
+    "key": "barcode_read",
+    "value": "R1",
+    "legacy_fields": [
+      "cell_barcode_read"
+    ],
+    "legacy_values": [
+      "R1"
+    ],
+    "resolution": "copied",
+    "candidates": [
+      "R1"
+    ],
+    "reasoning": "The cell barcode read directly supplies the barcode read."
+  },
+  {
+    "key": "barcode_size",
+    "value": "16",
+    "legacy_fields": [
+      "cell_barcode_size"
+    ],
+    "legacy_values": [
+      "16"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The cell barcode size directly supplies the barcode size."
+  },
+  {
+    "key": "umi_offset",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No UMI offset is reported."
+  },
+  {
+    "key": "umi_read",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No UMI read is reported."
+  },
+  {
+    "key": "umi_size",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No UMI size is reported."
+  },
+  {
+    "key": "assay_input_entity",
+    "value": "nucleus",
+    "legacy_fields": [
+      "sc_isolation_entity"
+    ],
+    "legacy_values": [
+      "nucleus"
+    ],
+    "resolution": "copied",
+    "candidates": [
+      "nucleus",
+      "cell"
+    ],
+    "reasoning": "The isolation entity is explicitly reported as nucleus."
+  },
+  {
+    "key": "number_of_input_cells_or_nuclei",
+    "value": 14850,
+    "legacy_fields": [
+      "rnaseq_assay_input",
+      "sc_isolation_cell_number"
+    ],
+    "legacy_values": [
+      "14850",
+      "2520000"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The RNA-seq assay input is the assay-stage count, whereas the isolation count refers to an earlier stage."
+  },
+  {
+    "key": "amount_of_input_analyte_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No input analyte amount is reported."
+  },
+  {
+    "key": "amount_of_input_analyte_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No input analyte amount unit is reported."
+  },
+  {
+    "key": "library_average_fragment_size",
+    "value": 412,
+    "legacy_fields": [
+      "library_average_fragment_size"
+    ],
+    "legacy_values": [
+      "412"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The reported fragment size was converted to the required integer datatype."
+  },
+  {
+    "key": "library_input_amount_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No library input amount is reported."
+  },
+  {
+    "key": "library_input_amount_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No library input amount unit is reported."
+  },
+  {
+    "key": "library_output_amount_value",
+    "value": 1104.0,
+    "legacy_fields": [
+      "library_final_yield_value"
+    ],
+    "legacy_values": [
+      "1104.0"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The final library yield supplies the library output amount."
+  },
+  {
+    "key": "library_output_amount_unit",
+    "value": "nanogram",
+    "legacy_fields": [
+      "library_final_yield_unit"
+    ],
+    "legacy_values": [
+      "ng"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "nanogram"
+    ],
+    "reasoning": "The reported ng unit denotes the nanogram vocabulary label."
+  },
+  {
+    "key": "library_concentration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No library concentration is reported."
+  },
+  {
+    "key": "library_concentration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No library concentration unit is reported."
+  },
+  {
+    "key": "number_of_iterations_of_cdna_amplification",
+    "value": 12,
+    "legacy_fields": [
+      "library_pcr_cycles"
+    ],
+    "legacy_values": [
+      "12"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The library PCR-cycle count supplies the reported cDNA amplification iterations."
+  },
+  {
+    "key": "number_of_pcr_cycles_for_indexing",
+    "value": 13,
+    "legacy_fields": [
+      "library_pcr_cycles_for_sample_index"
+    ],
+    "legacy_values": [
+      "13"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The sample-index PCR-cycle count directly supplies the indexing cycle count."
+  },
+  {
+    "key": "library_preparation_kit",
+    "value": "Chromium Single Cell 3' Reagent Kits v3.1",
+    "legacy_fields": [
+      "rnaseq_assay_method"
+    ],
+    "legacy_values": [
+      "10x Chromium Single Cell 3' Reagent Kits v3.1"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "Chromium Single Cell 3' Reagent Kits v3.1"
+    ],
+    "reasoning": "The assay method denotes the Chromium Single Cell 3' Reagent Kits v3.1 label."
+  },
+  {
+    "key": "sample_indexing_kit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No sample indexing kit is reported."
+  },
+  {
+    "key": "sample_indexing_set",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No sample indexing set is reported."
+  },
+  {
+    "key": "expected_entity_capture_count",
+    "value": 5000,
+    "legacy_fields": [
+      "expected_cell_count"
+    ],
+    "legacy_values": [
+      "5000"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The expected cell count supplies the expected entity capture count."
+  },
+  {
+    "key": "sequencing_batch_id",
+    "value": null,
+    "legacy_fields": [
+      "library_id"
+    ],
+    "legacy_values": [
+      "B001-A-006"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The library identifier does not establish a sequencing batch identifier."
+  },
+  {
+    "key": "capture_batch_id",
+    "value": null,
+    "legacy_fields": [
+      "library_id"
+    ],
+    "legacy_values": [
+      "B001-A-006"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The library identifier does not establish a capture batch identifier."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": "10x Genomics",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "snRNAseq-10xGenomics-v3"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "10x Genomics"
+    ],
+    "reasoning": "The assay type explicitly identifies 10x Genomics."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": null,
+    "legacy_fields": [
+      "rnaseq_assay_method"
+    ],
+    "legacy_values": [
+      "10x Chromium Single Cell 3' Reagent Kits v3.1"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The assay method identifies a reagent kit but does not state a preparation instrument model."
+  },
+  {
+    "key": "preparation_instrument_kit",
+    "value": null,
+    "legacy_fields": [
+      "rnaseq_assay_method"
+    ],
+    "legacy_values": [
+      "10x Chromium Single Cell 3' Reagent Kits v3.1"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The reported reagent kit was mapped to library preparation rather than an instrument kit."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": null,
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "2"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The version value is not a metadata schema identifier."
+  },
+  {
+    "key": null,
+    "value": "Stephanie Nevins, Roxanne Chiu",
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "Stephanie Nevins, Roxanne Chiu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records the operator."
+  },
+  {
+    "key": null,
+    "value": "snevins@stanford.edu",
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "snevins@stanford.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records the operator email."
+  },
+  {
+    "key": null,
+    "value": "Michael Snyder",
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Michael Snyder"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records the principal investigator."
+  },
+  {
+    "key": null,
+    "value": "mpsnyder@stanford.edu",
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "mpsnyder@stanford.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records the principal investigator email."
+  },
+  {
+    "key": null,
+    "value": "none",
+    "legacy_fields": [
+      "sc_isolation_enrichment"
+    ],
+    "legacy_values": [
+      "none"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records isolation enrichment."
+  },
+  {
+    "key": null,
+    "value": "OK",
+    "legacy_fields": [
+      "sc_isolation_quality_metric"
+    ],
+    "legacy_values": [
+      "OK"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records the isolation quality metric."
+  },
+  {
+    "key": null,
+    "value": "dounce",
+    "legacy_fields": [
+      "sc_isolation_tissue_dissociation"
+    ],
+    "legacy_values": [
+      "dounce"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records the tissue dissociation method."
+  },
+  {
+    "key": null,
+    "value": "20",
+    "legacy_fields": [
+      "sequencing_phix_percent"
+    ],
+    "legacy_values": [
+      "20"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records the PhiX percentage."
+  },
+  {
+    "key": null,
+    "value": "94.0",
+    "legacy_fields": [
+      "sequencing_read_percent_q30"
+    ],
+    "legacy_values": [
+      "94.0"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No target field records sequencing Q30 performance."
+  }
+]

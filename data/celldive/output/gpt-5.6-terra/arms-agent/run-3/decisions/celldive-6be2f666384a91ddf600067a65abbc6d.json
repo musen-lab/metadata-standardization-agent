@@ -1,0 +1,407 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0060-LK-1-37"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The tissue identifier may identify the source section, but it is not a HuBMAP or SenNet parent-sample identifier and cannot match the required format."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No identifier for an external provider-maintained metadata record was supplied."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.kqdg39k41g25/v1",
+    "legacy_fields": [
+      "overall_protocols_io_doi",
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.kqdg39k41g25/v1",
+      "10.17504/protocols.io.kqdg39k41g25/v1"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The identical supplied protocols.io DOI was reformatted as a DOI URL for the link field."
+  },
+  {
+    "key": "dataset_type",
+    "value": "Cell DIVE",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "cell-dive"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Cell DIVE"
+    ],
+    "reasoning": "The assay type denotes the returned Cell DIVE dataset-type label."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Protein",
+      "RNA + protein",
+      "Nucleic acid + protein",
+      "Lipid + metabolite + protein"
+    ],
+    "reasoning": "The legacy analyte class denotes Protein rather than a combined analyte class."
+  },
+  {
+    "key": "is_targeted",
+    "value": "Yes",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "True"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The true boolean-like value denotes the permitted option Yes."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Leica Microsystems",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Leica Microsystems"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Leica Microsystems",
+      "Leica Biosystems"
+    ],
+    "reasoning": "The legacy vendor exactly denotes the Leica Microsystems vocabulary label."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "Cell DIVE",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "Cell DIVE Imager"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Cell DIVE",
+      "CosMx Spatial Molecular Imager",
+      "IN Cell Analyzer 2200"
+    ],
+    "reasoning": "Cell DIVE Imager denotes the returned Cell DIVE instrument-model label."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No duration for storage before processing was supplied."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source-storage duration unit was supplied."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No elapsed time since calibration or servicing was supplied."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No unit for elapsed time since calibration or servicing was supplied."
+  },
+  {
+    "key": "number_of_antibodies",
+    "value": 10,
+    "legacy_fields": [
+      "number_of_antibodies"
+    ],
+    "legacy_values": [
+      "10"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The numeric string was converted to the required integer."
+  },
+  {
+    "key": "number_of_channels",
+    "value": 4,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "4"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The numeric string was converted to the required integer."
+  },
+  {
+    "key": "number_of_biomarker_imaging_rounds",
+    "value": 3,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "3"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "For the Cell DIVE assay, the reported cycle count denotes biomarker imaging rounds."
+  },
+  {
+    "key": "number_of_total_imaging_rounds",
+    "value": 6,
+    "legacy_fields": [
+      "number_of_imaging_rounds"
+    ],
+    "legacy_values": [
+      "6"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The reported imaging-round count directly supplies the total imaging rounds."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No identifier specifically assigned to a slide was supplied."
+  },
+  {
+    "key": "cell_boundary_marker_or_stain",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No cell-boundary marker or stain was supplied."
+  },
+  {
+    "key": "nuclear_marker_or_stain",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No nuclear marker or stain was supplied."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "6f9eee7b-7ef1-4f32-a34e-706bbbbb09bf",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The template supplies this metadata schema identifier as its default."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "imaging"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The generic assay category has no distinct field in this template."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "description"
+    ],
+    "legacy_values": [
+      "IMS+CellDIVE kidney"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no free-text dataset-description field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "VAN0060"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no donor identifier field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2021-12-03 8:47"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no assay execution datetime field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "Christine Surrette"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no instrument operator field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "christine.surrette@ge.com"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no operator email field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Fiona Ginty"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no principal-investigator field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "Fiona.Ginty@ge.com"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no principal-investigator email field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "processing_protocols_io_doi"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The empty processing-protocol DOI has no distinct destination in this template."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_unit",
+      "resolution_x_value",
+      "resolution_y_unit",
+      "resolution_y_value"
+    ],
+    "legacy_values": [
+      "um",
+      "0.325",
+      "um",
+      "0.325"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no image-resolution fields."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0060-LK-1-37"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This provider tissue identifier does not meet the template's required HuBMAP or SenNet parent-sample identifier format."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The legacy record version is not the template metadata-schema identifier."
+  }
+]
