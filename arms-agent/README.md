@@ -111,6 +111,7 @@ CEDAR template and BioPortal term responses are cached in SQLite for 24 hours, t
 | `OPENAI_COST_MULTIPLIER` | `1.0` | Scales the reported cost when your endpoint charges a fraction of OpenAI's list prices. |
 | `OPENAI_COST_CACHED_MULTIPLIER` | `OPENAI_COST_MULTIPLIER` | Scales OpenAI's cached-input rate, for an endpoint that discounts cached input differently from the rest. |
 | `OPENAI_STREAMING` | `false` | Set to `true` to stream replies, for an endpoint behind a proxy that cuts off slow ones, such as Cloudflare's 100-second limit. |
+| `OPENAI_STRUCTURED_OUTPUT` | `provider` | How the template's schema reaches the model: `provider` sends it as the request's `response_format`; `tool` offers it as a tool the model calls to answer, for an endpoint that enforces `response_format` on every reply and so never lets the model call a tool. |
 
 Costs are local estimates from provider-reported token counts, not billed amounts.
 

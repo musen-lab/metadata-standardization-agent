@@ -11,6 +11,7 @@ import json
 from typing import Any
 
 import pytest
+from langchain.agents.structured_output import ProviderStrategy, ToolStrategy
 from langgraph.graph import END, START, StateGraph
 
 from arms_agent import agent as agent_module
@@ -44,6 +45,28 @@ class TestBuildResponseFormat:
         assert json_schema["strict"] is True
         assert set(json_schema["schema"]["properties"]) == {"record", "log"}
         assert set(json_schema["schema"]["$defs"]["demo"]["properties"]) == {"manufacturer", "channel_count"}
+
+    @pytest.mark.parametrize("value", ["tool", " Tool "])
+    def test_the_schema_can_be_offered_as_a_tool(
+        self, value: str, stub_template: None, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """For an endpoint that would enforce ``response_format`` on every reply, and so never call a tool."""
+        monkeypatch.setenv("OPENAI_STRUCTURED_OUTPUT", value)
+        response_format = agent_module.build_response_format("iri")
+        assert isinstance(response_format, ToolStrategy)
+        (spec,) = response_format.schema_specs
+        assert set(spec.json_schema["properties"]) == {"record", "log"}
+
+    @pytest.mark.parametrize("value", ["provider", ""])
+    def test_provider_is_the_default(self, value: str, stub_template: None, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("OPENAI_STRUCTURED_OUTPUT", value)
+        assert isinstance(agent_module.build_response_format("iri"), ProviderStrategy)
+
+    def test_an_unknown_strategy_is_refused(self, stub_template: None, monkeypatch: pytest.MonkeyPatch) -> None:
+        """A typo must not fall back silently to the strategy the endpoint cannot serve."""
+        monkeypatch.setenv("OPENAI_STRUCTURED_OUTPUT", "tools")
+        with pytest.raises(ValueError, match="'tools'"):
+            agent_module.build_response_format("iri")
 
     def test_a_failed_fetch_is_refused(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Binding an empty schema would produce empty records for a whole sweep."""

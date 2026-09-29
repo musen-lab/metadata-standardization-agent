@@ -8,7 +8,7 @@ import re
 from typing import TYPE_CHECKING, Any, Literal
 
 from langchain.agents import create_agent
-from langchain.agents.structured_output import ProviderStrategy
+from langchain.agents.structured_output import ProviderStrategy, ToolStrategy
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -81,24 +81,38 @@ def _reasoning_kwargs(
     return {"reasoning": {"effort": reasoning_effort, "mode": reasoning_mode}}
 
 
-def build_response_format(template_iri: str) -> ProviderStrategy:
-    """Return the provider-enforced response format for *template_iri*.
+def build_response_format(template_iri: str) -> ProviderStrategy | ToolStrategy:
+    """Return the response format binding the agent's answer to *template_iri*.
+
+    ``OPENAI_STRUCTURED_OUTPUT`` decides how the schema reaches the model.  ``provider``,
+    the default, sends it as the request's ``response_format``, which OpenAI enforces on
+    the final answer only.  ``tool`` offers it as one more tool the model calls to answer,
+    for an endpoint that enforces ``response_format`` on every reply: there the model can
+    never call a tool, and answers without fetching the template or searching a term.
 
     Raises:
         ValueError: If the template cannot be fetched, which would otherwise bind an
-            empty schema and silently produce empty records for a whole run.
+            empty schema and silently produce empty records for a whole run, or if
+            ``OPENAI_STRUCTURED_OUTPUT`` is neither ``provider`` nor ``tool``.
     """
+    strategy = os.environ.get("OPENAI_STRUCTURED_OUTPUT", "").strip().lower() or "provider"
+    if strategy not in ("provider", "tool"):
+        msg = f"OPENAI_STRUCTURED_OUTPUT must be 'provider' or 'tool', not {strategy!r}"
+        raise ValueError(msg)
     template_dict = get_cedar_template.invoke({"template_id": template_iri})
     if "error" in template_dict or not template_dict.get("children"):
         msg = f"Cannot build a response schema for {template_iri}: {template_dict.get('error', 'no fields returned')}"
         raise ValueError(msg)
-    return ProviderStrategy(build_response_model(template_dict), strict=True)
+    response_model = build_response_model(template_dict)
+    if strategy == "tool":
+        return ToolStrategy(response_model)
+    return ProviderStrategy(response_model, strict=True)
 
 
 def build_migration_agent(
     model: str,
     system_prompt: str,
-    response_format: ProviderStrategy | None,
+    response_format: ProviderStrategy | ToolStrategy | None,
     tools: Sequence[BaseTool],
     reasoning_effort: ReasoningEffort = "low",
     reasoning_mode: ReasoningMode = "standard",
