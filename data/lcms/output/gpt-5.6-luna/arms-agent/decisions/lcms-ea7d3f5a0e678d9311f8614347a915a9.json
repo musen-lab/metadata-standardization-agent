@@ -1,0 +1,730 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id",
+      "description"
+    ],
+    "legacy_values": [
+      "STAN0008-SI-3-1",
+      "Batch 4 LCMS metabolomics data for sample B005-A-401 from donor B005"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The available internal identifiers do not match the required HuBMAP or SenNet parent-sample identifier pattern."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [
+      "donor_id",
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "STAN0008",
+      "STAN0008-SI-3-1"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "These identify donor or tissue samples rather than an external lab metadata record."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://doi.org/10.17504/protocols.io.bf4ujqww",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bf4ujqww"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The assay protocol DOI was converted from a bare DOI identifier to a URL required by the link field."
+  },
+  {
+    "key": "dataset_type",
+    "value": "LC-MS",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "LC-MS"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "LC-MS",
+      "MS Lipidomics"
+    ],
+    "reasoning": "The legacy assay type denotes the LC-MS controlled-vocabulary label."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Metabolite",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "metabolites"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Metabolite",
+      "Lipid + metabolite"
+    ],
+    "reasoning": "The plural legacy value denotes the singular controlled-vocabulary term Metabolite."
+  },
+  {
+    "key": "is_targeted",
+    "value": "No",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "False"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The boolean-like legacy value False denotes the No option."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Thermo Fisher Scientific",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Thermo Fisher"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Thermo Fisher Scientific"
+    ],
+    "reasoning": "The controlled vocabulary expands the legacy vendor name to Thermo Fisher Scientific."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "Q Exactive",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "Q Exactive"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Q Exactive",
+      "Q Exactive HF",
+      "Q Exactive UHMR",
+      "Q Exactive HF-X"
+    ],
+    "reasoning": "The legacy value exactly identifies the Q Exactive model rather than one of its variants."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record provides no duration for storage before processing."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source-storage duration or unit is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record provides no time since instrument calibration."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval is recorded from which to obtain a unit."
+  },
+  {
+    "key": "ms_ionization_technique",
+    "value": "ESI",
+    "legacy_fields": [
+      "ms_source"
+    ],
+    "legacy_values": [
+      "ESI"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "ESI"
+    ],
+    "reasoning": "The legacy MS source matches the ESI controlled-vocabulary label."
+  },
+  {
+    "key": "ms_scan_mode",
+    "value": null,
+    "legacy_fields": [
+      "ms_scan_mode"
+    ],
+    "legacy_values": [
+      "full MS (all samples), MS/MS on pool sample"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "MS1",
+      "MS2"
+    ],
+    "reasoning": "The legacy value describes both MS1 and MS2 acquisition while the target field permits only one scan-mode label."
+  },
+  {
+    "key": "mass_analysis_polarity",
+    "value": "Negative ion mode",
+    "legacy_fields": [
+      "polarity"
+    ],
+    "legacy_values": [
+      "negative ion mode"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Negative ion mode",
+      "Negative and positive ion mode",
+      "Positive ion mode"
+    ],
+    "reasoning": "The legacy polarity denotes Negative ion mode."
+  },
+  {
+    "key": "mass_to_charge_range_low_value",
+    "value": 70,
+    "legacy_fields": [
+      "mz_range_low_value"
+    ],
+    "legacy_values": [
+      "70"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The numeric mass-to-charge lower bound was extracted from the legacy string."
+  },
+  {
+    "key": "mass_to_charge_range_high_value",
+    "value": 1000,
+    "legacy_fields": [
+      "mz_range_high_value"
+    ],
+    "legacy_values": [
+      "1000"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The numeric mass-to-charge upper bound was extracted from the legacy string."
+  },
+  {
+    "key": "mass_resolving_power",
+    "value": 70000,
+    "legacy_fields": [
+      "mass_resolving_power"
+    ],
+    "legacy_values": [
+      "70000"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The resolving-power number was converted from a numeric string to the declared decimal datatype."
+  },
+  {
+    "key": "mass_to_charge_resolving_power",
+    "value": 200,
+    "legacy_fields": [
+      "mz_resolving_power"
+    ],
+    "legacy_values": [
+      "200"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The legacy m/z resolving-power value was converted to the declared decimal datatype."
+  },
+  {
+    "key": "ion_mobility",
+    "value": null,
+    "legacy_fields": [
+      "ion_mobility"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy ion-mobility field is empty and therefore does not identify a technology."
+  },
+  {
+    "key": "data_collection_mode",
+    "value": "DIA",
+    "legacy_fields": [
+      "data_collection_mode"
+    ],
+    "legacy_values": [
+      "DIA"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "DIA"
+    ],
+    "reasoning": "The legacy value matches the DIA controlled-vocabulary label."
+  },
+  {
+    "key": "label_name",
+    "value": null,
+    "legacy_fields": [
+      "labeling"
+    ],
+    "legacy_values": [
+      "False"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record explicitly states that labeling was not applied and provides no label name."
+  },
+  {
+    "key": "lc_instrument_vendor",
+    "value": "Thermo Fisher Scientific",
+    "legacy_fields": [
+      "lc_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Thermo Fisher"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Thermo Fisher Scientific"
+    ],
+    "reasoning": "The controlled vocabulary expands the legacy LC vendor name to Thermo Fisher Scientific."
+  },
+  {
+    "key": "lc_column_vendor",
+    "value": "Agilent Technologies",
+    "legacy_fields": [
+      "lc_column_vendor"
+    ],
+    "legacy_values": [
+      "Agilent Technologies"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Agilent Technologies"
+    ],
+    "reasoning": "The legacy column vendor matches the controlled-vocabulary label."
+  },
+  {
+    "key": "lc_column_length_value",
+    "value": 50,
+    "legacy_fields": [
+      "lc_length_value"
+    ],
+    "legacy_values": [
+      "50"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The column length was mapped and converted from a numeric string."
+  },
+  {
+    "key": "lc_column_length_unit",
+    "value": "mm",
+    "legacy_fields": [
+      "lc_length_unit"
+    ],
+    "legacy_values": [
+      "mm"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "mm"
+    ],
+    "reasoning": "The legacy column-length unit matches the permissible label mm."
+  },
+  {
+    "key": "lc_temperature_value",
+    "value": 60,
+    "legacy_fields": [
+      "lc_temp_value"
+    ],
+    "legacy_values": [
+      "60"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The LC temperature was converted from a numeric string to a decimal."
+  },
+  {
+    "key": "lc_temperature_unit",
+    "value": "celsius",
+    "legacy_fields": [
+      "lc_temp_unit"
+    ],
+    "legacy_values": [
+      "C"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "celsius"
+    ],
+    "reasoning": "The legacy abbreviation C denotes the controlled-vocabulary unit celsius."
+  },
+  {
+    "key": "lc_inner_diameter_value",
+    "value": 2.1,
+    "legacy_fields": [
+      "lc_id_value"
+    ],
+    "legacy_values": [
+      "2.1"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The legacy LC inner-diameter value was converted to the declared decimal datatype."
+  },
+  {
+    "key": "lc_inner_diameter_unit",
+    "value": "um",
+    "legacy_fields": [
+      "lc_id_unit"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "um"
+    ],
+    "reasoning": "The legacy inner-diameter unit matches the permissible label um."
+  },
+  {
+    "key": "lc_flow_rate_value",
+    "value": 0.6,
+    "legacy_fields": [
+      "lc_flow_rate_value"
+    ],
+    "legacy_values": [
+      "0.6"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The flow-rate number was converted from a numeric string to a decimal."
+  },
+  {
+    "key": "lc_flow_rate_unit",
+    "value": "mL/min",
+    "legacy_fields": [
+      "lc_flow_rate_unit"
+    ],
+    "legacy_values": [
+      "mL/min"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "mL/min",
+      "nL/min"
+    ],
+    "reasoning": "The legacy flow-rate unit matches mL/min rather than nL/min."
+  },
+  {
+    "key": "lc_gradient_value",
+    "value": null,
+    "legacy_fields": [
+      "lc_gradient"
+    ],
+    "legacy_values": [
+      "True"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The boolean indicates that a gradient was used but does not provide a numeric gradient value."
+  },
+  {
+    "key": "lc_gradient_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No unit for an LC gradient is recorded."
+  },
+  {
+    "key": "spatial_sampling_technique",
+    "value": null,
+    "legacy_fields": [
+      "spatial_type"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The spatial technique field is empty and the record does not identify a technique."
+  },
+  {
+    "key": "spatial_sampling_target",
+    "value": null,
+    "legacy_fields": [
+      "spatial_target"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The spatial target field is empty and no target structure is stated."
+  },
+  {
+    "key": "spatial_sampling_type",
+    "value": null,
+    "legacy_fields": [
+      "spatial_sampling_type"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The empty spatial sampling type is consistent with no recorded spatial sampling."
+  },
+  {
+    "key": "analysis_protocol_doi",
+    "value": "https://doi.org/10.17504/protocols.io.bf4wjqxe",
+    "legacy_fields": [
+      "processing_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bf4wjqxe"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The processing protocol DOI was converted from a bare DOI identifier to a URL required by the link field."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "ef090376-4e19-43cb-92c1-91a1d758ee6e",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The template supplies this metadata schema identifier as its default."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "mass_spectrometry"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The assay category has no corresponding field in the target template."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "description"
+    ],
+    "legacy_values": [
+      "Batch 4 LCMS metabolomics data for sample B005-A-401 from donor B005"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The free-text description has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "STAN0008"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The donor identifier has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2021-03-25 00:00"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The execution timestamp has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "lc_gradient"
+    ],
+    "legacy_values": [
+      "True"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The boolean gradient indicator cannot populate the target numeric gradient fields."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "Basil Michael"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The operator name has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "basilmichael@stanford.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The operator email has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "overall_protocols_io_doi"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The empty overall-protocol field has no usable value and no separate target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Michael Snyder"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The principal investigator name has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "mpsnyder@stanford.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The principal investigator email has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "processing_search"
+    ],
+    "legacy_values": [
+      "Progenesis QI"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The processing software name has no corresponding target field beyond the processing protocol DOI."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_unit",
+      "resolution_x_value",
+      "resolution_y_unit",
+      "resolution_y_value"
+    ],
+    "legacy_values": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The spatial resolution fields have no corresponding target fields."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bf4tjqwn"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The target has one preparation DOI field, which was assigned the general assay protocol DOI rather than this additional section-preparation DOI."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "STAN0008-SI-3-1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The internal tissue identifier was considered for the parent sample field but does not satisfy its HuBMAP or SenNet identifier requirement."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "2"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The legacy record version has no corresponding target field."
+  }
+]

@@ -1,0 +1,595 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "STAN0009-SI-1-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "STAN0009-SI-1-1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The tissue identifier is the legacy identifier for the sample used in the assay, but it does not match the template's HuBMAP/SenNet identifier pattern."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record contains no external lab metadata identifier."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://doi.org/10.17504/protocols.io.bf4tjqwn",
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bf4tjqwn"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The section-preparation DOI describes sample preparation and was reformatted as a URL."
+  },
+  {
+    "key": "dataset_type",
+    "value": "LC-MS",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "LC-MS"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "LC-MS",
+      "MS Lipidomics"
+    ],
+    "reasoning": "The LC-MS candidate directly matches the legacy assay type better than the lipidomics candidate."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Lipid",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "lipids"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Lipid",
+      "Lipid + metabolite",
+      "Saturated lipid",
+      "Unsaturated lipid"
+    ],
+    "reasoning": "The singular vocabulary label Lipid denotes the legacy value lipids."
+  },
+  {
+    "key": "is_targeted",
+    "value": "Yes",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "True"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The legacy boolean string True denotes the permissible option Yes."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Sciex",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Sciex"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Sciex"
+    ],
+    "reasoning": "Sciex is the vocabulary label returned for the legacy vendor."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "QTRAP 5500",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "QTRAP 5500"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "QTRAP 5500"
+    ],
+    "reasoning": "QTRAP 5500 is the vocabulary label returned for the legacy instrument model."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state how long the source was stored before processing."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration unit is provided."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state the time since instrument calibration."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval unit is provided."
+  },
+  {
+    "key": "ms_ionization_technique",
+    "value": "ESI",
+    "legacy_fields": [
+      "ms_source"
+    ],
+    "legacy_values": [
+      "ESI"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "ESI"
+    ],
+    "reasoning": "The legacy MS source ESI matches the permissible ionization technique label."
+  },
+  {
+    "key": "ms_scan_mode",
+    "value": "MS2",
+    "legacy_fields": [
+      "ms_scan_mode"
+    ],
+    "legacy_values": [
+      "MS/MS"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "MS2",
+      "MS1",
+      "MS3"
+    ],
+    "reasoning": "MS/MS denotes the permissible MS2 scan mode."
+  },
+  {
+    "key": "mass_analysis_polarity",
+    "value": "Negative and positive ion mode",
+    "legacy_fields": [
+      "polarity"
+    ],
+    "legacy_values": [
+      "negative and positive ion mode"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Negative and positive ion mode",
+      "Negative ion mode",
+      "Positive ion mode"
+    ],
+    "reasoning": "The combined polarity statement matches the combined permissible label."
+  },
+  {
+    "key": "mass_to_charge_range_low_value",
+    "value": 50,
+    "legacy_fields": [
+      "mz_range_low_value"
+    ],
+    "legacy_values": [
+      "50"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The legacy low m/z value was converted from numeric text to the declared decimal datatype."
+  },
+  {
+    "key": "mass_to_charge_range_high_value",
+    "value": 1250,
+    "legacy_fields": [
+      "mz_range_high_value"
+    ],
+    "legacy_values": [
+      "1250"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The legacy high m/z value was converted from numeric text to the declared decimal datatype."
+  },
+  {
+    "key": "mass_resolving_power",
+    "value": null,
+    "legacy_fields": [
+      "mass_resolving_power"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The matching legacy field is empty."
+  },
+  {
+    "key": "mass_to_charge_resolving_power",
+    "value": null,
+    "legacy_fields": [
+      "mz_resolving_power"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy m/z resolving-power field is empty."
+  },
+  {
+    "key": "ion_mobility",
+    "value": null,
+    "legacy_fields": [
+      "ion_mobility"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy ion-mobility field is empty, and emptiness does not establish inapplicability."
+  },
+  {
+    "key": "data_collection_mode",
+    "value": "DIA",
+    "legacy_fields": [
+      "data_collection_mode"
+    ],
+    "legacy_values": [
+      "DIA"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "DIA"
+    ],
+    "reasoning": "DIA is the vocabulary label returned for the legacy acquisition mode."
+  },
+  {
+    "key": "label_name",
+    "value": null,
+    "legacy_fields": [
+      "label_name"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No chemical label name is provided."
+  },
+  {
+    "key": "lc_instrument_vendor",
+    "value": "Shimadzu",
+    "legacy_fields": [
+      "lc_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Shimadzu"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Shimadzu"
+    ],
+    "reasoning": "Shimadzu is the vocabulary label returned for the LC instrument vendor."
+  },
+  {
+    "key": "lc_column_vendor",
+    "value": null,
+    "legacy_fields": [
+      "lc_column_vendor"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The LC column vendor field is empty."
+  },
+  {
+    "key": "lc_column_model",
+    "value": null,
+    "legacy_fields": [
+      "lc_column_model"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The LC column model field is empty."
+  },
+  {
+    "key": "lc_resin",
+    "value": null,
+    "legacy_fields": [
+      "lc_resin"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No LC resin information is provided."
+  },
+  {
+    "key": "lc_column_length_value",
+    "value": null,
+    "legacy_fields": [
+      "lc_length_value"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy LC column length value is empty."
+  },
+  {
+    "key": "lc_column_length_unit",
+    "value": null,
+    "legacy_fields": [
+      "lc_length_unit"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy LC column length unit is empty."
+  },
+  {
+    "key": "lc_temperature_value",
+    "value": null,
+    "legacy_fields": [
+      "lc_temp_value"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy LC temperature value is empty."
+  },
+  {
+    "key": "lc_temperature_unit",
+    "value": null,
+    "legacy_fields": [
+      "lc_temp_unit"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy LC temperature unit is empty."
+  },
+  {
+    "key": "lc_inner_diameter_value",
+    "value": null,
+    "legacy_fields": [
+      "lc_id_value"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy LC inner-diameter value is empty."
+  },
+  {
+    "key": "lc_inner_diameter_unit",
+    "value": null,
+    "legacy_fields": [
+      "lc_id_unit"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy LC inner-diameter unit is empty."
+  },
+  {
+    "key": "lc_flow_rate_value",
+    "value": null,
+    "legacy_fields": [
+      "lc_flow_rate_value"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The LC flow-rate value is empty."
+  },
+  {
+    "key": "lc_flow_rate_unit",
+    "value": null,
+    "legacy_fields": [
+      "lc_flow_rate_unit"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The LC flow-rate unit is empty."
+  },
+  {
+    "key": "lc_gradient_value",
+    "value": null,
+    "legacy_fields": [
+      "lc_gradient"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy LC gradient field is empty."
+  },
+  {
+    "key": "lc_gradient_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No LC gradient unit is provided."
+  },
+  {
+    "key": "lc_mobile_phase_b",
+    "value": null,
+    "legacy_fields": [
+      "lc_mobile_phase_b"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The LC mobile phase B field is empty."
+  },
+  {
+    "key": "spatial_sampling_technique",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record provides no spatial sampling technique."
+  },
+  {
+    "key": "spatial_sampling_target",
+    "value": null,
+    "legacy_fields": [
+      "spatial_target"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy spatial target field is empty."
+  },
+  {
+    "key": "spatial_sampling_type",
+    "value": null,
+    "legacy_fields": [
+      "spatial_sampling_type"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy spatial sampling type field is empty."
+  },
+  {
+    "key": "analysis_protocol_doi",
+    "value": "https://doi.org/10.17504/protocols.io.bf4xjqxn",
+    "legacy_fields": [
+      "processing_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bf4xjqxn"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The processing-protocol DOI describes analysis and was reformatted as a URL."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "ef090376-4e19-43cb-92c1-91a1d758ee6e",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The template supplies this metadata schema identifier as its default."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category",
+      "description",
+      "dms",
+      "donor_id",
+      "execution_datetime",
+      "labeling",
+      "overall_protocols_io_doi",
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email",
+      "processing_search",
+      "protocols_io_doi",
+      "resolution_x_unit",
+      "resolution_x_value",
+      "resolution_y_unit",
+      "resolution_y_value",
+      "spatial_type",
+      "version"
+    ],
+    "legacy_values": [
+      "mass_spectrometry",
+      "BATCH 4",
+      "False",
+      "STAN0009",
+      "2021-03-25 00:00",
+      "False",
+      "",
+      "Basil Michael",
+      "basilmichael@stanford.edu",
+      "Mike Snyder",
+      "mpsnyder@stanford.edu",
+      "Lipidyzer",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "3"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "These legacy fields have no corresponding template field; the generic protocol DOI was not used because the more specific section-preparation DOI was selected."
+  }
+]

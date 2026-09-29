@@ -1,0 +1,557 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "VAN0011-RK-8-2",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0011-RK-8-2"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The tissue identifier denotes the tissue section used for imaging, but it does not match the template's HBM/SNT identifier pattern and cannot be safely rewritten."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No external laboratory metadata identifier is present."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.7gehjte",
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.7gehjte"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The section preparation DOI is the best semantic match for the preparation protocol field and was converted to the required link form."
+  },
+  {
+    "key": "dataset_type",
+    "value": "Histology",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "PAS microscopy"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Histology",
+      "Confocal"
+    ],
+    "reasoning": "PAS microscopy denotes histology rather than the alternative imaging acquisition categories returned by the vocabulary search."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Polysaccharide",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "polysaccharides"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Polysaccharide"
+    ],
+    "reasoning": "The vocabulary label Polysaccharide denotes the legacy plural value."
+  },
+  {
+    "key": "is_targeted",
+    "value": "No",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "FALSE"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The legacy boolean-like value FALSE maps to the permissible option No."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Leica Biosystems",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Leica Biosystems"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Leica Biosystems",
+      "Leica Microsystems"
+    ],
+    "reasoning": "The exact vocabulary label Leica Biosystems matches the legacy vendor."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "SCN400",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "SCN400"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "SCN400"
+    ],
+    "reasoning": "SCN400 is the only vocabulary label returned for the legacy instrument model."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state how long the source material was stored before processing."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration or corresponding unit is provided."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state the time since instrument calibration or service."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval is provided from which to obtain a unit."
+  },
+  {
+    "key": "contributors_path",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No contributors file path is present."
+  },
+  {
+    "key": "is_image_preprocessing_required",
+    "value": null,
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "processedMicroscopy"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The processed data directory does not establish whether image preprocessing was required."
+  },
+  {
+    "key": "stain_name",
+    "value": "PAS",
+    "legacy_fields": [
+      "stain"
+    ],
+    "legacy_values": [
+      "Periodic acid-Schiff "
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "PAS",
+      "AB-PAS"
+    ],
+    "reasoning": "Periodic acid-Schiff denotes PAS; the record does not mention the additional Alcian blue component required for AB-PAS."
+  },
+  {
+    "key": "stain_technique",
+    "value": null,
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "PAS microscopy"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The assay type identifies PAS microscopy but does not specify progressive, modified progressive, or regressive staining technique."
+  },
+  {
+    "key": "is_batch_staining_done",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The record does not state whether slides were stained in batches."
+  },
+  {
+    "key": "is_staining_automated",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "No information establishes whether staining was performed by an automated instrument."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No preparation instrument vendor is identified."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No preparation instrument model is identified."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0011-RK-8-2"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The available identifier is explicitly a tissue identifier and does not establish a separate slide identifier."
+  },
+  {
+    "key": "tile_configuration",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No tile stitching configuration is recorded."
+  },
+  {
+    "key": "scan_direction",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No scan direction is recorded."
+  },
+  {
+    "key": "tiled_image_columns",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No tiled image column count is recorded."
+  },
+  {
+    "key": "tiled_image_count",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No tiled image count is recorded."
+  },
+  {
+    "key": "intended_tile_overlap_percentage",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No intended tile overlap percentage is recorded."
+  },
+  {
+    "key": "non_global_files",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No non-global file list is provided."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "907d89c7-6cf4-4ec6-9edd-63cf0441d689",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The template supplies this schema identifier as its default."
+  },
+  {
+    "key": null,
+    "value": true,
+    "legacy_fields": [
+      "_from_metadatatsv"
+    ],
+    "legacy_values": [
+      "true"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This ingestion marker has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": "imaging",
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "imaging"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The broad assay category does not provide a distinct value for any remaining template field."
+  },
+  {
+    "key": null,
+    "value": "single_metadatatsv",
+    "legacy_fields": [
+      "collectiontype"
+    ],
+    "legacy_values": [
+      "single_metadatatsv"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The collection type is not represented in the target template."
+  },
+  {
+    "key": null,
+    "value": "VAN0011",
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "VAN0011"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The donor identifier is distinct from the tissue section parent sample and has no donor field in the template."
+  },
+  {
+    "key": null,
+    "value": "2020-09-28 15:44",
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2020-09-28 15:44"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The acquisition or execution timestamp has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": "/",
+    "legacy_fields": [
+      "metadata_path"
+    ],
+    "legacy_values": [
+      "/"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The metadata directory path is not represented in the target template."
+  },
+  {
+    "key": null,
+    "value": "N. Heath Patterson",
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "N. Heath Patterson"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The operator name has no corresponding contributor or operator field."
+  },
+  {
+    "key": null,
+    "value": "nathan.h.patterson@vanderbilt.edu",
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "nathan.h.patterson@vanderbilt.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The operator email has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": "Jeffrey M. Spraggins",
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Jeffrey M. Spraggins"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The principal investigator name has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": "jeff.spraggins@vanderbilt.edu",
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "jeff.spraggins@vanderbilt.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The principal investigator email has no corresponding target field."
+  },
+  {
+    "key": null,
+    "value": "10.17504/protocols.io.bfskjncw",
+    "legacy_fields": [
+      "overall_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bfskjncw"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The broader overall protocol DOI was not selected because the section preparation DOI is the more direct match."
+  },
+  {
+    "key": null,
+    "value": "10.17504/protocols.io.4qngvve",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.4qngvve"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This additional generic protocol DOI has no separate destination after selecting the section preparation protocol."
+  },
+  {
+    "key": null,
+    "value": "650",
+    "legacy_fields": [
+      "resolution_x_value"
+    ],
+    "legacy_values": [
+      "650"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The target template has no image resolution field."
+  },
+  {
+    "key": null,
+    "value": "nm",
+    "legacy_fields": [
+      "resolution_x_unit"
+    ],
+    "legacy_values": [
+      "nm"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The target template has no image resolution unit field."
+  },
+  {
+    "key": null,
+    "value": "650",
+    "legacy_fields": [
+      "resolution_y_value"
+    ],
+    "legacy_values": [
+      "650"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The target template has no image resolution field."
+  },
+  {
+    "key": null,
+    "value": "nm",
+    "legacy_fields": [
+      "resolution_y_unit"
+    ],
+    "legacy_values": [
+      "nm"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The target template has no image resolution unit field."
+  },
+  {
+    "key": null,
+    "value": "0",
+    "legacy_fields": [
+      "resolution_z_value"
+    ],
+    "legacy_values": [
+      "0"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The target template has no image resolution field."
+  },
+  {
+    "key": null,
+    "value": "nm",
+    "legacy_fields": [
+      "resolution_z_unit"
+    ],
+    "legacy_values": [
+      "nm"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The target template has no image resolution unit field."
+  }
+]

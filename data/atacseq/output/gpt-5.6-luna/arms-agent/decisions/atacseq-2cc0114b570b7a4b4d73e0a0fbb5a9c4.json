@@ -1,0 +1,581 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "CALT0013-HT-1-2-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "CALT0013-HT-1-2-1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The tissue identifier is the only legacy identifier for the sample used in the assay, although it does not satisfy the template's HBM/SNT pattern."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No legacy identifier for an external metadata record was provided."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://doi.org/10.17504/protocols.io.bzdrp256",
+    "legacy_fields": [
+      "protocols_io_doi",
+      "library_construction_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bzdrp256",
+      "10.17504/protocols.io.bzdrp256"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The two identical protocol DOI fields identify the assay/library preparation protocol and were normalized to a DOI URL."
+  },
+  {
+    "key": "dataset_type",
+    "value": "ATACseq",
+    "legacy_fields": [
+      "assay_type",
+      "description"
+    ],
+    "legacy_values": [
+      "SNARE-seq2",
+      "Single-nucleus SNARE-seq2 (dual-omic RNA and accessible chromatin sequencing) on adult human heart"
+    ],
+    "resolution": "defaulted",
+    "candidates": [
+      "ATACseq"
+    ],
+    "reasoning": "The legacy assay type describes the dual-omic SNARE-seq2 technology rather than naming the dataset type, so the template's ATACseq default was used."
+  },
+  {
+    "key": "analyte_class",
+    "value": "DNA",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "DNA"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "DNA",
+      "DNA + RNA"
+    ],
+    "reasoning": "The exact ontology label DNA matches the legacy analyte class, while the dual-omic description does not change the stated target analyte for this ATACseq record."
+  },
+  {
+    "key": "is_targeted",
+    "value": "No",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "False"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The legacy boolean False denotes the permissible option No."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Illumina",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Illumina"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Illumina"
+    ],
+    "reasoning": "The legacy vendor matches the returned controlled-vocabulary label."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "NovaSeq 6000",
+    "legacy_fields": [
+      "acquisition_instrument_model",
+      "sequencing_reagent_kit"
+    ],
+    "legacy_values": [
+      "NovaSeq",
+      "NovaSeq 6000 S4 Reagent"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "NovaSeq X",
+      "NovaSeq 6000",
+      "NovaSeq X Plus"
+    ],
+    "reasoning": "The vague model value NovaSeq is resolved to NovaSeq 6000 using the accompanying NovaSeq 6000 S4 reagent information."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No duration for storage before processing was provided."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source-storage duration or unit was provided."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No time since instrument calibration was provided."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No time-since-calibration unit was provided."
+  },
+  {
+    "key": "barcode_read",
+    "value": "Read 2 (R2)",
+    "legacy_fields": [
+      "cell_barcode_read"
+    ],
+    "legacy_values": [
+      "R2"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Read 2 (R2)"
+    ],
+    "reasoning": "The legacy read abbreviation R2 denotes the controlled label Read 2 (R2)."
+  },
+  {
+    "key": "umi_offset",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy record does not state a UMI offset."
+  },
+  {
+    "key": "umi_read",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy record does not identify a sequencing read containing a UMI."
+  },
+  {
+    "key": "umi_size",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy record does not state a UMI size."
+  },
+  {
+    "key": "assay_input_entity",
+    "value": "single nucleus",
+    "legacy_fields": [
+      "sc_isolation_entity"
+    ],
+    "legacy_values": [
+      "nucleus"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "single nucleus"
+    ],
+    "reasoning": "The legacy entity nucleus maps to the controlled label single nucleus."
+  },
+  {
+    "key": "number_of_input_cells_or_nuclei",
+    "value": 300000,
+    "legacy_fields": [
+      "transposition_input"
+    ],
+    "legacy_values": [
+      "300000"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The transposition input count is the legacy value that directly identifies the number of nuclei entering the assay and was converted to an integer."
+  },
+  {
+    "key": "library_average_fragment_size",
+    "value": 650,
+    "legacy_fields": [
+      "library_average_fragment_size"
+    ],
+    "legacy_values": [
+      "650"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The same-named fragment-size value was converted from a numeric string to the required integer."
+  },
+  {
+    "key": "library_input_amount_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No amount of amplified cDNA used for library construction was provided."
+  },
+  {
+    "key": "library_input_amount_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No library input amount or unit was provided."
+  },
+  {
+    "key": "library_output_amount_value",
+    "value": 436,
+    "legacy_fields": [
+      "library_final_yield"
+    ],
+    "legacy_values": [
+      "436"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The final library yield denotes the post-amplification library output amount and was converted to a decimal number."
+  },
+  {
+    "key": "library_output_amount_unit",
+    "value": "ng",
+    "legacy_fields": [
+      "library_final_yield_unit"
+    ],
+    "legacy_values": [
+      "ng"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "ng"
+    ],
+    "reasoning": "The final-yield unit matches the controlled label ng."
+  },
+  {
+    "key": "library_concentration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No pooled-library concentration was provided."
+  },
+  {
+    "key": "library_concentration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No pooled-library concentration or unit was provided."
+  },
+  {
+    "key": "library_layout",
+    "value": "paired-end",
+    "legacy_fields": [
+      "library_layout"
+    ],
+    "legacy_values": [
+      "paired-end"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "paired-end",
+      "single-end"
+    ],
+    "reasoning": "The legacy value matches the paired-end controlled label."
+  },
+  {
+    "key": "number_of_pcr_cycles_for_indexing",
+    "value": 9,
+    "legacy_fields": [
+      "library_pcr_cycles_for_sample_index"
+    ],
+    "legacy_values": [
+      "9"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The sample-index PCR cycle field directly supplies the required indexing cycle count and was converted to an integer."
+  },
+  {
+    "key": "library_preparation_kit",
+    "value": null,
+    "legacy_fields": [
+      "assay_type",
+      "library_construction_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "SNARE-seq2",
+      "10.17504/protocols.io.bzdrp256"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The assay name and protocol DOI do not identify a library preparation kit."
+  },
+  {
+    "key": "sample_indexing_kit",
+    "value": null,
+    "legacy_fields": [
+      "library_pcr_cycles_for_sample_index"
+    ],
+    "legacy_values": [
+      "9"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The presence of indexing PCR cycles does not identify the sample-indexing reagent kit."
+  },
+  {
+    "key": "sample_indexing_set",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No sample-indexing barcode set was provided."
+  },
+  {
+    "key": "is_technical_replicate",
+    "value": "No",
+    "legacy_fields": [
+      "is_technical_replicate"
+    ],
+    "legacy_values": [
+      "False"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The legacy boolean False denotes the permissible option No."
+  },
+  {
+    "key": "expected_entity_capture_count",
+    "value": null,
+    "legacy_fields": [
+      "transposition_input",
+      "sc_isolation_cell_number"
+    ],
+    "legacy_values": [
+      "300000",
+      "1290000"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record gives input and isolated nuclei counts but does not state an expected capture count."
+  },
+  {
+    "key": "sequencing_reagent_kit",
+    "value": "Illumina; NovaSeq 6000 S4 Reagent Kit v1.5 (300 cycles); PN 20028312",
+    "legacy_fields": [
+      "sequencing_reagent_kit",
+      "sequencing_read_format"
+    ],
+    "legacy_values": [
+      "NovaSeq 6000 S4 Reagent",
+      "75/94/8/75"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Illumina; NovaSeq 6000 S4 Reagent Kit v1.5 (300 cycles); PN 20028312",
+      "Illumina; NovaSeq 6000 S4 Reagent v1.5 Kit (200 Cycles); PN 20028313"
+    ],
+    "reasoning": "The legacy NovaSeq 6000 S4 reagent and 252-cycle read plan best match the controlled 300-cycle S4 reagent label."
+  },
+  {
+    "key": "sequencing_read_format",
+    "value": "75,94,8,75",
+    "legacy_fields": [
+      "sequencing_read_format"
+    ],
+    "legacy_values": [
+      "75/94/8/75"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The slash-delimited read format was reformatted to the template's comma-delimited order without changing its cycle counts."
+  },
+  {
+    "key": "transposition_reagent_kit",
+    "value": null,
+    "legacy_fields": [
+      "transposition_kit_number",
+      "transposition_transposase_source"
+    ],
+    "legacy_values": [
+      "",
+      "In-house"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "An in-house transposase source and empty kit number do not identify a transposition reagent kit."
+  },
+  {
+    "key": "transposition_method",
+    "value": "Custom",
+    "legacy_fields": [
+      "transposition_method",
+      "transposition_transposase_source"
+    ],
+    "legacy_values": [
+      "SNARE-Seq2-AC",
+      "In-house"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "bulkATACseq",
+      "sciATACseq",
+      "Custom",
+      "scATACseq"
+    ],
+    "reasoning": "SNARE-Seq2-AC is not one of the named ATAC methods, and the in-house transposase source supports the controlled Custom label."
+  },
+  {
+    "key": "sequencing_batch_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No lab-assigned sequencing run identifier was provided."
+  },
+  {
+    "key": "capture_batch_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No lab-assigned capture batch identifier was provided."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": null,
+    "legacy_fields": [
+      "sc_isolation_tissue_dissociation"
+    ],
+    "legacy_values": [
+      "gentleMACS"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The tissue-dissociation method does not identify a preparation instrument vendor."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": null,
+    "legacy_fields": [
+      "sc_isolation_tissue_dissociation"
+    ],
+    "legacy_values": [
+      "gentleMACS"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The tissue-dissociation method is insufficient to establish a preparation instrument model."
+  },
+  {
+    "key": "preparation_instrument_kit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No reagent kit used with a preparation instrument was provided."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "dd5e8653-81cf-470b-b71b-15cab421bb84",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [
+      "dd5e8653-81cf-470b-b71b-15cab421bb84"
+    ],
+    "reasoning": "The template supplies this schema identifier as its default value."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category",
+      "description",
+      "donor_id",
+      "execution_datetime",
+      "library_id",
+      "library_pcr_cycles",
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email",
+      "sc_isolation_cell_number",
+      "sc_isolation_enrichment",
+      "sc_isolation_protocols_io_doi",
+      "sc_isolation_quality_metric",
+      "sc_isolation_tissue_dissociation",
+      "sequencing_phix_percent",
+      "sequencing_read_percent_q30",
+      "transposition_kit_number",
+      "version"
+    ],
+    "legacy_values": [
+      "sequence",
+      "Single-nucleus SNARE-seq2 (dual-omic RNA and accessible chromatin sequencing) on adult human heart",
+      "CALT0013",
+      "2021-07-01 11:00",
+      "HRT28",
+      "10",
+      "Dinh Diep",
+      "ddiep@ucsd.edu",
+      "Kun Zhang",
+      "kzhang@eng.ucsd.edu",
+      "1290000",
+      "none",
+      "10.17504/protocols.io.b2z4qf8w",
+      "OK",
+      "gentleMACS",
+      "15",
+      "93.43",
+      "",
+      "1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "These legacy fields describe provenance, operators, quality metrics, sequencing metrics, isolation details, or an earlier PCR step for which the target template has no corresponding field."
+  }
+]

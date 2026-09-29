@@ -1,0 +1,369 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "VAN0028-LK-4-8",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0028-LK-4-8"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The tissue identifier is the best-supported parent sample identifier, although it does not satisfy the template's HBM/SNT pattern."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record contains no provider-assigned external laboratory metadata identifier."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://doi.org/10.17504/protocols.io.bt8inrue",
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bt8inrue"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The section-preparation protocol DOI best matches the preparation protocol field and was converted to URL form."
+  },
+  {
+    "key": "dataset_type",
+    "value": "Histology",
+    "legacy_fields": [
+      "assay_type",
+      "stain"
+    ],
+    "legacy_values": [
+      "PAS microscopy",
+      "Periodic acid-Schiff"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "Histology",
+      "Virtual Histology",
+      "Confocal"
+    ],
+    "reasoning": "PAS-stained brightfield microscopy of tissue denotes histology rather than the other candidate assay types."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Polysaccharide",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "polysaccharides"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Polysaccharide"
+    ],
+    "reasoning": "The ontology label Polysaccharide denotes the plural legacy value polysaccharides."
+  },
+  {
+    "key": "is_targeted",
+    "value": "No",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "False"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The boolean-like legacy value False corresponds to the permitted option No."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Leica Biosystems",
+    "legacy_fields": [
+      "acquisition_instrument_vendor",
+      "description"
+    ],
+    "legacy_values": [
+      "Leica ",
+      "Periodic acid-Schiff stained microscopy collected from the left kidney of a 56 year old White female donor by the Biomolecular Multimodal Imaging Center (BIOMC) at Vanderbilt University. BIOMIC is a Tissue Mapping Center that is part of the NIH funded Human Biomolecular Atlas Program (HuBMAP). Brightfield microscopy images of fresh-frozen tissue sections were collected with a Leica BioSystems SCN-400. Support was provided by the NIH Common Fund and National Institute of Diabetes and Digestive and Kidney Diseases (U54 DK120058). Tissue was collected through the Cooperative Human Tissue Network with support provided by the NIH National Cancer Institute (5 UM1 CA183727-08)."
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Leica Microsystems",
+      "Leica Biosystems"
+    ],
+    "reasoning": "The description identifies the SCN-400 as a Leica BioSystems instrument, selecting Leica Biosystems over Leica Microsystems."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "SCN400",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "SCN-400"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "SCN400",
+      "Unknown"
+    ],
+    "reasoning": "SCN400 is the controlled-vocabulary label corresponding to the legacy model SCN-400."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No duration for storage of the source section before processing is reported."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration or associated unit is reported."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state when the acquisition instrument was last calibrated or serviced."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval is reported from which a unit could be obtained."
+  },
+  {
+    "key": "is_image_preprocessing_required",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The record describes brightfield image acquisition but does not establish whether preprocessing is required."
+  },
+  {
+    "key": "stain_name",
+    "value": "PAS",
+    "legacy_fields": [
+      "stain"
+    ],
+    "legacy_values": [
+      "Periodic acid-Schiff"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "PAS",
+      "AB-PAS"
+    ],
+    "reasoning": "Periodic acid-Schiff denotes the controlled-vocabulary stain label PAS rather than the combined AB-PAS stain."
+  },
+  {
+    "key": "stain_technique",
+    "value": null,
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "PAS microscopy"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The assay description identifies the stain but does not specify progressive, modified progressive, or regressive technique."
+  },
+  {
+    "key": "is_batch_staining_done",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The record does not indicate whether slides were stained in a batch or individually."
+  },
+  {
+    "key": "is_staining_automated",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The record does not state whether the staining process was automated."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": null,
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Leica "
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The Leica instrument is identified as the acquisition scanner, not as an instrument used for sample preparation."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": null,
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "SCN-400"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "SCN-400 is documented as the acquisition instrument model and is not established as a preparation instrument."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0028-LK-4-8"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The tissue identifier was used for the parent sample because the record does not establish that it is a slide identifier."
+  },
+  {
+    "key": "tile_configuration",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No tile configuration is reported."
+  },
+  {
+    "key": "scan_direction",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No imaging scan direction is reported."
+  },
+  {
+    "key": "tiled_image_columns",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No number of tiled-image columns is reported."
+  },
+  {
+    "key": "tiled_image_count",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No tiled-image count is reported."
+  },
+  {
+    "key": "intended_tile_overlap_percentage",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No intended tile-overlap percentage is reported."
+  },
+  {
+    "key": "non_global_files",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No non-global files are listed."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "907d89c7-6cf4-4ec6-9edd-63cf0441d689",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The template supplies this metadata schema identifier as its default value."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category",
+      "description",
+      "donor_id",
+      "execution_datetime",
+      "operator",
+      "operator_email",
+      "overall_protocols_io_doi",
+      "pi",
+      "pi_email",
+      "protocols_io_doi",
+      "resolution_x_unit",
+      "resolution_x_value",
+      "resolution_y_unit",
+      "resolution_y_value",
+      "resolution_z_unit",
+      "resolution_z_value",
+      "version"
+    ],
+    "legacy_values": [
+      "imaging",
+      "Periodic acid-Schiff stained microscopy collected from the left kidney of a 56 year old White female donor by the Biomolecular Multimodal Imaging Center (BIOMC) at Vanderbilt University. BIOMIC is a Tissue Mapping Center that is part of the NIH funded Human Biomolecular Atlas Program (HuBMAP). Brightfield microscopy images of fresh-frozen tissue sections were collected with a Leica BioSystems SCN-400. Support was provided by the NIH Common Fund and National Institute of Diabetes and Digestive and Kidney Diseases (U54 DK120058). Tissue was collected through the Cooperative Human Tissue Network with support provided by the NIH National Cancer Institute (5 UM1 CA183727-08).",
+      "VAN0028",
+      "2021-01-07 21:25",
+      "Elizabeth K. Neumann",
+      "elizabeth.neumann@vanderbilt.edu",
+      "10.17504/protocols.io.bfskjncw",
+      "Jeffrey M. Spraggins",
+      "jeff.spraggins@vanderbilt.edu",
+      "10.17504/protocols.io.buaknscw",
+      "um",
+      "0.65",
+      "um",
+      "0.65",
+      "um",
+      "0",
+      "1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "These legacy fields describe assay context, personnel, alternate protocols, image resolution, or record version and have no corresponding template field."
+  }
+]

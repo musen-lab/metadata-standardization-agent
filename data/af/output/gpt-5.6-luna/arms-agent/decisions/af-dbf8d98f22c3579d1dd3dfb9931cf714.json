@@ -1,0 +1,532 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "VAN0008-RK-403-101",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0008-RK-403-101"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The tissue identifier is the available sample-level identifier, so it was retained verbatim even though it does not satisfy the template's HBM/SNT pattern."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "VAN0008"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The donor identifier does not describe an external laboratory metadata record."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://doi.org/10.17504/protocols.io.7e3hjgn",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.7e3hjgn"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The assay-specific protocols.io DOI was converted to the URL form required by the link field."
+  },
+  {
+    "key": "dataset_type",
+    "value": "Auto-fluorescence",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "AF"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Auto-fluorescence"
+    ],
+    "reasoning": "AF denotes the permissible dataset type Auto-fluorescence."
+  },
+  {
+    "key": "analyte_class",
+    "value": null,
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The legacy analyte class is empty and provides no value to resolve."
+  },
+  {
+    "key": "is_targeted",
+    "value": "No",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "FALSE"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The legacy boolean string FALSE denotes the permissible option No."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Zeiss Microscopy",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Zeiss"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Zeiss Microscopy"
+    ],
+    "reasoning": "The vocabulary label Zeiss Microscopy is the permissible label corresponding to Zeiss."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "Axio Scan.Z1",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "Axio Scan.Z1"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Axio Scan.Z1",
+      "Axio Zoom.V16",
+      "Axio Observer 5",
+      "Axio Observer 7",
+      "Axio Observer 3"
+    ],
+    "reasoning": "Axio Scan.Z1 is an exact permissible instrument-model label."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state how long the source was stored before processing."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage-duration unit is provided."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state the time since instrument calibration or servicing."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration-duration unit is provided."
+  },
+  {
+    "key": "contributors_path",
+    "value": null,
+    "legacy_fields": [
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email"
+    ],
+    "legacy_values": [
+      "Elizabeth K. Neumann",
+      "elizabeth.neumann@vanderbilt.edu",
+      "Jeffrey M. Spraggins",
+      "jeff.spraggins@vanderbilt.edu"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "Contributor names and emails are present, but no contributors TSV file path is provided."
+  },
+  {
+    "key": "data_path",
+    "value": "./rawMicroscopy",
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "/rawMicroscopy/"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The raw microscopy directory was reformatted to the template's relative top-level path form."
+  },
+  {
+    "key": "antibodies_path",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No antibodies TSV file path is provided."
+  },
+  {
+    "key": "is_image_preprocessing_required",
+    "value": null,
+    "legacy_fields": [
+      "assay_category",
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "imaging",
+      "Axio Scan.Z1"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The imaging category and instrument model do not explicitly establish whether preprocessing is required."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0008-RK-403-101"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The tissue identifier was used as the parent sample identifier, but the record does not identify a slide."
+  },
+  {
+    "key": "tile_configuration",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No tile configuration is provided."
+  },
+  {
+    "key": "scan_direction",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No scan direction is provided."
+  },
+  {
+    "key": "tiled_image_columns",
+    "value": null,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "3"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The number of channels does not describe the number of tiled-image columns."
+  },
+  {
+    "key": "tiled_image_count",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No tiled-image count is provided."
+  },
+  {
+    "key": "intended_tile_overlap_percentage",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No intended tile-overlap percentage is provided."
+  },
+  {
+    "key": "non_global_files",
+    "value": null,
+    "legacy_fields": [
+      "metadata_path"
+    ],
+    "legacy_values": [
+      "/rawMicroscopy/"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The metadata directory path does not identify non-global files."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "c9c6a02b-010e-4217-96dc-f7ef71dd14c4",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The value was supplied by the template's default metadata schema identifier."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "_from_metadatatsv"
+    ],
+    "legacy_values": [
+      "true"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This ingestion marker has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "imaging"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The broad assay category has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "collectiontype"
+    ],
+    "legacy_values": [
+      "single_metadatatsv"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The collection type has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "VAN0008"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The donor identifier does not fit any remaining template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "10/25/19 17:56"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The acquisition or execution timestamp has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "metadata_path"
+    ],
+    "legacy_values": [
+      "/rawMicroscopy/"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The metadata path does not fit any remaining template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "3"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The channel count has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "Elizabeth K. Neumann"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The operator name has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "elizabeth.neumann@vanderbilt.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The operator email has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "overall_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bfskjncw"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The overall protocol DOI is not the assay-specific preparation DOI selected for the template."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Jeffrey M. Spraggins"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The principal investigator name has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "jeff.spraggins@vanderbilt.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The principal investigator email has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_unit"
+    ],
+    "legacy_values": [
+      "nm"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The x-resolution unit has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_value"
+    ],
+    "legacy_values": [
+      "500"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The x-resolution value has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_y_unit"
+    ],
+    "legacy_values": [
+      "nm"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The y-resolution unit has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_y_value"
+    ],
+    "legacy_values": [
+      "500"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The y-resolution value has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_z_unit"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The z-resolution unit has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_z_value"
+    ],
+    "legacy_values": [
+      "0"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The z-resolution value has no corresponding template field."
+  }
+]

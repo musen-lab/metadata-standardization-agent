@@ -1,0 +1,999 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "UFL0001-TH-2-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "UFL0001-TH-2-1"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The tissue identifier is the best available parent-sample identifier, but it does not satisfy the template's HBM/SNT pattern."
+  },
+  {
+    "key": "lab_id",
+    "value": "UFL0001-TH-2-2",
+    "legacy_fields": [
+      "other_metadata.UUID Identifier"
+    ],
+    "legacy_values": [
+      "UFL0001-TH-2-2"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The provider's UUID identifier supplies an external lab-assigned record identifier."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.be79jhr6",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.be79jhr6"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The assay protocol DOI was converted from a bare DOI identifier to the URL form required by the link field."
+  },
+  {
+    "key": "dataset_type",
+    "value": "RNAseq",
+    "legacy_fields": [
+      "collectiontype",
+      "assay_type"
+    ],
+    "legacy_values": [
+      "rnaseq_10x",
+      "scRNAseq-10xGenomics"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "RNAseq"
+    ],
+    "reasoning": "Both legacy values identify an RNA sequencing dataset, matching the returned RNAseq label."
+  },
+  {
+    "key": "analyte_class",
+    "value": "RNA",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "RNA"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "RNA",
+      "DNA + RNA"
+    ],
+    "reasoning": "The legacy analyte value exactly denotes the RNA vocabulary label."
+  },
+  {
+    "key": "is_targeted",
+    "value": "No",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "FALSE"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "FALSE denotes the literal option No."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Illumina",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Illumina"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Illumina"
+    ],
+    "reasoning": "The vendor search returned Illumina as the matching controlled label."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "NovaSeq 6000",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "NovaSeq 6000"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "NovaSeq 6000"
+    ],
+    "reasoning": "The model search returned an exact controlled-label match."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record contains no duration for storage before processing."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source-storage duration or unit is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record contains no time since instrument calibration."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval is recorded from which to obtain a unit."
+  },
+  {
+    "key": "contributors_path",
+    "value": null,
+    "legacy_fields": [
+      "metadata_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The metadata path is not a TSV file containing contributor ORCID identifiers."
+  },
+  {
+    "key": "barcode_read",
+    "value": "Read 1 (R1)",
+    "legacy_fields": [
+      "cell_barcode_read"
+    ],
+    "legacy_values": [
+      "R1"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Read 1 (R1)"
+    ],
+    "reasoning": "R1 denotes the controlled label Read 1 (R1)."
+  },
+  {
+    "key": "umi_offset",
+    "value": "16",
+    "legacy_fields": [
+      "cell_barcode_offset",
+      "cell_barcode_size"
+    ],
+    "legacy_values": [
+      "1",
+      "16"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The 10x 3-prime read structure places the 12-base UMI immediately after the 16-base cell barcode."
+  },
+  {
+    "key": "umi_read",
+    "value": "Read 1 (R1)",
+    "legacy_fields": [
+      "cell_barcode_read",
+      "sequencing_read_format",
+      "rnaseq_assay_method"
+    ],
+    "legacy_values": [
+      "R1",
+      "28/8/0/91",
+      "Single Cell 3' v3"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "Read 1 (R1)"
+    ],
+    "reasoning": "The single-cell 3-prime read structure and R1 barcode read place the UMI in Read 1."
+  },
+  {
+    "key": "umi_size",
+    "value": "12",
+    "legacy_fields": [
+      "cell_barcode_size",
+      "sequencing_read_format",
+      "rnaseq_assay_method"
+    ],
+    "legacy_values": [
+      "16",
+      "28/8/0/91",
+      "Single Cell 3' v3"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "12"
+    ],
+    "reasoning": "The 28-cycle first read consists of a 16-base cell barcode followed by a 12-base UMI."
+  },
+  {
+    "key": "assay_input_entity",
+    "value": "single cell",
+    "legacy_fields": [
+      "sc_isolation_entity",
+      "assay_type"
+    ],
+    "legacy_values": [
+      "whole cells",
+      "scRNAseq-10xGenomics"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "single cell"
+    ],
+    "reasoning": "Whole-cell single-cell RNA sequencing denotes the single cell controlled entity."
+  },
+  {
+    "key": "number_of_input_cells_or_nuclei",
+    "value": 18319,
+    "legacy_fields": [
+      "rnaseq_assay_input"
+    ],
+    "legacy_values": [
+      "18319"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The explicitly named RNA-seq assay input is the best-supported count of cells entering the assay."
+  },
+  {
+    "key": "amount_of_input_analyte_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No RNA or DNA input amount is recorded."
+  },
+  {
+    "key": "amount_of_input_analyte_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No input analyte amount is available from which to obtain a unit."
+  },
+  {
+    "key": "library_adapter_sequence",
+    "value": "5': GATCGGAAGAGCACACGTCTGAACTCCAGTCA, 3': TCTAGCCTTCTCG",
+    "legacy_fields": [
+      "library_adapter_sequence"
+    ],
+    "legacy_values": [
+      "5'-  GATCGGAAGAGCACACGTCTGAACTCCAGTCA -3'       3'- TCTAGCCTTCTCG -5'"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The two adapter sequences were retained and reformatted as the template's comma-separated name-and-sequence pairs."
+  },
+  {
+    "key": "library_average_fragment_size",
+    "value": 511,
+    "legacy_fields": [
+      "library_average_fragment_size"
+    ],
+    "legacy_values": [
+      "511"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The string value was converted to the required integer datatype."
+  },
+  {
+    "key": "library_input_amount_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state the amount of amplified cDNA used for library construction."
+  },
+  {
+    "key": "library_input_amount_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No library input amount is recorded from which to obtain a unit."
+  },
+  {
+    "key": "library_output_amount_value",
+    "value": 250,
+    "legacy_fields": [
+      "library_final_yield_value"
+    ],
+    "legacy_values": [
+      "250"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The final library yield supplies the post-cleanup library output amount."
+  },
+  {
+    "key": "library_output_amount_unit",
+    "value": "ng",
+    "legacy_fields": [
+      "library_final_yield_unit"
+    ],
+    "legacy_values": [
+      "ng"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "ng"
+    ],
+    "reasoning": "The final-yield unit search returned ng as the matching controlled label."
+  },
+  {
+    "key": "library_concentration_value",
+    "value": 14.4,
+    "legacy_fields": [
+      "other_metadata.Concentration_ng_ul"
+    ],
+    "legacy_values": [
+      "14.4"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The recorded library concentration in ng/ul is the usable concentration measurement for this field."
+  },
+  {
+    "key": "library_concentration_unit",
+    "value": "ng/ul",
+    "legacy_fields": [
+      "other_metadata.Concentration_ng_ul"
+    ],
+    "legacy_values": [
+      "14.4"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "ng/ul"
+    ],
+    "reasoning": "The concentration field name supplies ng/ul, which is a permissible controlled unit."
+  },
+  {
+    "key": "library_layout",
+    "value": "paired-end",
+    "legacy_fields": [
+      "library_layout"
+    ],
+    "legacy_values": [
+      "paired-end"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "paired-end",
+      "single-end"
+    ],
+    "reasoning": "The legacy layout matches the paired-end controlled option."
+  },
+  {
+    "key": "number_of_iterations_of_cdna_amplification",
+    "value": 15,
+    "legacy_fields": [
+      "library_pcr_cycles"
+    ],
+    "legacy_values": [
+      "15"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The generic library PCR-cycle field maps to cDNA amplification because a separate sample-index PCR-cycle field is present."
+  },
+  {
+    "key": "number_of_pcr_cycles_for_indexing",
+    "value": 15,
+    "legacy_fields": [
+      "library_pcr_cycles_for_sample_index"
+    ],
+    "legacy_values": [
+      "15"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The explicitly sample-indexed PCR-cycle field maps directly to indexing cycles."
+  },
+  {
+    "key": "library_preparation_kit",
+    "value": null,
+    "legacy_fields": [
+      "assay_type",
+      "rnaseq_assay_method"
+    ],
+    "legacy_values": [
+      "scRNAseq-10xGenomics",
+      "Single Cell 3' v3"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "These values describe the assay rather than naming a library preparation reagent kit."
+  },
+  {
+    "key": "sample_indexing_kit",
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.10x_Genomics_Index_well_ID"
+    ],
+    "legacy_values": [
+      "SI-GA-E3"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The index well identifies an indexing set but does not identify the indexing kit."
+  },
+  {
+    "key": "sample_indexing_set",
+    "value": "SI-GA-E3",
+    "legacy_fields": [
+      "other_metadata.10x_Genomics_Index_well_ID"
+    ],
+    "legacy_values": [
+      "SI-GA-E3"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The 10x Genomics index well ID is the specific sample indexing set."
+  },
+  {
+    "key": "is_technical_replicate",
+    "value": "No",
+    "legacy_fields": [
+      "is_technical_replicate"
+    ],
+    "legacy_values": [
+      "FALSE"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "FALSE denotes the literal option No."
+  },
+  {
+    "key": "expected_entity_capture_count",
+    "value": null,
+    "legacy_fields": [
+      "rnaseq_assay_input",
+      "sc_isolation_cell_number"
+    ],
+    "legacy_values": [
+      "18319",
+      "500000"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The available counts describe assay input or cell isolation, not an expected capture count."
+  },
+  {
+    "key": "sequencing_reagent_kit",
+    "value": null,
+    "legacy_fields": [
+      "sequencing_reagent_kit",
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "S4",
+      "NovaSeq 6000"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "Illumina; NovaSeq 6000 S4 Reagent Kit v1.5 (300 cycles); PN 20028312",
+      "Illumina; NovaSeq 6000 S4 Reagent v1.5 Kit (200 Cycles); PN 20028313"
+    ],
+    "reasoning": "S4 with NovaSeq 6000 matches two returned kits, and the record does not distinguish the 200-cycle and 300-cycle products."
+  },
+  {
+    "key": "sequencing_batch_id",
+    "value": "NS-1699",
+    "legacy_fields": [
+      "other_metadata.Seq_run"
+    ],
+    "legacy_values": [
+      "NS-1699"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The reported sequencing run identifier supplies the sequencing batch ID."
+  },
+  {
+    "key": "capture_batch_id",
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.10x_Genomics_Index_well_ID"
+    ],
+    "legacy_values": [
+      "SI-GA-E3"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "An index well identifies sample indexing, not the capture event or capture batch."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No instrument vendor for sample preparation is recorded."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No sample-preparation instrument model is recorded."
+  },
+  {
+    "key": "preparation_instrument_kit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No reagent kit associated with a preparation instrument is recorded."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "944e5fa0-f68b-4bdd-8664-74a3909429a9",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The template supplies this schema identifier as its default."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "_from_metadatatsv"
+    ],
+    "legacy_values": [
+      "true"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This migration marker has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "sequence"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The broad assay category has no dedicated template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "UFL0001"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no donor identifier field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2019-11-07 12:00"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no sequencing execution date field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "library_construction_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bffvjjn6"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This more specific library-construction DOI was not selected for the single general preparation-protocol field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "library_id"
+    ],
+    "legacy_values": [
+      "HBMP3_thymus_2"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no library identifier field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "metadata_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This path is not a contributor-file path and has no other matching field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "Maigan Brusko"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no operator field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "maigan@ufl.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no operator contact field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.<empty key>"
+    ],
+    "legacy_values": [
+      "GATGCCAA"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This unnamed metadata value has no identifiable corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.HuBMAP Case Identifier"
+    ],
+    "legacy_values": [
+      "Case3 Thymus  2"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "A case identifier is not a parent sample, lab ID, or batch identifier in this record."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.Name"
+    ],
+    "legacy_values": [
+      "HBMP3_thymus_2"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no general name field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.Path"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This empty path does not provide a value for any template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.Quantification_method"
+    ],
+    "legacy_values": [
+      "Qubit"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no quantification-method field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.Run_date_reported_from_ICBR"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The empty run-date value has no usable target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.SI_INDEX_SEQUENCE"
+    ],
+    "legacy_values": [
+      "AGGTATTG"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template records the indexing set but has no separate index-sequence field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.Sequencing_concentration_reported_from_ICBR"
+    ],
+    "legacy_values": [
+      "225 pM"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This concentration uses pM, for which the target unit search returned no permissible label, so it was not used over the valid ng/ul concentration."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.Volume_ul"
+    ],
+    "legacy_values": [
+      "10"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no library volume field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.FRAGMENT_SIZE_report_from_core"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The empty fragment-size report has no additional target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.fragment_analysis_method_report_from_core"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no fragment-analysis method field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.qPCR_library_quantification_results"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The empty qPCR result has no target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "other_metadata.qPCR_quantification_method"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The empty qPCR method has no target field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Todd Brusko"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no principal-investigator field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "tbrusko@ufl.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no principal-investigator contact field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "sc_isolation_enrichment"
+    ],
+    "legacy_values": [
+      ""
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The empty enrichment value has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "sc_isolation_cell_number"
+    ],
+    "legacy_values": [
+      "500000"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This is the number of cells at isolation rather than the selected assay-input count."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "sc_isolation_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bd9vi966"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This isolation-specific DOI was not selected for the single general preparation-protocol field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "sc_isolation_quality_metric"
+    ],
+    "legacy_values": [
+      "OK"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no cell-isolation quality metric field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "sc_isolation_tissue_dissociation"
+    ],
+    "legacy_values": [
+      "digestion"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no tissue-dissociation method field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "sequencing_phix_percent"
+    ],
+    "legacy_values": [
+      "0.01"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no PhiX percentage field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "sequencing_read_percent_q30"
+    ],
+    "legacy_values": [
+      "0.9"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no Q30 read-percentage field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "donor_id",
+      "pi",
+      "pi_email"
+    ],
+    "legacy_values": [
+      "UFL0001",
+      "Todd Brusko",
+      "tbrusko@ufl.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "These donor and investigator details are not represented by any template field."
+  }
+]

@@ -1,0 +1,652 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "UFL0002-TH-2-4-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "UFL0002-TH-2-4-1"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The tissue identifier is the only sample-like identifier, but its value does not satisfy the template's HBM/SNT pattern."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record contains no identifier for an external laboratory metadata record."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.bgatjsen",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bgatjsen"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The assay protocol DOI was converted from a bare DOI to the URL form required by the link field."
+  },
+  {
+    "key": "dataset_type",
+    "value": "2D Imaging Mass Cytometry",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "Imaging Mass Cytometry"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "2D Imaging Mass Cytometry",
+      "Raman Imaging"
+    ],
+    "reasoning": "The controlled vocabulary label for the recorded Imaging Mass Cytometry assay is 2D Imaging Mass Cytometry."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Protein",
+      "RNA + protein",
+      "Nucleic acid + protein"
+    ],
+    "reasoning": "The legacy value denotes the Protein vocabulary term rather than a combined analyte class."
+  },
+  {
+    "key": "is_targeted",
+    "value": "Yes",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "TRUE"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The legacy boolean string TRUE denotes the permitted option Yes."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Standard BioTools (Fluidigm)",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Fluidigm"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Standard BioTools (Fluidigm)"
+    ],
+    "reasoning": "The controlled vocabulary maps the recorded vendor name Fluidigm to Standard BioTools (Fluidigm)."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "Hyperion Imaging System",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "Hyperion Imaging System"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Hyperion Imaging System",
+      "Juno System"
+    ],
+    "reasoning": "The recorded instrument model exactly matches the permitted Hyperion Imaging System label."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state how long the source tissue or section was stored before processing."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration was recorded, so its unit cannot be determined."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record contains no time since calibration or servicing value."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record contains no time since calibration or servicing measurement."
+  },
+  {
+    "key": "contributors_path",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No TSV path containing contributor identifiers is provided."
+  },
+  {
+    "key": "total_run_time_value",
+    "value": 99,
+    "legacy_fields": [
+      "start_datetime",
+      "end_datetime"
+    ],
+    "legacy_values": [
+      "2019-12-02 21:32",
+      "2019-12-02 23:11"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The elapsed time between the recorded start and end timestamps is 99 minutes."
+  },
+  {
+    "key": "total_run_time_unit",
+    "value": "minute",
+    "legacy_fields": [
+      "start_datetime",
+      "end_datetime"
+    ],
+    "legacy_values": [
+      "2019-12-02 21:32",
+      "2019-12-02 23:11"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "minute"
+    ],
+    "reasoning": "The timestamp precision and computed elapsed interval support minutes as the controlled unit."
+  },
+  {
+    "key": "number_of_antibodies",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state the number of antibodies used."
+  },
+  {
+    "key": "number_of_channels",
+    "value": 39,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "39"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The numeric string was converted to the required integer datatype."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "UFL0002-TH-2-4-1"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The tissue identifier was used as the parent sample identifier and does not establish a distinct slide identifier."
+  },
+  {
+    "key": "data_precision_bytes",
+    "value": 4,
+    "legacy_fields": [
+      "data_precision_bytes"
+    ],
+    "legacy_values": [
+      "4"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The numeric string was converted to the required integer datatype."
+  },
+  {
+    "key": "ablation_frequency_value",
+    "value": 200,
+    "legacy_fields": [
+      "ablation_frequency_value"
+    ],
+    "legacy_values": [
+      "200"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The numeric string was converted to the required integer datatype."
+  },
+  {
+    "key": "ablation_frequency_unit",
+    "value": "Hz",
+    "legacy_fields": [
+      "ablation_frequency_unit"
+    ],
+    "legacy_values": [
+      "Hz"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Hz"
+    ],
+    "reasoning": "The recorded unit Hz matches the permitted controlled vocabulary label."
+  },
+  {
+    "key": "antibodies_path",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No path to an antibodies.tsv file is provided."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "ce5524be-dab6-4668-97c1-8a5a09325e5f",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The template supplies this metadata schema identifier as its default."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "_from_metadatatsv"
+    ],
+    "legacy_values": [
+      "true"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This ingestion marker has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "ablation_distance_between_shots_x_units"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The x-axis ablation distance is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "ablation_distance_between_shots_x_value"
+    ],
+    "legacy_values": [
+      "1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The x-axis ablation distance is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "ablation_distance_between_shots_y_units"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The y-axis ablation distance is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "ablation_distance_between_shots_y_value"
+    ],
+    "legacy_values": [
+      "1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The y-axis ablation distance is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "acquisition_id"
+    ],
+    "legacy_values": [
+      "20191202_HuBMAP_Thymus"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This acquisition identifier is not an external laboratory metadata identifier or another template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "imaging"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has a dataset type field but no separate assay category field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "collectiontype"
+    ],
+    "legacy_values": [
+      "single_metadatatsv"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This collection metadata is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "UFL0002"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain a donor identifier field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "dual_count_start"
+    ],
+    "legacy_values": [
+      "1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This signal-processing parameter is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2019-12-02 21:32"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The execution timestamp is not needed after using the start and end timestamps to derive total run time."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "max_x_width_unit"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The maximum x width is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "max_x_width_value"
+    ],
+    "legacy_values": [
+      "1000"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The maximum x width is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "max_y_height_unit"
+    ],
+    "legacy_values": [
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The maximum y height is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "max_y_height_value"
+    ],
+    "legacy_values": [
+      "1000"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The maximum y height is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "metadata_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This metadata directory path is not a contributors or antibodies TSV path and has no corresponding field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "Esther Danenberg"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain an operator field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "esthermaria.danenberg@uzh.ch"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain an operator email field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Bernd Bodenmiller"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain a principal investigator field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "bernd.bodenmiller@uzh.ch"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain a principal investigator email field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      "HM355S Automatic Microtome"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain a preparation instrument model field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "preparation_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Thermo Fisher Scientific"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain a preparation instrument vendor field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "reagent_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bfz8jp9w"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Only one preparation protocol DOI field exists, and the general assay protocol was the better match."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "roi_description"
+    ],
+    "legacy_values": [
+      "ROI_003 _hassalls_corpuscles"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain an ROI description field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "roi_id"
+    ],
+    "legacy_values": [
+      "6"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain an ROI identifier field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bfz4jp8w"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Only one preparation protocol DOI field exists, and the general assay protocol was the better match."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "segment_data_format"
+    ],
+    "legacy_values": [
+      "float"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain a segment data format field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "signal_type"
+    ],
+    "legacy_values": [
+      "dual count"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template does not contain a signal type field."
+  }
+]

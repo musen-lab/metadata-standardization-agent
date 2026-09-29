@@ -1,0 +1,541 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "UFL0003-SP-3-6-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "UFL0003-SP-3-6-1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The tissue identifier is the available identifier for the tissue section used in the assay, although it does not match the template's HBM/SNT pattern."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not contain an external metadata record identifier."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://doi.org/10.17504/protocols.io.bdcbi2sn",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bdcbi2sn"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The general protocols.io DOI is the best-supported preparation protocol and was formatted as a DOI URL."
+  },
+  {
+    "key": "dataset_type",
+    "value": "CODEX",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "CODEX"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "CODEX"
+    ],
+    "reasoning": "The assay type matches the permitted CODEX dataset type."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Protein",
+      "RNA + protein",
+      "Nucleic acid + protein",
+      "Lipid + metabolite + protein"
+    ],
+    "reasoning": "The legacy value denotes the permitted Protein term rather than a combined analyte class."
+  },
+  {
+    "key": "is_targeted",
+    "value": "Yes",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "TRUE"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "TRUE denotes the permitted Yes option."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Keyence",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Keyence"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Keyence"
+    ],
+    "reasoning": "The vendor search returned Keyence as the matching permitted label."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "BZ-X800",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "BZ-X800"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "BZ-X800",
+      "BZ-X710",
+      "BZ-X810"
+    ],
+    "reasoning": "The legacy model exactly identifies the BZ-X800 candidate."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2019-12-05 14:21"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "An execution timestamp does not establish how long the source was stored before processing."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No source storage duration or unit is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record does not state when the acquisition instrument was last serviced or calibrated."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval is recorded."
+  },
+  {
+    "key": "contributors_path",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record contains contributor names and emails but no contributors TSV path."
+  },
+  {
+    "key": "antibodies_path",
+    "value": null,
+    "legacy_fields": [
+      "number_of_antibodies"
+    ],
+    "legacy_values": [
+      "18"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The antibody count does not identify a path to an antibodies TSV file."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": null,
+    "legacy_fields": [
+      "preparation_instrument_vendor"
+    ],
+    "legacy_values": [
+      "CODEX"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "In-House",
+      "Not applicable",
+      "Thermo Fisher Scientific",
+      "Akoya Biosciences"
+    ],
+    "reasoning": "The preparation vendor value has no matching permitted label, and the record does not establish an in-house or not-applicable instrument."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": null,
+    "legacy_fields": [
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      "version 1 robot"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "Custom",
+      "Not applicable",
+      "Chromium X"
+    ],
+    "reasoning": "The preparation model is not represented by any permitted model label and cannot be safely classified as custom."
+  },
+  {
+    "key": "total_run_time_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record provides no duration for completing all imaging rounds."
+  },
+  {
+    "key": "total_run_time_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No total run time or unit is recorded."
+  },
+  {
+    "key": "number_of_antibodies",
+    "value": 18,
+    "legacy_fields": [
+      "number_of_antibodies"
+    ],
+    "legacy_values": [
+      "18"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The legacy numeric string was converted to the required integer datatype."
+  },
+  {
+    "key": "number_of_channels",
+    "value": 4,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "4"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The legacy numeric string was converted to the required integer datatype."
+  },
+  {
+    "key": "number_of_biomarker_imaging_rounds",
+    "value": 9,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "9"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "For this CODEX record, the stated cycle count supports the number of biomarker imaging rounds."
+  },
+  {
+    "key": "number_of_total_imaging_rounds",
+    "value": null,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "9"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The cycle count was used for biomarker rounds and the record does not separately establish total imaging rounds."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "UFL0003-SP-3-6-1"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The tissue identifier was assigned to the parent sample because the record does not explicitly identify a slide."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "47c6071a-2ec7-46c1-94d9-6b5e2d7ac982",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The template supplies this metadata schema identifier as its default."
+  },
+  {
+    "key": null,
+    "value": true,
+    "legacy_fields": [
+      "_from_metadatatsv"
+    ],
+    "legacy_values": [
+      "true"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This ingestion flag has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": "imaging",
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "imaging"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The assay category is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": "codex",
+    "legacy_fields": [
+      "collectiontype"
+    ],
+    "legacy_values": [
+      "codex"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "This duplicate collection type has no separate template field."
+  },
+  {
+    "key": null,
+    "value": "UFL0003",
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "UFL0003"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The donor identifier does not correspond to the template's parent sample or slide identifier requirements."
+  },
+  {
+    "key": null,
+    "value": "2019-12-05 14:21",
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2019-12-05 14:21"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The assay execution timestamp has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": ".",
+    "legacy_fields": [
+      "metadata_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The metadata directory path is not represented by a template field."
+  },
+  {
+    "key": null,
+    "value": "Marda Jorgensen",
+    "legacy_fields": [
+      "operator"
+    ],
+    "legacy_values": [
+      "Marda Jorgensen"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The operator name has no corresponding contributor field in the template."
+  },
+  {
+    "key": null,
+    "value": "marda@ufl.edu",
+    "legacy_fields": [
+      "operator_email"
+    ],
+    "legacy_values": [
+      "marda@ufl.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The operator email has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": "Clive Wasserfall",
+    "legacy_fields": [
+      "pi"
+    ],
+    "legacy_values": [
+      "Clive Wasserfall"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The principal investigator name has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": "clive@ufl.edu",
+    "legacy_fields": [
+      "pi_email"
+    ],
+    "legacy_values": [
+      "clive@ufl.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The principal investigator email has no corresponding template field."
+  },
+  {
+    "key": null,
+    "value": "10.17504/protocols.io.bc2riyd6",
+    "legacy_fields": [
+      "reagent_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bc2riyd6"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The reagent preparation DOI cannot be represented separately because the template provides only one preparation protocol field."
+  },
+  {
+    "key": null,
+    "value": "nm",
+    "legacy_fields": [
+      "resolution_x_unit"
+    ],
+    "legacy_values": [
+      "nm"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no spatial resolution fields."
+  },
+  {
+    "key": null,
+    "value": "377.4463384",
+    "legacy_fields": [
+      "resolution_x_value"
+    ],
+    "legacy_values": [
+      "377.4463384"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no spatial resolution fields."
+  },
+  {
+    "key": null,
+    "value": "nm",
+    "legacy_fields": [
+      "resolution_y_unit"
+    ],
+    "legacy_values": [
+      "nm"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no spatial resolution fields."
+  },
+  {
+    "key": null,
+    "value": "377.4463384",
+    "legacy_fields": [
+      "resolution_y_value"
+    ],
+    "legacy_values": [
+      "377.4463384"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no spatial resolution fields."
+  },
+  {
+    "key": null,
+    "value": "nm",
+    "legacy_fields": [
+      "resolution_z_unit"
+    ],
+    "legacy_values": [
+      "nm"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no spatial resolution fields."
+  },
+  {
+    "key": null,
+    "value": "1500",
+    "legacy_fields": [
+      "resolution_z_value"
+    ],
+    "legacy_values": [
+      "1500"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The template has no spatial resolution fields."
+  },
+  {
+    "key": null,
+    "value": "10.17504/protocols.io.bbsdina6",
+    "legacy_fields": [
+      "section_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bbsdina6"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The section preparation DOI cannot be represented separately because the template provides only one preparation protocol field."
+  }
+]
