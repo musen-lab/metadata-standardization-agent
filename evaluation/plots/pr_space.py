@@ -25,10 +25,12 @@ from plots.marks import (
     FIELD_KEY_SIZE,
     FIELD_TYPE_LABELS,
     FIELD_TYPE_MARKERS,
+    MARKER_ZORDER,
     ConditionMark,
     _condition_marks,
     _mark_style,
     _model_marks,
+    condition_label,
 )
 from plots.pr_scores import POOLED_LABEL, _check_pr_arguments
 from plots.theme import (
@@ -161,8 +163,9 @@ def _draw_pr_path(
     to trace.  The order within a group is carried by the colour ramp, which says the conditions
     are ordered without claiming anything about the space between them.
     """
+    zorder = MARKER_ZORDER.get(marker, 2.0)
     for (recall, precision), mark in zip(points, marks, strict=True):
-        ax.plot(recall, precision, marker, zorder=2, **_mark_style(mark, marker))
+        ax.plot(recall, precision, marker, zorder=zorder, **_mark_style(mark, marker))
         if mark.letter:
             ax.annotate(
                 mark.letter,
@@ -171,7 +174,9 @@ def _draw_pr_path(
                 va="center",
                 fontsize=6.5,
                 color="white" if mark.style["markerfacecolor"] == NO_COLOR_INK else NO_COLOR_INK,
-                zorder=3,
+                # Just over its own mark and under the next shape forward, so a letter is
+                # covered along with the mark it names rather than showing through.
+                zorder=zorder + 0.05,
             )
 
 
@@ -350,7 +355,7 @@ def plot_pr_condition_comp(
             (indices[: len(baselines)], marks[: len(baselines)]),
             (indices[len(baselines) :], marks[len(baselines) :]),
         ],
-        list(marked),
+        [(condition_label(condition), mark) for condition, mark in marked],
         assays=assays,
         field_types=field_types,
         shared_window=shared_window,
@@ -497,8 +502,9 @@ def _plot_pr_points(
         """The (points, colours, marker) series of one panel.
 
         Group before field type, so a whole condition is laid down before the next one
-        starts.  Where two conditions land on the same spot the system group is then the
-        one left legible, rather than whichever field type happened to be drawn last.
+        starts.  The shapes stack by :data:`~plots.marks.MARKER_ZORDER` whatever the order,
+        so two field types on one spot both stay visible; where two conditions put the same
+        shape on the same spot, the later group -- the system -- is the one left legible.
         """
         return [
             ([placed(index, field_type, row) for index in group], group_marks, FIELD_TYPE_MARKERS[field_type])
@@ -546,7 +552,7 @@ def _plot_pr_points(
                     ax, series(row, (field_type,)), error_axes=error_axes, show_f1_contours=show_f1_contours
                 )
                 if row_index == 0:
-                    ax.set_title(FIELD_TYPE_LABELS[field_type].capitalize(), fontsize=PANEL_TITLE_SIZE)
+                    ax.set_title(FIELD_TYPE_LABELS[field_type], fontsize=PANEL_TITLE_SIZE)
             # "Precision" belongs against the axis it measures; the assay names the whole
             # row, so it sits further out, turned to run with the row's height.
             first = axes[row_index][0]

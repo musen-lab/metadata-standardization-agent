@@ -164,7 +164,7 @@ def plot_availability_difficulty(
             if column_index == 0:
                 ax.set_yticklabels(labels, fontsize=8)
                 ax.annotate(
-                    FIELD_TYPE_LABELS[field_type].capitalize(),
+                    FIELD_TYPE_LABELS[field_type],
                     xy=(0.0, 0.5),
                     xycoords="axes fraction",
                     xytext=(-DIFFICULTY_ROW_LABEL_OFFSET, 0),

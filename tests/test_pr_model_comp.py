@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 from plots import pr_space  # noqa: E402
 from plots.marks import MODEL_COLOURS, _model_marks  # noqa: E402
-from plots.pr_space import plot_pr_model_comp  # noqa: E402
+from plots.pr_space import plot_pr_condition_comp, plot_pr_model_comp  # noqa: E402
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -119,3 +119,38 @@ class TestModelFigure:
     def test_a_model_without_predictions_is_refused(self, data_root: Path) -> None:
         with pytest.raises(ValueError, match="No requested assay"):
             plot_pr_model_comp(str(data_root), ("good", "absent"), assays=("atacseq",))
+
+
+class TestShapeStacking:
+    def test_square_behind_circle_behind_triangle(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        """Three field types on one spot stay three shapes: the largest at the back."""
+        plot_pr_model_comp(str(data_root), ("good",))
+        zorders = {line.get_marker(): line.get_zorder() for line in captured[0].axes[0].get_lines()}
+        assert zorders["s"] < zorders["o"] < zorders["^"]
+
+    def test_a_letter_sits_over_its_own_mark_and_under_the_next_shape(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        plot_pr_model_comp(str(data_root), ("good", "half"), no_color=True)
+        ax = captured[0].axes[0]
+        marks = {line.get_marker(): line.get_zorder() for line in ax.get_lines()}
+        letters = sorted(text.get_zorder() for text in ax.texts if text.get_text() in {"A", "B"})
+        assert marks["s"] < letters[0] < marks["o"]
+        assert letters[-1] > marks["^"]
+
+
+class TestConditionLegend:
+    def test_conditions_and_field_types_take_their_manuscript_names(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        for name, record in _PREDICTIONS["half"].items():
+            _write(data_root / "atacseq" / "output" / "good" / "template-tool" / f"{name}.json", record)
+        plot_pr_condition_comp(str(data_root), "good", baselines=("template-tool",), systems=("arms-agent",))
+        labels = [text.get_text() for legend in captured[0].legends for text in legend.get_texts()]
+        assert labels == [
+            "GetTemplate-tool Only",
+            "ARMS",
+            "Ontology-constrained Fields",
+            "Non-ontology-constrained Fields",
+            "All Fields",
+        ]

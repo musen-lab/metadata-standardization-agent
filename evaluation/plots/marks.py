@@ -27,9 +27,15 @@ CONDITION_COLOURS = ("#4472C4", "#ED7D31")
 
 #: What each condition is called wherever a figure names it: legend keys and axis labels.
 #: The keys are the directory names the runs are written under, which read as code; the
-#: manuscript names the two arms "Baseline" and "ARMS".  A condition missing here is shown
+#: manuscript names the two arms "Baseline" and "ARMS", and each ablation after the one tool
+#: it keeps.  A condition missing here is shown
 #: under its own name.
-CONDITION_LABELS = {"baseline": "Baseline", "arms-agent": "ARMS"}
+CONDITION_LABELS = {
+    "baseline": "Baseline",
+    "template-tool": "GetTemplate-tool Only",
+    "term-tool": "TermSearch-tool Only",
+    "arms-agent": "ARMS",
+}
 
 
 def condition_label(condition: str) -> str:
@@ -53,9 +59,9 @@ FIELD_TYPE_MARKERS = {"ontology": "o", "non_ontology": "s", "all": "^"}
 #: What each field type is called wherever it is written -- legend keys, column titles
 #: and axis labels alike, so one name is learned rather than three.
 FIELD_TYPE_LABELS = {
-    "all": "all fields",
-    "ontology": "ontology-constrained fields",
-    "non_ontology": "non-ontology-constrained fields",
+    "all": "All Fields",
+    "ontology": "Ontology-constrained Fields",
+    "non_ontology": "Non-ontology-constrained Fields",
 }
 
 #: The field-type keys, which carry shape rather than identity.  Dark grey rather than
@@ -84,8 +90,8 @@ class ConditionMark(NamedTuple):
     """How one condition is drawn: matplotlib keywords, the letter naming its place, and -- with
     colour off -- whether the mark is solid, which its size hangs on.
 
-    *fill* is ``None`` in colour, where the size sits in *style* and every mark is filled,
-    so there is nothing left for the shape to decide.
+    *fill* is ``None`` when the size sits in *style* itself; every mark the figures draw
+    sets it, in colour as well as without, so that each is sized for its shape.
     """
 
     style: dict[str, object]
@@ -140,6 +146,28 @@ def _no_color_marker_size(marker: str, *, filled: bool) -> float:
     return NO_COLOR_INK_DIAMETER + reach if filled else NO_COLOR_INK_DIAMETER - reach
 
 
+def _colour_mark(colour: str) -> ConditionMark:
+    """A solid mark in *colour*, drawn to the same width as a solid mark with colour off.
+
+    The same white border and the same size: colour changes what a mark says, not how much
+    of the panel it takes, so a figure keeps its weight whether it is printed in colour or not.
+    """
+    style = {
+        "color": colour,
+        "markerfacecolor": colour,
+        "markeredgecolor": "white",
+        "markeredgewidth": NO_COLOR_EDGE_WIDTH,
+    }
+    return ConditionMark(style, None, fill=True)
+
+
+#: How far forward each marker shape is drawn: the square at the back, the circle over it,
+#: the triangle in front.  Largest to smallest, so three field types landing on one point
+#: still show as three shapes -- each one's corners or rim stand out behind the next.  Every
+#: value sits between the contours (0) and the letters written on the marks (3).
+MARKER_ZORDER = {"s": 2.0, "o": 2.1, "^": 2.2}
+
+
 def _mark_style(mark: ConditionMark, marker: str) -> dict[str, object]:
     """*mark*'s keywords, sized for the shape it is about to be drawn in."""
     if mark.fill is None:
@@ -183,8 +211,7 @@ def _condition_marks(
     ):
         if not no_color:
             for condition, colour in zip(conditions, _condition_colours(len(conditions), ramp, solo), strict=True):
-                style = {"color": colour, "markerfacecolor": colour, "markeredgecolor": "white", "markersize": 9}
-                marks.append((condition, ConditionMark(style, None)))
+                marks.append((condition, _colour_mark(colour)))
             continue
 
         for condition in conditions:
@@ -231,15 +258,7 @@ def _model_marks(models: tuple[str, ...], *, no_color: bool) -> list[tuple[str, 
     if len(models) > len(MODEL_COLOURS):
         raise ValueError(f"At most {len(MODEL_COLOURS)} models can be told apart by colour, got {len(models)}")
     if not no_color:
-        return [
-            (
-                model,
-                ConditionMark(
-                    {"color": colour, "markerfacecolor": colour, "markeredgecolor": "white", "markersize": 9}, None
-                ),
-            )
-            for model, colour in zip(models, MODEL_COLOURS, strict=False)
-        ]
+        return [(model, _colour_mark(colour)) for model, colour in zip(models, MODEL_COLOURS, strict=False)]
     marks = []
     for index, model in enumerate(models):
         # Solid and hollow in turn, as the baseline and system groups are, so two models

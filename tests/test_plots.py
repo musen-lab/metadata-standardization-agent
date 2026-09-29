@@ -182,12 +182,18 @@ class TestNoColorMarkerSize:
         assert marks["template-tool"].fill is False
         assert marks["arms-agent"].fill is True
 
-    def test_colour_on_leaves_one_size_for_every_condition(self) -> None:
-        # The giveback is a no-colour concern only: in colour both groups are filled, so
-        # neither is spending a border on ink and the sizes have nothing to reconcile.
+    def test_colour_on_draws_every_mark_as_wide_as_colour_off(self) -> None:
+        # In colour every mark is solid with a white border, so each is sized as the solid
+        # mark is without colour: a figure keeps its weight whichever way it is printed.
         marks = dict(_condition_marks(("baseline", "template-tool"), ("arms-agent",), no_color=False))
-        assert {mark.fill for mark in marks.values()} == {None}
-        assert len({mark.style["markersize"] for mark in marks.values()}) == 1
+        assert {mark.fill for mark in marks.values()} == {True}
+        widths = [
+            width
+            for marker in ("o", "s", "^")
+            for mark in marks.values()
+            for width in _drawn_extent(marker, _mark_style(mark, marker))
+        ]
+        assert max(abs(width - NO_COLOR_INK_DIAMETER) for width in widths) < 0.34, sorted(widths)
 
 
 class TestLegendColumns:

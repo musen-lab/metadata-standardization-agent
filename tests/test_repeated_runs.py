@@ -194,7 +194,7 @@ class TestRunSpreadFigure:
         plot_run_spread(str(data_root), "m", runs=(1, 2, 3))
         titles = [ax.get_title() for ax in captured[0].axes]
         assert titles == [
-            f"{FIELD_TYPE_LABELS[field_type].capitalize()}\n{metric}"
+            f"{FIELD_TYPE_LABELS[field_type]}\n{metric}"
             for field_type in ("ontology", "non_ontology")
             for metric in ("Precision", "Recall")
         ]

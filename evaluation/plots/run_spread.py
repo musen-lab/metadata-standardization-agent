@@ -139,7 +139,7 @@ def plot_run_spread(
                 if mark.letter:
                     _letter(ax, mark, deviation, y)
         ax.axvline(0.0, color=PANEL_FRAME_COLOUR, linewidth=0.8, zorder=1)
-        ax.set_title(f"{FIELD_TYPE_LABELS[field_type].capitalize()}\n{metric.capitalize()}", fontsize=PANEL_TITLE_SIZE)
+        ax.set_title(f"{FIELD_TYPE_LABELS[field_type]}\n{metric.capitalize()}", fontsize=PANEL_TITLE_SIZE)
         _style_axes(ax)
 
     reach = max(float(frame["deviation"].abs().max()) for frame in scores.values())
