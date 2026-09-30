@@ -6,7 +6,12 @@ import asyncio
 import json
 import logging
 import os
+import traceback
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
+
+import openai
 
 from arms_agent.token_tracker import TokenUsageTracker
 from arms_agent.tracing import flush_tracing, instrument, traced_run
@@ -19,6 +24,38 @@ if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
 
 logger = logging.getLogger(__name__)
+
+#: The errors that say the endpoint, not the record, is at fault: the connection is gone,
+#: the key is refused or out of budget, or the server is failing.  Each is raised after
+#: the OpenAI client's own retries, and every record after it would fail the same way, so
+#: one of them stops the run instead of being recorded against its record.
+OUTAGE_ERRORS: tuple[type[Exception], ...] = (
+    openai.APIConnectionError,
+    openai.AuthenticationError,
+    openai.PermissionDeniedError,
+    openai.RateLimitError,
+    openai.InternalServerError,
+    ConnectionError,
+)
+
+
+@dataclass(frozen=True)
+class RecordFailure:
+    """One record whose migration raised, and so has no prediction."""
+
+    input_file: Path
+    #: The exception's type and message, on one line.
+    error: str
+    #: The file holding every failed attempt at this record, traceback included.
+    log: Path
+
+
+@dataclass(frozen=True)
+class ExperimentResult:
+    """What one call to :func:`run_experiment` wrote, and which records it could not migrate."""
+
+    written: list[Path]
+    failed: list[RecordFailure]
 
 
 def _usage_record(tracker: TokenUsageTracker) -> dict[str, Any]:
@@ -140,7 +177,7 @@ def run_experiment(
     max_concurrency: int = 5,
     overwrite: bool = False,
     resume: bool = False,
-) -> list[Path]:
+) -> ExperimentResult:
     """Run the migration workflow on all JSON files in *input_dir*.
 
     The workflow is built once via *workflow_factory* and reused for every
@@ -158,10 +195,20 @@ def run_experiment(
     partway -- by a dropped connection, say -- is finished.  A prediction is written last
     and whole, so one that exists is one whose record finished.
 
-    Returns the list of output file paths that were written.
+    A record whose migration raises does not stop the others.  It gets no prediction, so
+    *resume* retries it, and the attempt -- error, traceback and the tokens it spent -- is
+    added to ``<output_dir>/failures/<record>.json``, which keeps every failed attempt even
+    after a later one succeeds.  Its tokens are left out of the sweep total, which counts
+    the predictions.  An error in :data:`OUTAGE_ERRORS` is different: every record after it
+    would fail the same way, so no further record is started, the ones already running are
+    let finish, and the error is raised once they have.
+
+    Returns what was written and which records failed.
 
     Raises:
         ValueError: If both *overwrite* and *resume* are set, or the output would clash.
+        Exception: The first of :data:`OUTAGE_ERRORS` any record raised, after the records
+            already running have finished and the sweep total is written.
     """
     if overwrite and resume:
         raise ValueError("Pass overwrite=True to redo every record or resume=True to finish the rest, not both.")
@@ -169,7 +216,7 @@ def run_experiment(
     input_files = sorted(input_dir.glob("*.json"))
     if not input_files:
         logger.warning("No *.json files found in %s", input_dir)
-        return []
+        return ExperimentResult(written=[], failed=[])
 
     to_run = pending_records(input_dir, output_dir) if resume else input_files
     done = [path for path in input_files if path not in to_run]
@@ -178,21 +225,28 @@ def run_experiment(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     workflow = workflow_factory()
+    # Filled by the first record to hit an outage; every record not yet started then skips.
+    outages: list[Exception] = []
 
-    async def _run_all() -> list[tuple[Path, TokenUsageTracker]]:
+    async def _run_all() -> list[tuple[Path, TokenUsageTracker] | RecordFailure | None]:
         semaphore = asyncio.Semaphore(max_concurrency)
         tasks = [
-            _process_file(workflow, input_file, output_dir, template_iri, user_prompt_builder, config, semaphore)
+            _process_file(
+                workflow, input_file, output_dir, template_iri, user_prompt_builder, config, semaphore, outages
+            )
             for input_file in to_run
         ]
         return list(await asyncio.gather(*tasks))
 
     try:
-        results = asyncio.run(_run_all())
+        outcomes = asyncio.run(_run_all())
     finally:
         # One flush for the whole sweep; per-file flushing would serialise the
         # exporter against the concurrent runs.
         flush_tracing()
+
+    results = [outcome for outcome in outcomes if isinstance(outcome, tuple)]
+    failed = [outcome for outcome in outcomes if isinstance(outcome, RecordFailure)]
 
     # The total covers every record in the directory, so a resumed run's total is the
     # whole run's and not just the part that finished last.
@@ -202,8 +256,19 @@ def run_experiment(
     total_path.parent.mkdir(parents=True, exist_ok=True)
     _write_json(total_path, {"files": len(trackers), **_usage_record(total)})
     logger.info("Sweep usage over %d file(s): %s", len(trackers), total.usage_summary())
+    if failed:
+        logger.error("%d record(s) of %s failed; their errors are in %s", len(failed), output_dir, failed[0].log.parent)
 
-    return [output_path for output_path, _ in results]
+    if outages:
+        unfinished = len(to_run) - len(results)
+        outage = outages[0]
+        outage.add_note(
+            f"The endpoint failed, so {output_dir} was stopped with {unfinished} record(s) left unmigrated.  "
+            "Once it is back, run the same call again with resume=True to finish them."
+        )
+        raise outage
+
+    return ExperimentResult(written=[output_path for output_path, _ in results], failed=failed)
 
 
 def _earlier_usage(done: list[Path], output_dir: Path) -> list[TokenUsageTracker]:
@@ -227,17 +292,22 @@ async def _process_file(
     user_prompt_builder: Callable[[dict[str, Any], str], str],
     config: dict[str, Any] | None,
     semaphore: asyncio.Semaphore,
-) -> tuple[Path, TokenUsageTracker]:
+    outages: list[Exception],
+) -> tuple[Path, TokenUsageTracker] | RecordFailure | None:
     """Process a single input file through the migration workflow.
 
     Acquires *semaphore* before invoking the workflow so that at most
     *max_concurrency* files are processed in parallel.
 
-    Returns the output path and this file's token usage.
+    Returns the output path and this file's token usage, or the failure when the
+    workflow raised.  An outage is appended to *outages* instead, and ``None`` is
+    returned, as it is for a file not started because an outage came first.
     """
     from langchain_core.messages import HumanMessage
 
     async with semaphore:
+        if outages:
+            return None
         task_name = asyncio.current_task().get_name()
         logger.info("[%s] Processing %s", task_name, input_file.name)
         with open(input_file) as f:
@@ -260,14 +330,22 @@ async def _process_file(
 
         # Entered inside this file's own task, so the tracing context each file
         # attaches stays private to it while files are processed concurrently.
-        with traced_run(run_config["run_name"], {"input_file": input_file.name, "template_iri": template_iri}):
-            result = await workflow.ainvoke(
-                {
-                    "messages": [HumanMessage(content=user_message)],
-                    "cedar_template_iri": template_iri,
-                },
-                config=run_config,
-            )
+        try:
+            with traced_run(run_config["run_name"], {"input_file": input_file.name, "template_iri": template_iri}):
+                result = await workflow.ainvoke(
+                    {
+                        "messages": [HumanMessage(content=user_message)],
+                        "cedar_template_iri": template_iri,
+                    },
+                    config=run_config,
+                )
+        except OUTAGE_ERRORS as error:
+            logger.error("[%s] %s: the endpoint failed: %s", task_name, input_file.name, _one_line(error))
+            outages.append(error)
+            return None
+        except Exception as error:
+            logger.error("[%s] %s failed: %s", task_name, input_file.name, _one_line(error))
+            return _record_failure(input_file, output_dir, error, tracker)
 
         # The processing log goes in a sibling directory so that *output_dir* keeps
         # one file per input, matching the gold standard for evaluation.
@@ -292,3 +370,32 @@ async def _process_file(
         logger.info("[%s] Wrote %s", task_name, output_path)
 
         return output_path, tracker
+
+
+def _one_line(error: BaseException) -> str:
+    """The exception's type and the first line of its message."""
+    message = str(error).strip().splitlines()
+    return f"{type(error).__name__}: {message[0]}" if message else type(error).__name__
+
+
+def _record_failure(input_file: Path, output_dir: Path, error: Exception, tracker: TokenUsageTracker) -> RecordFailure:
+    """Add this failed attempt at *input_file* to its failures file, beside the processing logs.
+
+    Earlier attempts are kept, so a record that failed once and was then resumed to a
+    prediction still shows that it failed.
+    """
+    log = output_dir / "failures" / input_file.name
+    log.parent.mkdir(parents=True, exist_ok=True)
+    attempts = json.loads(log.read_text()) if log.exists() else []
+    attempts.append(
+        {
+            "input_file": input_file.name,
+            "failed_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "error": type(error).__name__,
+            "message": str(error),
+            "traceback": "".join(traceback.format_exception(error)),
+            "usage": _usage_record(tracker),
+        }
+    )
+    _write_json(log, attempts)
+    return RecordFailure(input_file=input_file, error=_one_line(error), log=log)

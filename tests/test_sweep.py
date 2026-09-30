@@ -20,6 +20,7 @@ import pytest
 import sweep
 from arms_agent.agent import DEFAULT_REASONING_EFFORT, DEFAULT_SAMPLING, Sampling
 from conditions import CONDITIONS, build_condition
+from evaluate import ExperimentResult, RecordFailure
 from sweep import SweepPlan, plan_sweep, run_sweep
 
 if TYPE_CHECKING:
@@ -133,8 +134,11 @@ def _record_jobs(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     """Stub out the two things a run does, and collect what each one was asked for."""
     calls: list[dict[str, Any]] = []
     monkeypatch.setattr(sweep, "build_condition", lambda condition: (lambda **kwargs: condition, lambda *args: ""))
-    monkeypatch.setattr(sweep, "run_experiment", lambda **kwargs: calls.append(kwargs))
+    monkeypatch.setattr(sweep, "run_experiment", lambda **kwargs: calls.append(kwargs) or _NOTHING_FAILED)
     return calls
+
+
+_NOTHING_FAILED = ExperimentResult(written=[], failed=[])
 
 
 def test_dry_run_spends_nothing(data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -445,7 +449,7 @@ def test_each_assay_is_traced_under_its_own_environment(
     monkeypatch.setattr(
         sweep,
         "run_experiment",
-        lambda **kwargs: environments.append(sweep.os.environ.get("LANGFUSE_TRACING_ENVIRONMENT")),
+        lambda **kwargs: environments.append(sweep.os.environ.get("LANGFUSE_TRACING_ENVIRONMENT")) or _NOTHING_FAILED,
     )
     plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], conditions=["baseline"])
 
@@ -558,3 +562,63 @@ def test_a_finished_job_is_reported_as_skipped(
     run_sweep(plan, first_run=2, resume=True, dry_run=False)
 
     assert "[1/1] atacseq | baseline | run 2 | all 2 record(s) done, skipped" in capsys.readouterr().out
+
+
+def _failing_jobs(monkeypatch: pytest.MonkeyPatch, outage_on: str | None = None) -> list[str]:
+    """Stub each job to fail its first record, and to raise an outage in the assay *outage_on*."""
+    started: list[str] = []
+
+    def run_experiment(**kwargs: Any) -> ExperimentResult:
+        assay = kwargs["input_dir"].parent.name
+        started.append(assay)
+        if assay == outage_on:
+            raise ConnectionError("Connection error.")
+        record = kwargs["input_dir"] / f"{assay}-0.json"
+        log = kwargs["output_dir"] / "failures" / record.name
+        return ExperimentResult(written=[], failed=[RecordFailure(record, "ValueError: no text", log)])
+
+    monkeypatch.setattr(sweep, "build_condition", lambda condition: (lambda **kwargs: condition, lambda *args: ""))
+    monkeypatch.setattr(sweep, "run_experiment", run_experiment)
+    return started
+
+
+def test_a_failed_record_does_not_stop_the_sweep(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Every job still runs, and the failed records are listed once the sweep is done."""
+    started = _failing_jobs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], conditions=["baseline"])
+    capsys.readouterr()
+
+    run_sweep(plan, dry_run=False)
+
+    assert started == ["atacseq", "lcms"]
+    out = capsys.readouterr().out
+    assert "2 record(s) failed and have no prediction" in out
+    assert f"{plan.output_dir('lcms', 'baseline') / 'failures' / 'lcms-0.json'}  ValueError: no text" in out
+    assert "resume=True" in out
+
+
+def test_an_outage_stops_the_sweep_after_listing_the_failures_so_far(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    started = _failing_jobs(monkeypatch, outage_on="lcms")
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq", "lcms"], conditions=["baseline"])
+    capsys.readouterr()
+
+    with pytest.raises(ConnectionError):
+        run_sweep(plan, n_repeat=2, dry_run=False)
+
+    assert started == ["atacseq", "lcms"], "run 2 never starts after the outage"
+    assert "1 record(s) failed and have no prediction" in capsys.readouterr().out
+
+
+def test_a_sweep_with_no_failures_says_nothing_about_them(
+    data_root: Path, keys: None, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _record_jobs(monkeypatch)
+    plan = plan_sweep(data_root, "test-model", assays=["atacseq"], conditions=["baseline"])
+
+    run_sweep(plan, dry_run=False)
+
+    assert "failed" not in capsys.readouterr().out

@@ -142,7 +142,7 @@ def main() -> None:
         sys.exit(1)
     logging.getLogger(__name__).info("Running condition %s", condition.name)
     logging.getLogger(__name__).info("Writing output to %s", output_dir)
-    run_experiment(
+    result = run_experiment(
         template_iri=args.target_schema,
         input_dir=args.input,
         output_dir=output_dir,
@@ -159,6 +159,13 @@ def main() -> None:
             },
         },
     )
+    if result.failed:
+        print(
+            f"{len(result.failed)} record(s) failed and have no prediction; their errors are in "
+            f"{result.failed[0].log.parent}.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
 if __name__ == "__main__":

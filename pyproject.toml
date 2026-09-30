@@ -12,6 +12,8 @@ authors = [
 dependencies = [
     # The harness traces its sweeps to Langfuse, so it takes the tracing extra.
     "arms-agent[tracing]",
+    # The harness tells an outage from a failed record by the OpenAI client's errors.
+    "openai>=2.0,<3.0",
 ]
 
 [project.optional-dependencies]

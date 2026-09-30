@@ -7,13 +7,16 @@ no API call is involved.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import TYPE_CHECKING, Any
 
+import httpx
+import openai
 import pytest
 from langchain_core.outputs import LLMResult
 
-from evaluate import run_experiment
+from evaluate import ExperimentResult, run_experiment
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -144,8 +147,8 @@ def test_usage_stays_out_of_the_output_directory(tmp_path: Path) -> None:
     assert sorted(p.name for p in output_dir.glob("*.json")) == ["record-0.json", "record-1.json"]
 
 
-def test_run_experiment_still_returns_output_paths(tmp_path: Path) -> None:
-    """The public return type is unchanged by the per-file tracker."""
+def test_run_experiment_returns_output_paths(tmp_path: Path) -> None:
+    """What was written is returned in input order, so a caller need not glob for it."""
     output_dir = tmp_path / "output"
     written = run_experiment(
         template_iri=_TEMPLATE_IRI,
@@ -155,7 +158,8 @@ def test_run_experiment_still_returns_output_paths(tmp_path: Path) -> None:
         user_prompt_builder=_prompt_builder,
     )
 
-    assert written == [output_dir / "record-0.json", output_dir / "record-1.json"]
+    assert written.written == [output_dir / "record-0.json", output_dir / "record-1.json"]
+    assert written.failed == []
 
 
 def test_reasoning_tokens_are_recorded_per_file_and_in_the_sweep_total(tmp_path: Path) -> None:
@@ -196,15 +200,14 @@ class _FailingWorkflow(_StubWorkflow):
         return await super().ainvoke(state, config)
 
 
-def _run_again(tmp_path: Path, workflow: _StubWorkflow, **kwargs: Any) -> list[Path]:
+def _run_again(tmp_path: Path, workflow: _StubWorkflow, **kwargs: Any) -> ExperimentResult:
     return run_experiment(
         template_iri=_TEMPLATE_IRI,
         input_dir=tmp_path / "input",
         output_dir=tmp_path / "output",
         workflow_factory=lambda: workflow,
         user_prompt_builder=_prompt_builder,
-        max_concurrency=1,
-        **kwargs,
+        **{"max_concurrency": 1, **kwargs},
     )
 
 
@@ -223,7 +226,7 @@ def test_resume_migrates_only_the_records_a_failed_run_left(tmp_path: Path) -> N
 
     left = [f"record-{index}.json" for index in range(3) if f"record-{index}.json" not in finished]
     assert retry.seen == left
-    assert [path.name for path in written] == left
+    assert [path.name for path in written.written] == left
     assert sorted(path.name for path in output_dir.glob("*.json")) == [f"record-{index}.json" for index in range(3)]
 
 
@@ -247,7 +250,8 @@ def test_a_failed_record_leaves_no_file_behind(tmp_path: Path) -> None:
         _run_again(tmp_path, _FailingWorkflow(fail_on="record-0.json"))
 
     output_dir = tmp_path / "output"
-    assert not list(output_dir.rglob("*.json"))
+    assert not list(output_dir.glob("*.json"))
+    assert not list((output_dir / "decisions").glob("*.json"))
     assert not list(output_dir.rglob("*.tmp"))
 
 
@@ -277,3 +281,138 @@ def test_each_record_gets_the_agents_recursion_limit(tmp_path: Path) -> None:
     workflow = _ConfigRecordingWorkflow()
     _run_again(tmp_path, workflow)
     assert [config["recursion_limit"] for config in workflow.configs] == [RECURSION_LIMIT, RECURSION_LIMIT]
+
+
+class _RaisingWorkflow(_StubWorkflow):
+    """Spends its tokens on every record, then raises *error* on the ones in *fail_on*."""
+
+    def __init__(self, error: Exception, fail_on: set[str], delay: float = 0.0) -> None:
+        super().__init__()
+        self.error = error
+        self.fail_on = fail_on
+        self.delay = delay
+        self.seen: list[str] = []
+
+    async def ainvoke(self, state: dict[str, Any], config: dict[str, Any] | None = None) -> dict[str, Any]:
+        name = (config or {})["metadata"]["input_file"]
+        self.seen.append(name)
+        # Yield once, as a request does, so the records sharing the semaphore are all under way.
+        await asyncio.sleep(0)
+        if name in self.fail_on:
+            for handler in (config or {}).get("callbacks") or []:
+                handler.on_llm_end(
+                    LLMResult(
+                        generations=[[]],
+                        llm_output={"token_usage": {"prompt_tokens": 500}, "model_name": self.model},
+                    )
+                )
+            raise self.error
+        await asyncio.sleep(self.delay)
+        return await super().ainvoke(state, config)
+
+
+def _connection_error() -> openai.APIConnectionError:
+    return openai.APIConnectionError(request=httpx.Request("POST", "http://localhost:4000/v1/chat/completions"))
+
+
+def test_a_failed_record_does_not_stop_the_others(tmp_path: Path) -> None:
+    """The case this exists for: one record's bad answer used to abort the whole job."""
+    _write_inputs(tmp_path, 3)
+    workflow = _RaisingWorkflow(ValueError("Agent produced no text response."), {"record-1.json"})
+
+    result = _run_again(tmp_path, workflow)
+
+    output_dir = tmp_path / "output"
+    assert [path.name for path in result.written] == ["record-0.json", "record-2.json"]
+    assert [failure.input_file.name for failure in result.failed] == ["record-1.json"]
+    assert result.failed[0].error == "ValueError: Agent produced no text response."
+    assert result.failed[0].log == output_dir / "failures" / "record-1.json"
+    assert sorted(path.name for path in output_dir.glob("*.json")) == ["record-0.json", "record-2.json"]
+    total = json.loads((output_dir / "usage" / "_sweep_total.json").read_text())
+    assert total["files"] == 2, "the total counts the predictions"
+
+
+def test_a_failed_attempt_is_recorded_with_its_traceback_and_spend(tmp_path: Path) -> None:
+    _write_inputs(tmp_path, 1)
+    _run_again(tmp_path, _RaisingWorkflow(ValueError("no text"), {"record-0.json"}))
+
+    (attempt,) = json.loads((tmp_path / "output" / "failures" / "record-0.json").read_text())
+    assert attempt["input_file"] == "record-0.json"
+    assert attempt["error"] == "ValueError"
+    assert attempt["message"] == "no text"
+    assert "Traceback" in attempt["traceback"]
+    assert attempt["usage"]["prompt_tokens"] == 500
+    assert attempt["failed_at"]
+
+
+def test_resume_retries_a_failed_record_and_keeps_its_earlier_attempts(tmp_path: Path) -> None:
+    """A record that failed once still shows it after a resumed run migrates it."""
+    _write_inputs(tmp_path, 2)
+    failing = _RaisingWorkflow(ValueError("no text"), {"record-1.json"})
+    _run_again(tmp_path, failing)
+    _run_again(tmp_path, failing, resume=True)
+    assert failing.seen == ["record-0.json", "record-1.json", "record-1.json"]
+
+    retry = _RaisingWorkflow(ValueError("unused"), set())
+    result = _run_again(tmp_path, retry, resume=True)
+
+    assert retry.seen == ["record-1.json"]
+    assert [path.name for path in result.written] == ["record-1.json"]
+    attempts = json.loads((tmp_path / "output" / "failures" / "record-1.json").read_text())
+    assert len(attempts) == 2
+
+
+def test_an_outage_starts_no_further_record_and_lets_the_running_ones_finish(tmp_path: Path) -> None:
+    """Every record after a dropped connection would fail too, so the run stops, but spends nothing twice."""
+    _write_inputs(tmp_path, 4)
+    workflow = _RaisingWorkflow(_connection_error(), {"record-0.json"}, delay=0.05)
+
+    with pytest.raises(openai.APIConnectionError) as raised:
+        _run_again(tmp_path, workflow, max_concurrency=2)
+
+    assert workflow.seen == ["record-0.json", "record-1.json"], "records 2 and 3 were never started"
+    output_dir = tmp_path / "output"
+    assert [path.name for path in output_dir.glob("*.json")] == ["record-1.json"], "the running record finished"
+    assert not (output_dir / "failures").exists(), "an outage is not the record's failure"
+    assert "3 record(s) left unmigrated" in "".join(raised.value.__notes__)
+    assert "resume=True" in "".join(raised.value.__notes__)
+    total = json.loads((output_dir / "usage" / "_sweep_total.json").read_text())
+    assert total["files"] == 1
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        openai.AuthenticationError(
+            "bad key", response=httpx.Response(401, request=httpx.Request("POST", "http://x")), body=None
+        ),
+        openai.RateLimitError(
+            "budget spent", response=httpx.Response(429, request=httpx.Request("POST", "http://x")), body=None
+        ),
+        openai.InternalServerError(
+            "bad gateway", response=httpx.Response(502, request=httpx.Request("POST", "http://x")), body=None
+        ),
+    ],
+    ids=["auth", "rate-limit", "server"],
+)
+def test_an_endpoint_refusing_every_request_is_an_outage(tmp_path: Path, error: Exception) -> None:
+    _write_inputs(tmp_path, 2)
+    workflow = _RaisingWorkflow(error, {"record-0.json"})
+
+    with pytest.raises(type(error)):
+        _run_again(tmp_path, workflow)
+
+    assert workflow.seen == ["record-0.json"]
+
+
+def test_a_request_the_endpoint_rejects_is_the_records_failure(tmp_path: Path) -> None:
+    """A 400 -- a prompt too long for the context, say -- is about this record alone."""
+    _write_inputs(tmp_path, 2)
+    error = openai.BadRequestError(
+        "context too long", response=httpx.Response(400, request=httpx.Request("POST", "http://x")), body=None
+    )
+
+    result = _run_again(tmp_path, _RaisingWorkflow(error, {"record-0.json"}))
+
+    assert [failure.input_file.name for failure in result.failed] == ["record-0.json"]
+    assert [path.name for path in result.written] == ["record-1.json"]

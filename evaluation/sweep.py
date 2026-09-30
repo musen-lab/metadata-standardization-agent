@@ -35,7 +35,7 @@ from arms_agent.agent import DEFAULT_REASONING_EFFORT, DEFAULT_SAMPLING, Samplin
 from arms_agent.tracing import tracing_enabled
 from assays import ASSAY_SCHEMAS
 from conditions import build_condition, condition_names, get_condition
-from evaluate import pending_records, refuse_output_clashes, run_experiment
+from evaluate import ExperimentResult, RecordFailure, pending_records, refuse_output_clashes, run_experiment
 from langfuse_prices import register_model_prices
 
 if TYPE_CHECKING:
@@ -226,6 +226,13 @@ def run_sweep(
     running the same call again with *resume*: every record that already has a prediction
     is skipped, a job with none left is skipped whole, and only the rest are migrated.
 
+    A record whose migration fails does not stop the sweep: it is left without a prediction,
+    its error goes to its job's ``failures/`` folder, and the sweep moves on.  Once every
+    job has run, the failed records are listed, and *resume* retries them.  An outage --
+    the endpoint unreachable, the key refused, the server failing, see
+    :data:`evaluate.OUTAGE_ERRORS` -- is different, since every record after it would fail
+    too: the sweep stops there and raises it, after listing the records failed so far.
+
     Args:
         plan: A plan from :func:`plan_sweep`.
         n_repeat: How many runs of the whole plan to make.
@@ -273,12 +280,35 @@ def run_sweep(
     # concurrency with asyncio.run, which needs a thread of its own to own the loop, and
     # the tracing context is a context variable, so it is entered inside that thread.
     # One worker, so the sweep waits for each job to finish before starting the next.
-    with ThreadPoolExecutor(max_workers=1) as pool:
-        for position, job in enumerate(jobs, start=1):
-            print(_describe(plan, position, len(jobs), *job, pending=pending[job]))
-            if pending[job] == 0:
-                continue
-            pool.submit(_run_job, plan, *job, max_concurrency, overwrite, resume).result()
+    failed: list[RecordFailure] = []
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            for position, job in enumerate(jobs, start=1):
+                print(_describe(plan, position, len(jobs), *job, pending=pending[job]))
+                if pending[job] == 0:
+                    continue
+                result = pool.submit(_run_job, plan, *job, max_concurrency, overwrite, resume).result()
+                failed.extend(result.failed)
+    finally:
+        # Also on the way out of an outage, so the records that failed before it are not lost
+        # behind its traceback.
+        _report_failures(failed)
+
+
+#: How many failed records the summary names before it only counts the rest.
+_FAILURES_LISTED = 10
+
+
+def _report_failures(failed: list[RecordFailure]) -> None:
+    """Say which records have no prediction because they failed, and how to retry them."""
+    if not failed:
+        return
+    print(f"\n{len(failed)} record(s) failed and have no prediction:")
+    for failure in failed[:_FAILURES_LISTED]:
+        print(f"  {failure.log}  {failure.error[:160]}")
+    if len(failed) > _FAILURES_LISTED:
+        print(f"  ... and {len(failed) - _FAILURES_LISTED} more, each in its job's failures/ folder.")
+    print("Each file holds the traceback.  Run the same call again with resume=True to retry them.")
 
 
 def _pending(plan: SweepPlan, run: int | None, assay: str, condition: str, *, resume: bool) -> int:
@@ -319,12 +349,12 @@ def _describe(
 
 def _run_job(
     plan: SweepPlan, run: int | None, assay: str, condition: str, max_concurrency: int, overwrite: bool, resume: bool
-) -> None:
+) -> ExperimentResult:
     """Migrate every record of one assay under one condition, as part of run *run* (``None``: the only run)."""
     build_workflow, build_user_prompt = build_condition(condition)
     schema_iri = ASSAY_SCHEMAS[assay]
     with _traced_as(f"experiment-{assay}"):
-        run_experiment(
+        return run_experiment(
             template_iri=schema_iri,
             input_dir=get_assay(plan.data_root, assay).input_dir,
             output_dir=plan.output_dir(assay, condition, run),
