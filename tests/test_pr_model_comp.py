@@ -297,3 +297,73 @@ class TestConditionLegend:
         compared, field_types = captured[0].legends
         assert all(isinstance(handle, Patch) for handle in compared.legend_handles)
         assert [handle.get_marker() for handle in field_types.legend_handles] == ["o", "s", "^"]
+
+
+def _inset_panel(points: list[tuple[float, float]]) -> tuple[plt.Figure, plt.Axes, list, dict]:
+    """A lone styled panel holding one ontology mark per point, model by model."""
+    fig, ax = plt.subplots(figsize=(pr_space.SHARED_PANEL_INCHES, pr_space.SHARED_PANEL_INCHES))
+    pr_space._style_pr_axes(ax)
+    marks = _model_marks(tuple(f"m{index}" for index in range(len(points))), no_color=False)
+    panel_points = [("ontology", index, xy) for index, xy in enumerate(points)]
+    fig.canvas.draw()
+    return fig, ax, panel_points, {index: mark for index, (_model, mark) in enumerate(marks)}
+
+
+class TestInsets:
+    def test_marks_crowded_at_different_scores_are_enlarged(self) -> None:
+        fig, ax, panel_points, marks_of = _inset_panel([(0.90, 0.90), (0.92, 0.91), (0.3, 0.4)])
+        [(inset, group)] = pr_space._draw_insets(ax, panel_points, marks_of)
+        assert group == [0, 1]
+        (x0, x1), (y0, y1) = inset.get_xlim(), inset.get_ylim()
+        assert x0 < 0.90 and x1 > 0.92 and y0 < 0.90 and y1 > 0.91
+        assert x1 - x0 == pytest.approx(y1 - y0)  # square: a step sideways means a step up
+        # Enlarged at least MIN_ZOOM times, and drawing every mark in its window.
+        assert inset.get_position().width / ax.get_position().width * 1.13 / (x1 - x0) >= pr_space.MIN_ZOOM
+        assert len([line for line in inset.get_lines() if line.get_linestyle() == "None"]) == 3
+        plt.close(fig)
+
+    def test_marks_at_one_score_are_not_enlarged(self) -> None:
+        """No zoom can part them; they are named instead."""
+        fig, ax, panel_points, marks_of = _inset_panel([(0.9, 0.9), (0.9, 0.9)])
+        assert pr_space._draw_insets(ax, panel_points, marks_of) == []
+        plt.close(fig)
+
+    def test_an_inset_covers_no_mark_and_offers_no_score_above_one(self) -> None:
+        points = [(1.0, 1.0), (0.99, 0.985), (0.2, 0.2), (0.25, 0.6), (0.6, 0.25)]
+        fig, ax, panel_points, marks_of = _inset_panel(points)
+        [(inset, _group)] = pr_space._draw_insets(ax, panel_points, marks_of)
+        assert inset.get_ylim()[1] <= pr_space.PR_WINDOW[1] and inset.get_xlim()[1] <= pr_space.PR_WINDOW[1]
+        extent = inset.get_window_extent()
+        for xy in points:
+            assert not extent.contains(*ax.transData.transform(xy))
+        plt.close(fig)
+
+    def test_two_groups_take_two_insets_and_a_third_shares_with_its_nearest(self) -> None:
+        two = [(0.90, 0.90), (0.92, 0.91), (0.30, 0.95), (0.32, 0.94)]
+        fig, ax, panel_points, marks_of = _inset_panel(two)
+        assert [group for _inset, group in pr_space._draw_insets(ax, panel_points, marks_of)] == [[0, 1], [2, 3]]
+        plt.close(fig)
+        three = [*two, (0.80, 0.80), (0.82, 0.79)]
+        fig, ax, panel_points, marks_of = _inset_panel(three)
+        groups = [group for _inset, group in pr_space._draw_insets(ax, panel_points, marks_of)]
+        assert sorted(groups) == [[0, 1, 4, 5], [2, 3]]
+        plt.close(fig)
+
+    def test_insets_are_off_by_default_and_ties_keep_their_names(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        for name, record in _PREDICTIONS["good"].items():
+            _write(data_root / "atacseq" / "output" / "copy" / "arms-agent" / f"{name}.json", record)
+        plot_pr_model_comp(str(data_root), ("good", "copy"), field_types=("ontology",))
+        plot_pr_model_comp(str(data_root), ("good", "copy"), field_types=("ontology",), inset=True)
+        for fig in captured:
+            # "good" and "copy" tie exactly: nothing to enlarge, so no inset either way.
+            assert len(fig.axes) == 1
+            assert _stack_boxes(fig.axes[0]) == ["copy\ngood"]
+
+    def test_the_condition_figure_accepts_insets(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        """Its marks here sit far apart, so it draws, and draws no inset: the option reaches it unharmed."""
+        for name, record in _PREDICTIONS["half"].items():
+            _write(data_root / "atacseq" / "output" / "good" / "baseline" / f"{name}.json", record)
+        plot_pr_condition_comp(str(data_root), "good", inset=True)
+        assert len(captured[0].axes) == 1

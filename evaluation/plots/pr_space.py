@@ -13,8 +13,11 @@ from math import ceil
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.inset import InsetIndicator
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
+from matplotlib.ticker import MaxNLocator
+from matplotlib.transforms import Bbox
 
 from analysis.corpus import get_assay, iter_assays
 from analysis.data_analysis import (
@@ -351,6 +354,7 @@ def plot_pr_condition_comp(
     error_axes: bool = False,
     show_f1_contours: bool = True,
     no_color: bool = False,
+    inset: bool = False,
     title: str | None = None,
     save_path: str | None = None,
     run: int = 1,
@@ -390,6 +394,11 @@ def plot_pr_condition_comp(
     a letter written inside the mark.  What survives greyscale, print and colour-vision
     deficiency is what carries the meaning.
 
+    *inset* draws marks that crowd together at different scores again, enlarged, in an inset of
+    their panel, with a frame round the patch it enlarges and dashed lines joining the two: a
+    difference of a point or two of precision is real but hides under marks a dozen points
+    wide.  Marks at exactly one score are not enlarged, since no zoom can part them.
+
     *title* is written centred above the figure, a step larger than the panel titles it
     sits over so the hierarchy is legible at a glance rather than by measurement.
 
@@ -428,6 +437,7 @@ def plot_pr_condition_comp(
         title=title,
         save_path=save_path,
         run=run,
+        inset=inset,
     )
 
 
@@ -443,6 +453,7 @@ def plot_pr_model_comp(
     error_axes: bool = False,
     show_f1_contours: bool = True,
     no_color: bool = False,
+    inset: bool = False,
     title: str | None = None,
     save_path: str | None = None,
 ) -> None:
@@ -451,8 +462,8 @@ def plot_pr_model_comp(
     The same figure as :func:`plot_pr_condition_comp`, with the model in place of the condition:
     every point is *condition* in run *run*, and what changes from one colour to the next is
     the model that produced it.  Everything else -- *assays*, *field_types*,
-    *shared_window*, *error_axes*, *show_f1_contours*, *title* and *save_path* -- means what
-    it means there.
+    *shared_window*, *error_axes*, *show_f1_contours*, *inset*, *title* and *save_path* -- means
+    what it means there.  In an inset, a stack still at one spot is named inside the inset.
 
     A model is drawn where it has predictions, so *models* can name a model whose run has
     not been made, or not finished, yet.  With *assays*, each model is drawn in the panels of
@@ -514,6 +525,7 @@ def plot_pr_model_comp(
         run=run,
         partial=True,
         name_stacks=True,
+        inset=inset,
     )
 
 
@@ -541,6 +553,7 @@ def _plot_pr_points(
     run: int,
     partial: bool = False,
     name_stacks: bool = False,
+    inset: bool = False,
 ) -> None:
     """Draw and finish a precision/recall figure: the layout both public figures share.
 
@@ -554,7 +567,8 @@ def _plot_pr_points(
     so an assay no run reached is never scored and never warns about its missing records.
 
     With *name_stacks*, marks of one field type that land on one spot are named beside it,
-    by their labels in *keys* -- see :func:`_name_stacks`.
+    by their labels in *keys* -- see :func:`_name_stacks`.  With *inset*, marks crowded together
+    are drawn again, enlarged, in an inset of their panel -- see :func:`_draw_insets`.
     """
     _check_assay_keys(assays)
     labels = dict(ASSAY_ORDER)
@@ -751,11 +765,20 @@ def _plot_pr_points(
         # first would have the layout reserve the space and then leave a gap when there
         # is no title.
         fig.suptitle(title, fontsize=FIGURE_TITLE_SIZE, y=1.0, va="bottom")
+    # Last, so every inset and box is placed against the panels where they will finally sit.
+    names = [label for label, _mark in keys]
+    marks_of = {index: mark for group, group_marks in groups for index, mark in zip(group, group_marks, strict=True)}
+    insets = [_draw_insets(ax, panel_points, marks_of) if inset else [] for ax, panel_points in panels]
     if name_stacks:
-        # Last, so every box is placed against the panels where they will finally sit.
-        names = [label for label, _mark in keys]
-        for ax, panel_points in panels:
-            _name_stacks(ax, panel_points, names)
+        # Drawn once first: an inset decides which of its connectors show only as it is drawn,
+        # and a name box has to keep off the ones that do.
+        fig.canvas.draw()
+        for (ax, panel_points), panel_insets in zip(panels, insets, strict=True):
+            zoomed = frozenset(member for _inset, members in panel_insets for member in members)
+            extents = tuple(ax_inset.get_window_extent() for ax_inset, _members in panel_insets)
+            _name_stacks(ax, panel_points, names, avoid=extents, avoid_lines=_connector_lines(ax), skip=zoomed)
+            for ax_inset, _members in panel_insets:
+                _name_stacks(ax_inset, _in_view(ax_inset, panel_points), names)
     _finish(fig, save_path)
 
 
@@ -789,6 +812,10 @@ def _name_stacks(
     ax: plt.Axes,
     panel_points: list[tuple[str, int, tuple[float, float]]],
     names: list[str],
+    *,
+    avoid: tuple[Bbox, ...] = (),
+    avoid_lines: tuple[tuple[np.ndarray, np.ndarray], ...] = (),
+    skip: frozenset[int] = frozenset(),
 ) -> None:
     """Name every stack of marks in *ax* that hides one mark under another.
 
@@ -803,19 +830,26 @@ def _name_stacks(
     drawn under the marks so that it runs behind them rather than over them.  Where every spot
     covers something, the one covering fewest marks is taken: a crowded panel still says what
     is in the stack.
+
+    *avoid* is pixel extents a box must keep off as it keeps off other boxes -- the panel's
+    insets -- and *avoid_lines* pixel segments it must not sit across, the insets' connectors.
+    *skip* is positions in *panel_points* whose stacks are named elsewhere, in an inset; they
+    still count as marks a box must not cover.
     """
     renderer = ax.figure.canvas.get_renderer()
     to_pixels = ax.figure.dpi / 72
     marks = [ax.transData.transform(xy) for _field_type, _index, xy in panel_points]
     frame = ax.get_window_extent(renderer)
-    placed: list[object] = []
+    placed: list[Bbox] = list(avoid)
 
     for stack in _stacks(panel_points, marks, STACK_DISTANCE_POINTS * to_pixels):
+        if skip.issuperset(stack):
+            continue
         top_first = [names[panel_points[member][1]] for member in reversed(stack)]
         # The bottom mark's own position: the stack's first member, in this field type.
         anchor = panel_points[stack[0]][2]
         start = ax.transData.transform(anchor)
-        best: tuple[float, object, tuple[float, float]] | None = None
+        best: tuple[float, plt.Annotation, tuple[float, float]] | None = None
         for distance in STACK_LABEL_DISTANCES:
             for angle in np.deg2rad(STACK_LABEL_ANGLES):
                 offset = (distance * np.cos(angle), distance * np.sin(angle))
@@ -846,6 +880,7 @@ def _name_stacks(
                 covered = sum(near.contains(x, y) for x, y in marks) + sum(extent.overlaps(o) for o in placed)
                 # A line behind another box would seem to lead to that box instead.
                 covered += sum(_runs_through(start, end, other) for other in placed)
+                covered += sum(_runs_through(head, tail, extent) for head, tail in avoid_lines)
                 crossed = sum(_passes(start, end, mark, clearance * 0.75) for mark in marks)
                 inside = frame.contains(extent.x0, extent.y0) and frame.contains(extent.x1, extent.y1)
                 cost = (0 if inside else 1e6) + covered * 1e3 + crossed * 2 + distance / 100
@@ -904,6 +939,192 @@ def _passes(start: np.ndarray, end: tuple[float, float], mark: np.ndarray, reach
     return bool(np.hypot(*(mark - (start + along * run))) < reach)
 
 
-def _runs_through(start: np.ndarray, end: tuple[float, float], box: object) -> bool:
+def _runs_through(start: np.ndarray, end: tuple[float, float], box: Bbox) -> bool:
     """Whether the line from *start* to *end* passes through *box*, a pixel extent."""
     return any(box.contains(*(start + step * np.subtract(end, start))) for step in np.linspace(0.0, 1.0, 25))
+
+
+#: How close marks sit, in points, before they count as crowded and are enlarged in an inset:
+#: a mark and a half apart, near enough that the gap between them is hard to read.
+ZOOM_REACH_POINTS = 18.0
+
+#: How much an inset must enlarge its patch to be worth the room it takes.
+MIN_ZOOM = 2.0
+
+#: How much room an inset's window leaves round its marks, as a share of their spread, and the
+#: least it leaves, in score units, so a pair one hundredth apart is not drawn edge to edge.
+ZOOM_MARGIN = 0.5
+ZOOM_MIN_HALF_SPAN = 0.012
+
+#: The sizes an inset is tried at, as a share of its panel's width, largest first: one inset
+#: to a panel, or each of two.  A smaller inset that covers nothing beats a larger one that
+#: covers a mark.
+INSET_SIZES = (0.52, 0.46, 0.40)
+INSET_PAIR_SIZES = (0.44, 0.38, 0.32)
+
+#: How many places along each side of the panel an inset is tried at, and how far it keeps
+#: from the panel's frame, as a share of the panel: further on the left and at the bottom,
+#: where its own tick numbers sit and would otherwise land on the frame.
+INSET_POSITIONS = 6
+INSET_MARGIN = 0.03
+INSET_TICK_MARGIN = (0.10, 0.08)
+
+#: The inset's frame, the frame round the patch it enlarges, and the dashed lines joining them:
+#: one grey, quieter than the panel frame, so the inset reads as a detail of its panel.
+ZOOM_FRAME_COLOUR = "#8a8a84"
+ZOOM_CONNECTOR_COLOUR = "#b5b5ae"
+ZOOM_TICK_SIZE = 6
+
+
+def _draw_insets(
+    ax: plt.Axes,
+    panel_points: list[tuple[str, int, tuple[float, float]]],
+    marks_of: dict[int, ConditionMark],
+) -> list[tuple[plt.Axes, list[int]]]:
+    """Enlarge each crowded group of *ax*'s marks in an inset, and return the insets with their groups.
+
+    A group is marks of any field type chained within :data:`ZOOM_REACH_POINTS` of one another
+    that do not all sit at one score -- marks at one score stay one mark however far they are
+    enlarged, and are named instead.  Each group takes an inset of its own, up to two to a
+    panel; past two, the groups nearest each other share an inset until two are left.  An inset that would not
+    enlarge its patch :data:`MIN_ZOOM` times is not drawn.
+
+    The inset holds every mark inside its window, drawn as in the panel and in the same
+    order, on a square window so a step sideways still means what a step up means.  Each inset
+    goes to the spot, of a grid of :data:`INSET_POSITIONS` a side at the sizes of
+    :data:`INSET_SIZES` or :data:`INSET_PAIR_SIZES`, that covers fewest marks, zoomed patches
+    and insets already placed -- the largest and lowest of those that cover none.
+    """
+    groups = _crowds(ax, panel_points)
+    while len(groups) > 2:
+        # Two insets is what a panel has room for: the two groups nearest each other share one.
+        centres = [np.mean([panel_points[member][2] for member in group], axis=0) for group in groups]
+        first, second = min(
+            ((i, j) for i in range(len(groups)) for j in range(i + 1, len(groups))),
+            key=lambda pair: np.hypot(*(centres[pair[0]] - centres[pair[1]])),
+        )
+        groups[first] = sorted(groups[first] + groups.pop(second))
+    windows = [_zoom_window(panel_points, group) for group in groups]
+    sizes = INSET_SIZES if len(groups) == 1 else INSET_PAIR_SIZES
+    panel_span = PR_WINDOW[1] - PR_WINDOW[0]
+    # Judged at the largest size: a group too spread out to gain from that gains less from less.
+    kept = [
+        (group, window)
+        for group, window in zip(groups, windows, strict=True)
+        if sizes[0] * panel_span / (window[1] - window[0]) >= MIN_ZOOM
+    ]
+    if not kept:
+        return []
+
+    reach = STACK_LABEL_CLEARANCE * ax.figure.dpi / 72
+    marks = [ax.transData.transform(xy) for _field_type, _index, xy in panel_points]
+    obstacles = [Bbox(ax.transData.transform([(x0, y0), (x1, y1)])) for _group, (x0, x1, y0, y1) in kept]
+
+    def cost(slot: tuple[float, float, float, float]) -> float:
+        """What *slot* would cover: marks (any of one), the frames of zoomed patches, other insets."""
+        x, y, w, h = slot
+        extent = Bbox(ax.transAxes.transform([(x, y), (x + w, y + h)]))
+        covered = sum(extent.padded(reach).contains(*mark) for mark in marks)
+        covered += sum(extent.overlaps(obstacle) for obstacle in obstacles)
+        # Among clear spots, the larger and the lower: the marks of these panels sit high.
+        return covered * 1e3 + (sizes[0] - w) * 10 + y
+
+    layout = []
+    for _group in kept:
+        slot = min(
+            (
+                (x, y, size, size)
+                for size in sizes
+                for x in np.linspace(INSET_TICK_MARGIN[0], 1 - INSET_MARGIN - size, INSET_POSITIONS)
+                for y in np.linspace(INSET_TICK_MARGIN[1], 1 - INSET_MARGIN - size, INSET_POSITIONS)
+            ),
+            key=cost,
+        )
+        layout.append(slot)
+        obstacles.append(Bbox(ax.transAxes.transform([slot[:2], (slot[0] + slot[2], slot[1] + slot[3])])))
+
+    insets = []
+    for slot, (group, (x0, x1, y0, y1)) in zip(layout, kept, strict=True):
+        ax_inset = ax.inset_axes(slot)
+        for field_type, index, xy in panel_points:
+            _draw_pr_path(ax_inset, [xy], [marks_of[index]], FIELD_TYPE_MARKERS[field_type])
+        ax_inset.set_xlim(x0, x1)
+        ax_inset.set_ylim(y0, y1)
+        ax_inset.set_aspect("equal")
+        ax_inset.set_facecolor("white")
+        ax_inset.grid(color=GRID_COLOUR, linewidth=0.6)
+        ax_inset.set_axisbelow(True)
+        ax_inset.tick_params(labelsize=ZOOM_TICK_SIZE, length=2, pad=1.5, color=PANEL_FRAME_COLOUR)
+        for axis in (ax_inset.xaxis, ax_inset.yaxis):
+            axis.set_major_locator(MaxNLocator(3, steps=[1, 2, 5, 10]))
+        for spine in ax_inset.spines.values():
+            spine.set_color(ZOOM_FRAME_COLOUR)
+            spine.set_linewidth(0.8)
+        indicator = ax.indicate_inset_zoom(ax_inset, edgecolor=ZOOM_FRAME_COLOUR, linewidth=0.7, alpha=1.0)
+        for connector in indicator.connectors:
+            connector.set_linestyle((0, (2, 2)))
+            connector.set_linewidth(0.6)
+            connector.set_color(ZOOM_CONNECTOR_COLOUR)
+        insets.append((ax_inset, group))
+    return insets
+
+
+def _crowds(ax: plt.Axes, panel_points: list[tuple[str, int, tuple[float, float]]]) -> list[list[int]]:
+    """The groups of positions in *panel_points* worth enlarging -- see :func:`_draw_insets`."""
+    reach = ZOOM_REACH_POINTS * ax.figure.dpi / 72
+    marks = [ax.transData.transform(xy) for _field_type, _index, xy in panel_points]
+    groups: list[list[int]] = []
+    seen: set[int] = set()
+    for first in range(len(panel_points)):
+        if first in seen:
+            continue
+        group, frontier = {first}, [first]
+        while frontier:
+            current = frontier.pop()
+            for other in range(len(panel_points)):
+                if other not in group and np.hypot(*(marks[other] - marks[current])) < reach:
+                    group.add(other)
+                    frontier.append(other)
+        seen |= group
+        if len({panel_points[member][2] for member in group}) > 1:
+            groups.append(sorted(group))
+    return groups
+
+
+def _zoom_window(
+    panel_points: list[tuple[str, int, tuple[float, float]]], group: list[int]
+) -> tuple[float, float, float, float]:
+    """The square window, (x0, x1, y0, y1), an inset shows *group* through.
+
+    It reaches past the panel's edge no further than the panel's own window does, so an inset
+    never offers a score above 1 that no condition could reach.
+    """
+    xs = [panel_points[member][2][0] for member in group]
+    ys = [panel_points[member][2][1] for member in group]
+    half = max(max(xs) - min(xs), max(ys) - min(ys)) / 2 * (1 + ZOOM_MARGIN) + ZOOM_MIN_HALF_SPAN
+    low, high = PR_WINDOW[0], 1.0 + 0.25 * half
+
+    def span(values: list[float]) -> tuple[float, float]:
+        centre = min(max((min(values) + max(values)) / 2, low + half), high - half)
+        return centre - half, centre + half
+
+    return (*span(xs), *span(ys))
+
+
+def _in_view(
+    ax: plt.Axes, panel_points: list[tuple[str, int, tuple[float, float]]]
+) -> list[tuple[str, int, tuple[float, float]]]:
+    """The points of *panel_points* that fall inside *ax*'s window."""
+    (x0, x1), (y0, y1) = ax.get_xlim(), ax.get_ylim()
+    return [point for point in panel_points if x0 <= point[2][0] <= x1 and y0 <= point[2][1] <= y1]
+
+
+def _connector_lines(ax: plt.Axes) -> tuple[tuple[np.ndarray, np.ndarray], ...]:
+    """The visible zoom connectors of *ax*'s insets, as pixel segments, once the figure is drawn."""
+    lines = []
+    for indicator in ax.findobj(InsetIndicator):
+        for connector in indicator.connectors:
+            if connector.get_visible():
+                # An inset's connectors give both ends as transforms: the inset's corner, the frame's.
+                lines.append((connector.coords1.transform(connector.xy1), connector.coords2.transform(connector.xy2)))
+    return tuple(lines)
