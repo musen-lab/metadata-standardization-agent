@@ -8,7 +8,7 @@ from typing import Any
 import httpx
 import openai
 import pytest
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, ToolMessage
 
 from arms_agent import utils
 from arms_agent.schema import build_output_model, build_response_model
@@ -159,6 +159,36 @@ class TestStructuredResponse:
         result = utils.extract_output_metadata(self._state({"record": {"manufacturer": "Acme"}, "log": []}))
         assert result["decisions"] == []
 
+    @pytest.mark.parametrize("checkpointed", [False, True], ids=["model", "dict"])
+    def test_rejects_final_answer_and_data_tool_in_one_turn(self, checkpointed: bool) -> None:
+        model = build_response_model(TEMPLATE)
+        answer = model.model_validate({"record": {"manufacturer": "Acme", "model": "X100"}, "log": []})
+        state = self._state(answer.model_dump() if checkpointed else answer)
+        state["messages"] = [
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {"name": "term_search_from_ontology", "args": {}, "id": "search"},
+                    {"name": model.__name__, "args": answer.model_dump(), "id": "answer"},
+                ],
+            ),
+            ToolMessage(content="search result", tool_call_id="search"),
+            ToolMessage(content="Returning structured response", tool_call_id="answer"),
+        ]
+        with pytest.raises(ValueError, match="final-answer tool alongside a data tool"):
+            utils.extract_output_metadata(state)
+
+    def test_earlier_data_tool_call_is_allowed_after_a_new_answer_turn(self) -> None:
+        model = build_response_model(TEMPLATE)
+        answer = model.model_validate({"record": {"manufacturer": "Acme", "model": "X100"}, "log": []})
+        state = self._state(answer)
+        state["messages"] = [
+            AIMessage(content="", tool_calls=[{"name": "term_search_from_ontology", "args": {}, "id": "search"}]),
+            ToolMessage(content="search result", tool_call_id="search"),
+            AIMessage(content="", tool_calls=[{"name": model.__name__, "args": answer.model_dump(), "id": "answer"}]),
+        ]
+        assert utils.extract_output_metadata(state)["metadata"] == answer.record.model_dump()
+
     def test_the_record_is_traced_before_the_log(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Langfuse orders sibling events by creation time, so the record has to be sent first."""
         traced: list[tuple[str, Any, str]] = []
@@ -303,6 +333,33 @@ class TestExtractOutputMetadata:
         assert calls == 1
         assert result["metadata"] == {"manufacturer": "Acme Corporation", "model": None}
 
+    def test_fallback_fills_missing_fields_with_null(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        class FakeLLM:
+            def invoke(self, _prompt: str, **_kwargs: Any) -> Any:
+                return AIMessage(content='{"manufacturer": "Acme"}')
+
+        monkeypatch.setattr(utils, "_get_extraction_llm", lambda: FakeLLM())
+        result = utils.extract_output_metadata(self._state("no usable JSON"))
+        assert result["metadata"] == {"manufacturer": "Acme", "model": None}
+
+    @pytest.mark.parametrize(
+        "record",
+        [
+            '{"manufacturer": "Acme", "model": null, "surprise": "not in template"}',
+            '{"manufacturer": {"nested": "object"}, "model": null}',
+            '["not", "an", "object"]',
+        ],
+        ids=["extra-field", "wrong-type", "not-object"],
+    )
+    def test_fallback_rejects_invalid_records(self, monkeypatch: pytest.MonkeyPatch, record: str) -> None:
+        class FakeLLM:
+            def invoke(self, _prompt: str, **_kwargs: Any) -> Any:
+                return AIMessage(content=record)
+
+        monkeypatch.setattr(utils, "_get_extraction_llm", lambda: FakeLLM())
+        with pytest.raises(ValueError, match="does not satisfy the template schema"):
+            utils.extract_output_metadata(self._state("no usable JSON"))
+
     def test_the_fallback_call_is_given_the_run_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Without the config the reconstruction is invisible to the token tracker and to Langfuse."""
         seen: dict[str, Any] = {}
@@ -331,3 +388,15 @@ class TestExtractOutputMetadata:
         monkeypatch.setattr(utils, "_get_extraction_llm", TimedOutLLM)
         with pytest.raises(ValueError, match="Extraction LLM timed out after 120 seconds"):
             utils.extract_output_metadata(self._state("no usable JSON"))
+
+
+class TestExtractAgentFinalResponse:
+    def test_uses_only_the_last_ai_message(self) -> None:
+        messages = [AIMessage(content="stale record"), ToolMessage(content="tool result", tool_call_id="search")]
+        messages.append(AIMessage(content=""))
+        with pytest.raises(ValueError, match="Agent produced no text response"):
+            utils.extract_agent_final_response(messages)
+
+    def test_reads_text_blocks_from_last_ai_message(self) -> None:
+        messages = [AIMessage(content="stale record"), AIMessage(content=[{"type": "text", "text": "final record"}])]
+        assert utils.extract_agent_final_response(messages) == "final record"

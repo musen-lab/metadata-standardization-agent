@@ -215,8 +215,31 @@ def extract_output_metadata(
     """
     structured = state.get("structured_response")
     if structured is not None:
+        _reject_mixed_answer_and_data_tools(state["messages"], structured)
         return _from_structured_response(structured)
     return _from_response_text(state, config)
+
+
+def _reject_mixed_answer_and_data_tools(messages: list[AnyMessage], structured: Any) -> None:
+    """Reject an answer made before the model could read a same-turn data-tool result.
+
+    With ToolStrategy, LangChain may execute both calls but stop as soon as it sees
+    the structured answer.  A CEDAR/BioPortal result from that turn would then be
+    recorded without ever being shown to the model that wrote the answer.
+    """
+    last_ai = next((message for message in reversed(messages) if message.type == "ai"), None)
+    if last_ai is None:
+        return
+    tool_names = [call["name"] for call in getattr(last_ai, "tool_calls", [])]
+    answer_name = type(structured).__name__ if isinstance(structured, BaseModel) else None
+    if answer_name is None:
+        # Checkpointed state may restore a validated response as a plain dict.
+        answer_name = next((name for name in tool_names if name.endswith("_response")), None)
+    if answer_name in tool_names and any(name != answer_name for name in tool_names):
+        msg = (
+            "Agent called its final-answer tool alongside a data tool; that tool result was not read before answering."
+        )
+        raise ValueError(msg)
 
 
 def _from_structured_response(structured: Any, source: str = "structured_response") -> dict[str, Any]:
@@ -285,7 +308,11 @@ def _from_response_text(state: AgentState, config: RunnableConfig | None = None)
     except openai.APITimeoutError as error:
         msg = f"Extraction LLM timed out after {_EXTRACTION_TIMEOUT_SECONDS} seconds"
         raise ValueError(msg) from error
-    metadata = json.loads(result.content)
+    parsed = json.loads(result.content)
+    metadata = _coerce_record(parsed, output_model)
+    if metadata is None:
+        msg = "Extraction LLM returned a record that does not satisfy the template schema."
+        raise ValueError(msg)
     logger.debug("Extracted metadata with %d top-level keys", len(metadata))
     record_migrated_record(metadata, source="extraction_llm")
     record_processing_log(decisions, source="extraction_llm")
@@ -296,8 +323,8 @@ def extract_agent_final_response(messages: list[AnyMessage]) -> str:
     """Extract the final assistant text from a list of agent messages.
 
     In a ReAct agent, message ``content`` can be a plain string or a list of
-    content blocks.  This walks the messages in reverse to find the last AI
-    message that contains text.
+    content blocks. Only the last AI message can be the final answer: using
+    text from an earlier turn would silently record a stale response.
 
     Args:
         messages: The full message list returned by the agent graph.
@@ -306,21 +333,18 @@ def extract_agent_final_response(messages: list[AnyMessage]) -> str:
         The extracted text content.
 
     Raises:
-        ValueError: If no AI message with text content is found.
+        ValueError: If the last AI message has no text content.
     """
     logger.debug("Scanning %d messages for final agent response", len(messages))
-    for message in reversed(messages):
-        if message.type != "ai":
-            continue
-        content = message.content
+    last_ai = next((message for message in reversed(messages) if message.type == "ai"), None)
+    if last_ai is not None:
+        content = last_ai.content
         if isinstance(content, str) and content.strip():
             return content
         if isinstance(content, list):
             text_parts = [block["text"] for block in content if isinstance(block, dict) and block.get("text")]
             if text_parts:
                 return "\n".join(text_parts)
-    last_ai = next((message for message in reversed(messages) if message.type == "ai"), None)
-    if last_ai is not None:
         logger.warning(
             "Agent ended without answer text or a structured response (finish_reason=%r, tool_calls=%d)",
             last_ai.response_metadata.get("finish_reason"),
