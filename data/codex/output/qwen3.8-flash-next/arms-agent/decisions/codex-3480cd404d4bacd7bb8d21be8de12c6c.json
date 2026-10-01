@@ -1,0 +1,376 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "STAN0008",
+    "legacy_fields": [
+      "donor_id",
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "STAN0008",
+      "STAN0008-LI-3-1"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "tissue_id is a slide/section-level identifier containing the donor as its prefix, so the parent (sample-level) identifier is the donor_id."
+  },
+  {
+    "key": "lab_id",
+    "value": "STAN0008-LI-3-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "STAN0008-LI-3-1"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "tissue_id is the lab's identifier for the tissue section this dataset describes; it is also used for slide_id since the record has no separate slide identifier."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "10.17504/protocols.io.be9zjh76",
+    "legacy_fields": [
+      "section_prep_protocols_io_doi",
+      "reagent_prep_protocols_io_doi",
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.be9zjh76",
+      "10.17504/protocols.io.be92jh8e",
+      "10.17504/protocols.io.be8qjhvw"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The sample preparation protocol DOI is the section preparation one; the reagent prep and general assay DOIs have no field of their own."
+  },
+  {
+    "key": "dataset_type",
+    "value": "imaging mass cytometry",
+    "legacy_fields": [
+      "assay_category",
+      "assay_type"
+    ],
+    "legacy_values": [
+      "imaging",
+      "CODEX"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "imaging mass cytometry",
+      "multiplexed imaging"
+    ],
+    "reasoning": "assay_category 'imaging' rules out sequencing-based dataset types, and assay_type CODEX (co-spectral detection) denotes imaging mass cytometry."
+  },
+  {
+    "key": "analyte_class",
+    "value": "protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "No constrained value list was returned for this field, so the legacy value is preserved."
+  },
+  {
+    "key": "is_targeted",
+    "value": "true",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "True"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "true",
+      "false"
+    ],
+    "reasoning": "Legacy boolean string 'True' converted to the lowercase boolean form."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Keyence",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Keyence"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Free-text vendor name carried over unchanged."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "BZ-X710",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "BZ-X710"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Free-text instrument model carried over unchanged."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record contains no information about how long the source was stored before imaging."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No storage duration is recorded, so no unit can be derived."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "execution_datetime dates the acquisition itself, not the last instrument calibration, so nothing supports this field."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval is recorded, so no unit can be derived."
+  },
+  {
+    "key": "contributors_path",
+    "value": "extras/STAN_CODEX_contributors.tsv",
+    "legacy_fields": [
+      "contributors_path"
+    ],
+    "legacy_values": [
+      "extras/STAN_CODEX_contributors.tsv"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Path carried over unchanged."
+  },
+  {
+    "key": "data_path",
+    "value": ".",
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Path carried over unchanged."
+  },
+  {
+    "key": "antibodies_path",
+    "value": "extras/STAN0008_antibodies.tsv",
+    "legacy_fields": [
+      "antibodies_path"
+    ],
+    "legacy_values": [
+      "extras/STAN0008_antibodies.tsv"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Path carried over unchanged."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": "CODEX",
+    "legacy_fields": [
+      "preparation_instrument_vendor"
+    ],
+    "legacy_values": [
+      "CODEX"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Free-text vendor value carried over unchanged, although it names the assay rather than a manufacturer."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": "prototype robot - Stanford/Nolan Lab",
+    "legacy_fields": [
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      "prototype robot - Stanford/Nolan Lab"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Free-text instrument model carried over unchanged."
+  },
+  {
+    "key": "total_run_time_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No acquisition run duration is recorded; execution_datetime is a timestamp, not an elapsed time."
+  },
+  {
+    "key": "total_run_time_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No run duration is recorded, so no unit can be derived."
+  },
+  {
+    "key": "number_of_antibodies",
+    "value": 57,
+    "legacy_fields": [
+      "number_of_antibodies"
+    ],
+    "legacy_values": [
+      "57"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "Numeric string converted to an integer; distinct from number_of_channels (4), which is the detector channel count."
+  },
+  {
+    "key": "number_of_channels",
+    "value": 4,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "4"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "Numeric string converted to an integer."
+  },
+  {
+    "key": "number_of_biomarker_imaging_rounds",
+    "value": 26,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "26"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "In CODEX each imaging cycle images one antibody panel, so the recorded cycle count is the number of rounds that produced imaging cycles."
+  },
+  {
+    "key": "number_of_total_imaging_rounds",
+    "value": 26,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "26"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The record gives one cycle count with no separate baseline or non-biomarker rounds, so total rounds equals the biomarker rounds."
+  },
+  {
+    "key": "slide_id",
+    "value": "STAN0008-LI-3-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "STAN0008-LI-3-1"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "tissue_id denotes the individual tissue section, the object the slide/section identifier names; no separate slide field existed."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "https://repo.metadatacenter.org/templates/47c6071a-2ec7-46c1-94d9-6b5e2d7ac982",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "Set to the IRI of the CEDAR template this record conforms to."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category",
+      "assay_type"
+    ],
+    "legacy_values": [
+      "imaging",
+      "CODEX"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Assay name/category is expressed only through dataset_type; the template has no dedicated assay name field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email"
+    ],
+    "legacy_values": [
+      "John Hickey",
+      "jwhickey@stanford.edu",
+      "Garry P. Nolan",
+      "gnolan@stanford.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Person names and emails belong in the contributors file referenced by contributors_path; the template exposes no person fields."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime",
+      "protocols_io_doi",
+      "reagent_prep_protocols_io_doi",
+      "resolution_x_value",
+      "resolution_x_unit",
+      "resolution_y_value",
+      "resolution_y_unit",
+      "resolution_z_value",
+      "resolution_z_unit"
+    ],
+    "legacy_values": [
+      "2020-11-16 03:36",
+      "10.17504/protocols.io.be8qjhvw",
+      "10.17504/protocols.io.be92jh8e",
+      "377",
+      "nm",
+      "377",
+      "nm",
+      "1.5",
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Acquisition timestamp, the general and reagent preparation protocol DOIs, and the XYZ resolution have no corresponding template fields."
+  }
+]

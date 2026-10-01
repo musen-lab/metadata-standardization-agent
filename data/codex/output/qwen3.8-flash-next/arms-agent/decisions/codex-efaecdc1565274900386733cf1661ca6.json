@@ -1,0 +1,383 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id",
+      "donor_id"
+    ],
+    "legacy_values": [
+      "STAN0014-LI-2-1",
+      "STAN0014"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record carries only provider-style section/donor identifiers; no HuBMAP/SenNet (HBM/SNT) sample ID exists to satisfy this field."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No external dataset metadata identifier is present in the legacy record."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.3fugjnw",
+    "legacy_fields": [
+      "protocols_io_doi",
+      "section_prep_protocols_io_doi",
+      "reagent_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.3fugjnw ",
+      "10.17504/protocols.io.3fugjnw",
+      "10.17504/protocols.io.3fugjnw"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "All three legacy protocol DOIs are the same assay protocol; rendered as a DOI link per the field's link type and example form."
+  },
+  {
+    "key": "dataset_type",
+    "value": "CODEX",
+    "legacy_fields": [
+      "assay_type",
+      "assay_category",
+      "description"
+    ],
+    "legacy_values": [
+      "CODEX",
+      "imaging",
+      "CODEX"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "CODEX"
+    ],
+    "reasoning": "Branch search on the legacy assay type returns the exact label CODEX."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Protein",
+      "RNA + protein",
+      "Nucleic acid + protein",
+      "Lipid + metabolite + protein"
+    ],
+    "reasoning": "Legacy value states protein only; the single-analyte label Protein is the denoting term."
+  },
+  {
+    "key": "is_targeted",
+    "value": "Yes",
+    "legacy_fields": [
+      "is_targeted",
+      "number_of_antibodies"
+    ],
+    "legacy_values": [
+      "TRUE",
+      "52"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "Legacy TRUE maps to the Yes option, corroborated by 52 targeted antibodies."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Keyence",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Keyence"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Keyence"
+    ],
+    "reasoning": "Branch search returns the exact vendor label."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "BZ-X710",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "BZ-X710"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "BZ-X710",
+      "BZ-X800",
+      "BZ-X810"
+    ],
+    "reasoning": "Legacy model matches the BZ-X710 label exactly, consistent with the Keyence vendor."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No slide storage duration is recorded in the legacy record."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No storage duration stated, so no unit to resolve; the field has no template default."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record states nothing about instrument calibration or servicing."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration elapsed time stated, so no unit; no template default."
+  },
+  {
+    "key": "contributors_path",
+    "value": "extras/contributors.tsv",
+    "legacy_fields": [
+      "contributors_path"
+    ],
+    "legacy_values": [
+      "extras/contributors.tsv"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Value already satisfies the required .tsv path pattern."
+  },
+  {
+    "key": "data_path",
+    "value": ".",
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Single-dataset root directory, permitted by the pattern."
+  },
+  {
+    "key": "antibodies_path",
+    "value": "extras/antibodies.tsv",
+    "legacy_fields": [
+      "antibodies_path"
+    ],
+    "legacy_values": [
+      "extras/antibodies.tsv"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Path satisfies the required .tsv pattern."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": "In-House",
+    "legacy_fields": [
+      "preparation_instrument_vendor",
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      "CODEX",
+      "prototype robot - Stanford/Nolan Lab"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "In-House",
+      "Not applicable",
+      "Hamamatsu",
+      "HTX Technologies",
+      "10x Genomics"
+    ],
+    "reasoning": "The legacy vendor 'CODEX' is not an instrument maker and is absent from the branch; the model being a Stanford/Nolan Lab prototype robot shows the instrument was built internally, which the field maps to In-House."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": "Custom",
+    "legacy_fields": [
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      "prototype robot - Stanford/Nolan Lab"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Custom",
+      "Not applicable"
+    ],
+    "reasoning": "The branch has no matching prototype entry, and a lab-built prototype robot is what the 'Custom' label denotes; staining did occur so 'Not applicable' is wrong."
+  },
+  {
+    "key": "total_run_time_value",
+    "value": null,
+    "legacy_fields": [
+      "number_of_cycles",
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "24",
+      "2022-02-25 11:02"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "Neither the cycle count nor the execution timestamp gives a slide run duration."
+  },
+  {
+    "key": "total_run_time_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No total run time recorded, so the unit is unknown; no template default."
+  },
+  {
+    "key": "number_of_antibodies",
+    "value": 52,
+    "legacy_fields": [
+      "number_of_antibodies"
+    ],
+    "legacy_values": [
+      "52"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Legacy string converted to the declared integer type."
+  },
+  {
+    "key": "number_of_channels",
+    "value": 4,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "4"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Legacy string converted to the declared integer type."
+  },
+  {
+    "key": "number_of_biomarker_imaging_rounds",
+    "value": 24,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "24"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "For a CODEX assay each acquisition cycle is one biomarker imaging round (oligo, fluor, washes), so 24 cycles gives 24 rounds."
+  },
+  {
+    "key": "number_of_total_imaging_rounds",
+    "value": null,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "24"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record gives only acquisition cycles and states nothing about additional autofluorescence/background rounds, so the total rounds count cannot be established."
+  },
+  {
+    "key": "slide_id",
+    "value": "STAN0014-LI-2-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "STAN0014-LI-2-1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The center-prefixed section identifier in the template's slide ID form best fits tissue_id; parent_sample_id requires an HBM/SNT identifier it does not match."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "47c6071a-2ec7-46c1-94d9-6b5e2d7ac982",
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "1"
+    ],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "Legacy 'version' is a record revision, not a schema UUID, so the template's own default identifier applies."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category",
+      "description",
+      "donor_id",
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email",
+      "resolution_x_unit",
+      "resolution_x_value",
+      "resolution_y_unit",
+      "resolution_y_value",
+      "resolution_z_unit",
+      "resolution_z_value",
+      "version"
+    ],
+    "legacy_values": [
+      "imaging",
+      "CODEX",
+      "STAN0014",
+      "John W. Hickey",
+      "jwhickey@stanford.edu",
+      "Garry P. Nolan",
+      "gnolan@stanford.edu",
+      "nm",
+      "377",
+      "nm",
+      "377",
+      "um",
+      "1.5",
+      "1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Assay category/description restate the dataset type already captured; donor, personnel and resolution/version values have no corresponding field in this CODEX template (contributor details belong in contributors.tsv)."
+  }
+]

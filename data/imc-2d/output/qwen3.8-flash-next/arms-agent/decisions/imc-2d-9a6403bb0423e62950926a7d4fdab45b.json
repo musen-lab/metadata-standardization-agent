@@ -1,0 +1,389 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id",
+      "donor_id"
+    ],
+    "legacy_values": [
+      "UFL0002-TH-2-4-1",
+      "UFL0002"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No HuBMAP/SenNet sample identifier (HBM###.XXXX.###) appears in the record; tissue_id carries the slide-style form matching slide_id instead."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [
+      "acquisition_id"
+    ],
+    "legacy_values": [
+      "20191202_HuBMAP_Thymus"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "acquisition_id names an acquisition run, not an external metadata record identifier, so nothing in the record supports this field."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.bgatjsen",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bgatjsen"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The main assay protocol DOI was rendered as a link URL; the section- and reagent-prep DOIs are sub-steps of the same protocol."
+  },
+  {
+    "key": "dataset_type",
+    "value": "2D Imaging Mass Cytometry",
+    "legacy_fields": [
+      "assay_type",
+      "assay_category"
+    ],
+    "legacy_values": [
+      "Imaging Mass Cytometry",
+      "imaging"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "2D Imaging Mass Cytometry",
+      "Raman Imaging"
+    ],
+    "reasoning": "Branch search for the legacy assay type returned 2D Imaging Mass Cytometry, and the record is a single 2D IMC acquisition."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Protein",
+      "RNA + protein",
+      "Nucleic acid + protein",
+      "Lipid + metabolite + protein"
+    ],
+    "reasoning": "Legacy analyte class 'protein' denotes the 'Protein' label; no nucleic acid or lipid targets are indicated."
+  },
+  {
+    "key": "is_targeted",
+    "value": "Yes",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "TRUE"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "TRUE maps to the 'Yes' option."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Standard BioTools (Fluidigm)",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Fluidigm"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Standard BioTools (Fluidigm)"
+    ],
+    "reasoning": "The vocabulary label for Fluidigm is 'Standard BioTools (Fluidigm)'."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "Hyperion Imaging System",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "Hyperion Imaging System"
+    ],
+    "resolution": "copied",
+    "candidates": [
+      "Hyperion Imaging System",
+      "Juno System",
+      "MACSima System",
+      "iScan System"
+    ],
+    "reasoning": "Branch search returned the exact label for the legacy instrument model."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record states no slide or section storage duration before the assay."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No storage duration is recorded, so no unit applies."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No instrument calibration or service date is given in the record."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval is recorded, so no unit applies."
+  },
+  {
+    "key": "contributors_path",
+    "value": null,
+    "legacy_fields": [
+      "metadata_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No contributors file path (.tsv) appears in the record; metadata_path refers to metadata files, not contributors, and no path may be invented."
+  },
+  {
+    "key": "data_path",
+    "value": ".",
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Legacy data path copied verbatim; it already matches the required pattern for a single-dataset upload."
+  },
+  {
+    "key": "total_run_time_value",
+    "value": 1.65,
+    "legacy_fields": [
+      "start_datetime",
+      "execution_datetime",
+      "end_datetime"
+    ],
+    "legacy_values": [
+      "2019-12-02 21:32",
+      "2019-12-02 21:32",
+      "2019-12-02 23:11"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "Run time derived from acquisition start (21:32) to end (23:11), i.e. 1 h 39 min = 1.65 hours."
+  },
+  {
+    "key": "total_run_time_unit",
+    "value": "hour",
+    "legacy_fields": [
+      "start_datetime",
+      "end_datetime"
+    ],
+    "legacy_values": [
+      "2019-12-02 21:32",
+      "2019-12-02 23:11"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "hour"
+    ],
+    "reasoning": "The duration derived from the start/end timestamps is expressed in the branch's 'hour' unit."
+  },
+  {
+    "key": "number_of_antibodies",
+    "value": null,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "39"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record reports channel count, not an antibody count, so no supported value exists."
+  },
+  {
+    "key": "number_of_channels",
+    "value": 39,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "39"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "Legacy channel count converted to the declared integer type."
+  },
+  {
+    "key": "slide_id",
+    "value": "UFL0002-TH-2-4-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "UFL0002-TH-2-4-1"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "The center-prefixed tissue identifier has the slide-ID form the template's example shows and is the only slide-level identifier in the record."
+  },
+  {
+    "key": "data_precision_bytes",
+    "value": 4,
+    "legacy_fields": [
+      "data_precision_bytes",
+      "segment_data_format"
+    ],
+    "legacy_values": [
+      "4",
+      "float"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "Legacy precision value converted to an integer; consistent with the stated float segment format."
+  },
+  {
+    "key": "ablation_frequency_value",
+    "value": 200,
+    "legacy_fields": [
+      "ablation_frequency_value"
+    ],
+    "legacy_values": [
+      "200"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "Legacy frequency value converted to the declared integer type."
+  },
+  {
+    "key": "ablation_frequency_unit",
+    "value": "Hz",
+    "legacy_fields": [
+      "ablation_frequency_unit"
+    ],
+    "legacy_values": [
+      "Hz"
+    ],
+    "resolution": "copied",
+    "candidates": [
+      "Hz"
+    ],
+    "reasoning": "Branch search confirmed 'Hz' as the permissible label for the legacy unit."
+  },
+  {
+    "key": "antibodies_path",
+    "value": null,
+    "legacy_fields": [
+      "metadata_path",
+      "data_path"
+    ],
+    "legacy_values": [
+      ".",
+      "."
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No antibodies.tsv path is recorded and none may be synthesized."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "ce5524be-dab6-4668-97c1-8a5a09325e5f",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "No schema identifier in the legacy record; the template's own default value applies."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "ablation_distance_between_shots_x_units",
+      "ablation_distance_between_shots_x_value",
+      "ablation_distance_between_shots_y_units",
+      "ablation_distance_between_shots_y_value",
+      "max_x_width_unit",
+      "max_x_width_value",
+      "max_y_height_unit",
+      "max_y_height_value",
+      "signal_type",
+      "dual_count_start",
+      "roi_id",
+      "roi_description",
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email",
+      "preparation_instrument_model",
+      "preparation_instrument_vendor",
+      "section_prep_protocols_io_doi",
+      "reagent_prep_protocols_io_doi",
+      "collectiontype",
+      "assay_category",
+      "acquisition_id",
+      "_from_metadatatsv"
+    ],
+    "legacy_values": [
+      "um",
+      "1",
+      "um",
+      "1",
+      "um",
+      "1000",
+      "um",
+      "1000",
+      "dual count",
+      "1",
+      "6",
+      "ROI_003 _hassalls_corpuscles",
+      "Esther Danenberg",
+      "esthermaria.danenberg@uzh.ch",
+      "Bernd Bodenmiller",
+      "bernd.bodenmiller@uzh.ch",
+      "HM355S Automatic Microtome",
+      "Thermo Fisher Scientific",
+      "10.17504/protocols.io.bfz4jp8w",
+      "10.17504/protocols.io.bfz8jp9w",
+      "single_metadatatsv",
+      "imaging",
+      "20191202_HuBMAP_Thymus",
+      "true"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "These legacy keys (ablation raster spacing, ROI bounds, signal type, personnel, section/reagent protocols, preparation instruments, and ingest bookkeeping flags) have no corresponding field in the IMC 2D template."
+  }
+]

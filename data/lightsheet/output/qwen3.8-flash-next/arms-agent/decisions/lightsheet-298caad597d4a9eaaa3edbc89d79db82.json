@@ -1,0 +1,346 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "UFL0002-TH-1-4-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "UFL0002-TH-1-4-1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "For an imaging assay the parent sample is the tissue section, which tissue_id names; the value does not match the template's HBM/SNT.xxx pattern and cannot be reformatted without inventing an identifier, so it is kept with the mismatch noted."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No external lab metadata identifier appears in the record; donor_id and tissue_id identify the specimen, not a dataset metadata record."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.bqaamsae",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bqaamsae"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "Same DOI, wrapped as a URL because the field's type is link and the template example uses the dx.doi.org form."
+  },
+  {
+    "key": "dataset_type",
+    "value": "Light Sheet",
+    "legacy_fields": [
+      "assay_type",
+      "assay_category"
+    ],
+    "legacy_values": [
+      "Light Sheet",
+      "imaging"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Light Sheet"
+    ],
+    "reasoning": "assay_type states the dataset type and the branch search returned the matching label 'Light Sheet'."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Protein",
+      "RNA + protein",
+      "Nucleic acid + protein"
+    ],
+    "reasoning": "Legacy 'protein' denotes the single-analyte label 'Protein'; the combined labels are unsupported (number_of_channels is 1)."
+  },
+  {
+    "key": "is_targeted",
+    "value": "Yes",
+    "legacy_fields": [
+      "is_targeted",
+      "number_of_antibodies"
+    ],
+    "legacy_values": [
+      "TRUE",
+      "1"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "'TRUE' maps to the 'Yes' option, corroborated by a targeting antibody being present."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Zeiss Microscopy",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Zeiss"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Zeiss Microscopy"
+    ],
+    "reasoning": "Branch search resolved the vendor 'Zeiss' to the vocabulary label 'Zeiss Microscopy'."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "Zeiss LightSheet Z.1",
+    "legacy_fields": [
+      "acquisition_instrument_model",
+      "acquisition_instrument_vendor",
+      "assay_type"
+    ],
+    "legacy_values": [
+      "Z.1",
+      "Zeiss",
+      "Light Sheet"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Zeiss LightSheet Z.1"
+    ],
+    "reasoning": "Bare model code 'Z.1' plus the Zeiss light-sheet context resolves to the vocabulary label 'Zeiss LightSheet Z.1'."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record states no storage duration for the section before imaging; execution_datetime dates the acquisition, not the storage."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No duration value exists, so no unit applies; the um units in the record belong to spatial dimensions."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration or servicing date or interval is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval value exists to unitize."
+  },
+  {
+    "key": "contributors_path",
+    "value": "./extras/contributors.tsv",
+    "legacy_fields": [
+      "contributors_path"
+    ],
+    "legacy_values": [
+      "extras/contributors.tsv"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "Relative path rewritten with the leading './' form the field's example and sibling path fields use."
+  },
+  {
+    "key": "data_path",
+    "value": ".",
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Legacy value already matches the template's expected single-dataset root form."
+  },
+  {
+    "key": "antibodies_path",
+    "value": "./extras/antibodies.tsv",
+    "legacy_fields": [
+      "antibodies_path"
+    ],
+    "legacy_values": [
+      "extras/antibodies.tsv"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "Description requires the path to start with '.'; './extras/antibodies.tsv' is the stated canonical form."
+  },
+  {
+    "key": "is_image_preprocessing_required",
+    "value": null,
+    "legacy_fields": [
+      "description"
+    ],
+    "legacy_values": [
+      "lightsheet imaging of thymus"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The record gives no tiling or preprocessing statement, and the instrument alone does not entail either option."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id",
+      "donor_id"
+    ],
+    "legacy_values": [
+      "UFL0002-TH-1-4-1",
+      "UFL0002"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No separate slide-level identifier is present; tissue_id denotes the section and is used for parent_sample_id instead."
+  },
+  {
+    "key": "tile_configuration",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No stitching or tile arrangement is described, so neither a configuration nor 'Not applicable' is supported."
+  },
+  {
+    "key": "scan_direction",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No imaging direction is recorded."
+  },
+  {
+    "key": "tiled_image_columns",
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_value",
+      "step_z_value"
+    ],
+    "legacy_values": [
+      "3511.61",
+      "1035"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "These are spatial/stack dimension values, not a stitching grid count, so no integer is inferred."
+  },
+  {
+    "key": "tiled_image_count",
+    "value": null,
+    "legacy_fields": [
+      "number_of_channels",
+      "step_z_value"
+    ],
+    "legacy_values": [
+      "1",
+      "1035"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "Channel count and z-stack steps are not the number of raw tiles captured."
+  },
+  {
+    "key": "intended_tile_overlap_percentage",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No tile overlap percentage is stated in the record."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "a4ff738c-a7e9-40c1-966e-22cf9c885fad",
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "2"
+    ],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "Legacy 'version' is a bare counter, not the schema UUID, so the template's own default identifier applies."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "donor_id",
+      "description",
+      "execution_datetime",
+      "increment_z_unit",
+      "increment_z_value",
+      "number_of_antibodies",
+      "number_of_channels",
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email",
+      "range_z_unit",
+      "range_z_value",
+      "resolution_x_unit",
+      "resolution_x_value",
+      "resolution_y_unit",
+      "resolution_y_value",
+      "step_z_value"
+    ],
+    "legacy_values": [
+      "UFL0002",
+      "lightsheet imaging of thymus",
+      "2020-07-24 15:28",
+      "um",
+      "2.48",
+      "1",
+      "1",
+      "Seth Currlin",
+      "scurrlin@ufl.edu",
+      "Kevin Otto",
+      "Kevin.Otto@bme.ufl.edu",
+      "um",
+      "2567",
+      "um",
+      "3511.61",
+      "um",
+      "3511.61",
+      "1035"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No template field covers the acquisition timestamp, z/x/y stage dimensions, channel and antibody counts, the free-text description, or the personnel names and emails (these belong in the contributors.tsv file referenced by contributors_path, not in this record)."
+  }
+]

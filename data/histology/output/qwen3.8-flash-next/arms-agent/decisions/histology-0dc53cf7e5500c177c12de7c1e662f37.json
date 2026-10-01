@@ -1,0 +1,504 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "VAN0055-RK-1-11",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0055-RK-1-11"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "The tissue section identifier is the parent sample for this imaging assay; it does not match the template's HBM/SNT pattern, which is noted as a mismatch rather than replaced."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No provider-assigned external metadata identifier appears in the record; the field is optional and left empty as instructed."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.buaknscw",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.buaknscw"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "10.17504/protocols.io.buaknscw",
+      "10.17504/protocols.io.bt8inrue",
+      "10.17504/protocols.io.bfskjncw"
+    ],
+    "reasoning": "The assay-level protocols.io DOI details the imaging assay procedure; formatted as a link URL per the declared type. Section-prep and overall DOIs describe other stages."
+  },
+  {
+    "key": "dataset_type",
+    "value": "Histology",
+    "legacy_fields": [
+      "assay_category",
+      "assay_type",
+      "description"
+    ],
+    "legacy_values": [
+      "imaging",
+      "PAS microscopy",
+      "Brightfield microscopy images"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Histology",
+      "Virtual Histology"
+    ],
+    "reasoning": "A brightfield PAS-stained tissue section image is histology imaging, not virtual or multiplexed imaging."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Polysaccharide",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "polysaccharides"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Polysaccharide"
+    ],
+    "reasoning": "Legacy plural 'polysaccharides' denotes the branch label Polysaccharide."
+  },
+  {
+    "key": "is_targeted",
+    "value": "No",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "False"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "Legacy boolean False maps to the permissible option 'No'."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Zeiss Microscopy",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Carl Zeiss Microscopy"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Zeiss Microscopy"
+    ],
+    "reasoning": "The vocabulary label for Carl Zeiss Microscopy is Zeiss Microscopy."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "Axio Scan.Z1",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "AxioScan.Z1"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Axio Scan.Z1",
+      "Axio Zoom.V16",
+      "Unknown"
+    ],
+    "reasoning": "The legacy scanner model corresponds to the listed label Axio Scan.Z1."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record states no slide storage time before imaging."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No storage duration stated, so its unit is unknown."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No instrument calibration or service interval is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval recorded, so no unit applies."
+  },
+  {
+    "key": "contributors_path",
+    "value": "extras/contributors.tsv",
+    "legacy_fields": [
+      "contributors_path"
+    ],
+    "legacy_values": [
+      "extras/contributors.tsv"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Value already satisfies the required .tsv path pattern."
+  },
+  {
+    "key": "data_path",
+    "value": ".",
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Single-dataset top-level directory form matches the pattern."
+  },
+  {
+    "key": "is_image_preprocessing_required",
+    "value": null,
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "AxioScan.Z1"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The record never states whether tile fusion or other preprocessing is needed, and this cannot be established without outside product knowledge."
+  },
+  {
+    "key": "stain_name",
+    "value": "PAS",
+    "legacy_fields": [
+      "stain",
+      "assay_type",
+      "description"
+    ],
+    "legacy_values": [
+      "Periodic acid-Schiff",
+      "PAS microscopy",
+      "Periodic acid-Schiff stained"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "PAS",
+      "AB-PAS",
+      "H&E",
+      "Trichrome"
+    ],
+    "reasoning": "Periodic acid-Schiff is denoted by the vocabulary label PAS."
+  },
+  {
+    "key": "stain_technique",
+    "value": null,
+    "legacy_fields": [
+      "stain"
+    ],
+    "legacy_values": [
+      "Periodic acid-Schiff"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No progressive or regressive differentiation protocol is stated for the PAS stain."
+  },
+  {
+    "key": "is_batch_staining_done",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The record does not say whether staining was done in batch or per slide."
+  },
+  {
+    "key": "is_staining_automated",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "No staining instrument or manual staining is mentioned."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [
+      "Not applicable"
+    ],
+    "reasoning": "No preparation instrument is named; the record does not establish that no preparation occurred either."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [
+      "Not applicable"
+    ],
+    "reasoning": "No preparation instrument model is stated in the record."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "VAN0055-RK-1-11"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The only identifier present is the tissue section ID, which better fits parent_sample_id; no separate slide label with the recommended suffix form exists."
+  },
+  {
+    "key": "tile_configuration",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No stitching tile configuration is recorded."
+  },
+  {
+    "key": "scan_direction",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record gives no imaging scan direction."
+  },
+  {
+    "key": "tiled_image_columns",
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_value",
+      "resolution_y_value"
+    ],
+    "legacy_values": [
+      "0.22",
+      "0.22"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "Resolution values describe pixel size, not a stitching grid size."
+  },
+  {
+    "key": "tiled_image_count",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No count of raw tiles is recorded."
+  },
+  {
+    "key": "intended_tile_overlap_percentage",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No tile overlap percentage is stated."
+  },
+  {
+    "key": "non_global_files",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record lists no non-global files."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "907d89c7-6cf4-4ec6-9edd-63cf0441d689",
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "1"
+    ],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The legacy version string is not a schema identifier; the template's own default supplies it."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category"
+    ],
+    "legacy_values": [
+      "imaging"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Assay category is already captured by dataset_type; no separate template field exists."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "PAS microscopy"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Split between dataset_type (histology imaging) and stain_name (PAS); no assay_type field in the template."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "description"
+    ],
+    "legacy_values": [
+      "Periodic acid-Schiff stained microscopy the right kidney ..."
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Free-text provenance summary has no home in this template; its facts were routed to stain, instrument and protocol fields."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "donor_id"
+    ],
+    "legacy_values": [
+      "VAN0055"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Histology template has no subject/donor identifier field."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "execution_datetime"
+    ],
+    "legacy_values": [
+      "2022-02-21 18:06"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No assay execution date field exists in the template."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email"
+    ],
+    "legacy_values": [
+      "Jamie L Allen",
+      "jamie.l.allen@vanderbilt.edu",
+      "Jeffrey M. Spraggins",
+      "jeff.spraggins@vanderbilt.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Person details belong in the contributors file referenced by contributors_path; the template has no person fields."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "section_prep_protocols_io_doi",
+      "overall_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bt8inrue",
+      "10.17504/protocols.io.bfskjncw"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Only one preparation protocol DOI slot exists; the assay-level DOI was the better fit."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "resolution_x_value",
+      "resolution_x_unit",
+      "resolution_y_value",
+      "resolution_y_unit",
+      "resolution_z_value",
+      "resolution_z_unit"
+    ],
+    "legacy_values": [
+      "0.22",
+      "um",
+      "0.22",
+      "um",
+      "0.0",
+      "um"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "The Histology template has no image resolution fields."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "1"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "A record version number is not the metadata schema identifier."
+  }
+]

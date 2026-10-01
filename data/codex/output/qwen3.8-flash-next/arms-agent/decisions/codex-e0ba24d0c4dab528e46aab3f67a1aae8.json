@@ -1,0 +1,373 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "UFL0002-SP-2-4-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "UFL0002-SP-2-4-1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "For an imaging assay the parent sample is the tissue section, which tissue_id names; the value does not match the template's HBM/SNT pattern and cannot be reformatted, so it is kept with the mismatch noted."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No external metadata-record identifier is present in the legacy record."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.bdcbi2sn",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bdcbi2sn"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "The assay-level protocols.io DOI is the record's main preparation/assay protocol; rendered as a DOI link URL as the link type requires."
+  },
+  {
+    "key": "dataset_type",
+    "value": "CODEX",
+    "legacy_fields": [
+      "assay_type",
+      "collectiontype"
+    ],
+    "legacy_values": [
+      "CODEX",
+      "codex"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "CODEX"
+    ],
+    "reasoning": "Both assay_type and collectiontype identify the assay as CODEX, matching the single label returned from the HRAVS dataset-type branch."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Protein",
+      "RNA + protein",
+      "Nucleic acid + protein"
+    ],
+    "reasoning": "Legacy analyte_class 'protein' denotes the pure-protein label; no other analyte class is supported by the record."
+  },
+  {
+    "key": "is_targeted",
+    "value": "Yes",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "TRUE"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "Boolean TRUE maps to the 'Yes' option; consistent with 18 targeted antibodies."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Keyence",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Keyence"
+    ],
+    "resolution": "copied",
+    "candidates": [
+      "Keyence"
+    ],
+    "reasoning": "Legacy vendor matches the branch label verbatim."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "BZ-X800",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "BZ-X800"
+    ],
+    "resolution": "copied",
+    "candidates": [
+      "BZ-X800",
+      "BZ-X710",
+      "BZ-X810"
+    ],
+    "reasoning": "Legacy model matches the branch label verbatim and is consistent with a Keyence instrument."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record carries no slide storage duration before imaging."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No storage duration stated, so no unit applies."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration or service date is recorded."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration interval stated, so no unit applies."
+  },
+  {
+    "key": "contributors_path",
+    "value": null,
+    "legacy_fields": [
+      "operator",
+      "pi",
+      "operator_email",
+      "pi_email"
+    ],
+    "legacy_values": [
+      "Marda Jorgensen",
+      "Clive Wasserfall",
+      "marda@ufl.edu",
+      "clive@ufl.edu"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The field wants a path to a contributors TSV file; the record names people but gives no such file path, and synthesizing one is not permitted."
+  },
+  {
+    "key": "data_path",
+    "value": ".",
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Legacy data path copied verbatim and satisfies the pattern."
+  },
+  {
+    "key": "antibodies_path",
+    "value": null,
+    "legacy_fields": [
+      "metadata_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No antibodies.tsv path is recorded; metadata_path is the metadata directory, not an antibodies file, and the required .tsv form cannot be invented."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": null,
+    "legacy_fields": [
+      "preparation_instrument_vendor"
+    ],
+    "legacy_values": [
+      "CODEX"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "In-House",
+      "Not applicable",
+      "10x Genomics",
+      "Hamamatsu"
+    ],
+    "reasoning": "'CODEX' is an assay name, not a manufacturer, and no branch label denotes it; the record does not establish that it is In-House or Not applicable."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": null,
+    "legacy_fields": [
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      "version 1 robot"
+    ],
+    "resolution": "no_value",
+    "candidates": [
+      "Custom",
+      "Not applicable"
+    ],
+    "reasoning": "The branch lists no model matching 'version 1 robot', and the record does not entail Custom or Not applicable."
+  },
+  {
+    "key": "total_run_time_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No total imaging run duration is recorded; execution_datetime is a timestamp, not a duration."
+  },
+  {
+    "key": "total_run_time_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No run time stated, so no unit applies."
+  },
+  {
+    "key": "number_of_antibodies",
+    "value": 18,
+    "legacy_fields": [
+      "number_of_antibodies"
+    ],
+    "legacy_values": [
+      "18"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Legacy value copied as an integer."
+  },
+  {
+    "key": "number_of_channels",
+    "value": 4,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "4"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Legacy value copied as an integer."
+  },
+  {
+    "key": "number_of_biomarker_imaging_rounds",
+    "value": 9,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "9"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "For CODEX each assay cycle (oligo application, fluor application, washes) is one biomarker imaging round, so number_of_cycles gives 9."
+  },
+  {
+    "key": "number_of_total_imaging_rounds",
+    "value": null,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "9"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record states only assay cycles, which are already used for biomarker rounds; total rounds including autofluorescence/background imaging are not stated."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id",
+      "donor_id"
+    ],
+    "legacy_values": [
+      "UFL0002-SP-2-4-1",
+      "UFL0002"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "tissue_id identifies the section (mapped to parent_sample_id) and donor_id the donor; no separate slide identifier is given."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "47c6071a-2ec7-46c1-94d9-6b5e2d7ac982",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The record carries no schema identifier, so the template's own default_value applies."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "_from_metadatatsv",
+      "assay_category",
+      "execution_datetime",
+      "metadata_path",
+      "resolution_x_value",
+      "resolution_x_unit",
+      "resolution_y_value",
+      "resolution_y_unit",
+      "resolution_z_value",
+      "resolution_z_unit",
+      "reagent_prep_protocols_io_doi",
+      "section_prep_protocols_io_doi",
+      "donor_id",
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email"
+    ],
+    "legacy_values": [
+      "true",
+      "imaging",
+      "2020-02-10 15:31",
+      ".",
+      "377.4463384",
+      "nm",
+      "377.4463384",
+      "nm",
+      "1500",
+      "nm",
+      "10.17504/protocols.io.bc2riyd6",
+      "10.17504/protocols.io.bbsdina6",
+      "UFL0002",
+      "Marda Jorgensen",
+      "marda@ufl.edu",
+      "Clive Wasserfall",
+      "clive@ufl.edu"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "No template field exists for resolution/voxel dimensions, acquisition timestamp, provenance flags, reagent/section sub-protocols, donor id, or contributor names and emails; assay_category 'imaging' and collectiontype 'codex' are subsumed by dataset_type."
+  }
+]

@@ -1,0 +1,368 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "STAN0008-LI-4-1",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "STAN0008-LI-4-1"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "For an imaging assay the parent sample is the tissue section, which tissue_id identifies; donor_id is the subject, not the section."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No legacy key references an external dataset metadata record; donor_id identifies a subject, not the dataset."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.be8qjhvw",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.be8qjhvw"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "https://dx.doi.org/10.17504/protocols.io.be8qjhvw",
+      "https://dx.doi.org/10.17504/protocols.io.be9zjh76",
+      "https://dx.doi.org/10.17504/protocols.io.be92jh8e"
+    ],
+    "reasoning": "The assay-level protocols.io DOI is the general preparation protocol, and the link type requires the dx.doi.org URL form; the section and reagent DOIs cover only sub-steps."
+  },
+  {
+    "key": "dataset_type",
+    "value": "CODEX",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "CODEX"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "CODEX"
+    ],
+    "reasoning": "Branch search on assay_type returned the exact label CODEX; assay_category 'imaging' is a category, not the dataset type."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Protein",
+      "RNA + protein",
+      "Nucleic acid + protein"
+    ],
+    "reasoning": "Legacy value names a single analyte class, so the standalone Protein label denotes it and the combined labels do not."
+  },
+  {
+    "key": "is_targeted",
+    "value": "Yes",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "True"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The boolean True maps to the Yes option, consistent with a targeted 57-antibody CODEX assay."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Keyence",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Keyence"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Keyence"
+    ],
+    "reasoning": "Branch search confirmed Keyence as a permissible vendor label."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "BZ-X710",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "BZ-X710"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "BZ-X710",
+      "BZ-X800",
+      "BZ-X810"
+    ],
+    "reasoning": "Branch search returned the exact model BZ-X710, so the other BZ-X variants are excluded."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record states no slide or sample storage interval before the assay."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No storage duration is recorded, so no unit can be chosen; the nm/um resolution units describe pixel size, not time."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "Nothing in the record gives an instrument calibration or service interval; execution_datetime dates the run, not a calibration."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration elapsed time is recorded, so its unit is unknown."
+  },
+  {
+    "key": "contributors_path",
+    "value": "./extras/STAN_CODEX_contributors.tsv",
+    "legacy_fields": [
+      "contributors_path"
+    ],
+    "legacy_values": [
+      "extras/STAN_CODEX_contributors.tsv"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "Same file, given the leading './' relative-path form the field's description and example prescribe."
+  },
+  {
+    "key": "data_path",
+    "value": ".",
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "."
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Single-dataset upload root, which matches the field's permitted form verbatim."
+  },
+  {
+    "key": "antibodies_path",
+    "value": "./extras/STAN0008_antibodies.tsv",
+    "legacy_fields": [
+      "antibodies_path"
+    ],
+    "legacy_values": [
+      "extras/STAN0008_antibodies.tsv"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "Same file, rewritten to the './'-prefixed relative path the description and example prescribe."
+  },
+  {
+    "key": "preparation_instrument_vendor",
+    "value": "In-House",
+    "legacy_fields": [
+      "preparation_instrument_vendor",
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      "CODEX",
+      "prototype robot - Stanford/Nolan Lab"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "In-House",
+      "Not applicable",
+      "HTX Technologies",
+      "Akoya Biosciences"
+    ],
+    "reasoning": "'CODEX' is an assay name, not a branch vendor, but the model being a Stanford/Nolan Lab prototype robot means the instrument was developed internally, which the vocabulary records as In-House; staining did occur, so Not applicable is wrong."
+  },
+  {
+    "key": "preparation_instrument_model",
+    "value": "Custom",
+    "legacy_fields": [
+      "preparation_instrument_model"
+    ],
+    "legacy_values": [
+      "prototype robot - Stanford/Nolan Lab"
+    ],
+    "resolution": "derived",
+    "candidates": [
+      "Custom",
+      "Not applicable",
+      "AutoStainer XL"
+    ],
+    "reasoning": "A lab-built prototype robot corresponds to the vocabulary's Custom model rather than any commercial stainer."
+  },
+  {
+    "key": "total_run_time_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No instrument run duration is recorded; execution_datetime is a run timestamp and number_of_cycles counts rounds, not elapsed time."
+  },
+  {
+    "key": "total_run_time_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No total run time value exists, so its unit is unknown."
+  },
+  {
+    "key": "number_of_antibodies",
+    "value": 57,
+    "legacy_fields": [
+      "number_of_antibodies"
+    ],
+    "legacy_values": [
+      "57"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Value carried over unchanged as an integer."
+  },
+  {
+    "key": "number_of_channels",
+    "value": 4,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "4"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Value carried over unchanged as an integer."
+  },
+  {
+    "key": "number_of_biomarker_imaging_rounds",
+    "value": 26,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "26"
+    ],
+    "resolution": "derived",
+    "candidates": [],
+    "reasoning": "In CODEX one cycle is a biomarker imaging round (oligo application, fluor application, washes), so the cycle count is the biomarker round count."
+  },
+  {
+    "key": "number_of_total_imaging_rounds",
+    "value": null,
+    "legacy_fields": [
+      "number_of_cycles"
+    ],
+    "legacy_values": [
+      "26"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "Cycles cover only biomarker rounds; the record states no additional autofluorescence or histological rounds, so the total is unknown."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "STAN0008-LI-4-1"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "tissue_id names one tissue section and better serves parent_sample_id; no separate slide identifier is recorded."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "47c6071a-2ec7-46c1-94d9-6b5e2d7ac982",
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "The record carries no schema version, so the template's own default is used."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "donor_id",
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email",
+      "execution_datetime",
+      "assay_category",
+      "assay_type",
+      "resolution_x_value",
+      "resolution_x_unit",
+      "resolution_y_value",
+      "resolution_y_unit",
+      "resolution_z_value",
+      "resolution_z_unit",
+      "section_prep_protocols_io_doi",
+      "reagent_prep_protocols_io_doi"
+    ],
+    "legacy_values": [
+      "STAN0008",
+      "John Hickey",
+      "jwhickey@stanford.edu",
+      "Garry P. Nolan",
+      "gnolan@stanford.edu",
+      "2020-11-16 03:36",
+      "imaging",
+      "CODEX",
+      "377",
+      "nm",
+      "377",
+      "nm",
+      "1.5",
+      "um",
+      "10.17504/protocols.io.be9zjh76",
+      "10.17504/protocols.io.be92jh8e"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "Donor, personnel contacts (covered by contributors_path), run date, resolution dimensions, and the sub-step DOIs have no home in this template; assay_category and assay_type informed dataset_type only."
+  }
+]

@@ -1,0 +1,334 @@
+[
+  {
+    "key": "parent_sample_id",
+    "value": "UFL0004-SP-2-2",
+    "legacy_fields": [
+      "tissue_id"
+    ],
+    "legacy_values": [
+      "UFL0004-SP-2-2"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "For an imaging assay the parent sample is the tissue section, which tissue_id names; donor_id identifies the donor, not the sample. Note the value does not match the template's HBM/SNT pattern, but it is the correct identifier so it is retained."
+  },
+  {
+    "key": "lab_id",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No external lab/dataset identifier appears in the record; the template says to leave this empty in that case."
+  },
+  {
+    "key": "preparation_protocol_doi",
+    "value": "https://dx.doi.org/10.17504/protocols.io.bqaamsae",
+    "legacy_fields": [
+      "protocols_io_doi"
+    ],
+    "legacy_values": [
+      "10.17504/protocols.io.bqaamsae"
+    ],
+    "resolution": "harmonized",
+    "candidates": [],
+    "reasoning": "Same DOI restated as a link, the form the field's example uses."
+  },
+  {
+    "key": "dataset_type",
+    "value": "Light Sheet",
+    "legacy_fields": [
+      "assay_type"
+    ],
+    "legacy_values": [
+      "Light Sheet"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Light Sheet"
+    ],
+    "reasoning": "Branch search returned the single label 'Light Sheet', matching the legacy assay type."
+  },
+  {
+    "key": "analyte_class",
+    "value": "Protein",
+    "legacy_fields": [
+      "analyte_class"
+    ],
+    "legacy_values": [
+      "protein"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Protein",
+      "RNA + protein",
+      "Nucleic acid + protein"
+    ],
+    "reasoning": "Legacy value names only protein; no other analyte class is indicated anywhere in the record."
+  },
+  {
+    "key": "is_targeted",
+    "value": "Yes",
+    "legacy_fields": [
+      "is_targeted"
+    ],
+    "legacy_values": [
+      "TRUE"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "Boolean TRUE corresponds to the 'Yes' option, consistent with a single-antibody targeted staining."
+  },
+  {
+    "key": "acquisition_instrument_vendor",
+    "value": "Zeiss Microscopy",
+    "legacy_fields": [
+      "acquisition_instrument_vendor"
+    ],
+    "legacy_values": [
+      "Zeiss"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Zeiss Microscopy"
+    ],
+    "reasoning": "Branch search resolved 'Zeiss' to the vocabulary label 'Zeiss Microscopy'."
+  },
+  {
+    "key": "acquisition_instrument_model",
+    "value": "Zeiss LightSheet Z.1",
+    "legacy_fields": [
+      "acquisition_instrument_model"
+    ],
+    "legacy_values": [
+      "Z.1"
+    ],
+    "resolution": "harmonized",
+    "candidates": [
+      "Zeiss LightSheet Z.1"
+    ],
+    "reasoning": "The model code Z.1 from a Zeiss light sheet instrument denotes the vocabulary label 'Zeiss LightSheet Z.1'."
+  },
+  {
+    "key": "source_storage_duration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record states no storage period before imaging, and the field has no template default."
+  },
+  {
+    "key": "source_storage_duration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No storage duration is recorded, so no unit can be resolved; no default is defined."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_value",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No calibration or service date is present in the record."
+  },
+  {
+    "key": "time_since_acquisition_instrument_calibration_unit",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "Depends on a calibration duration the record does not carry."
+  },
+  {
+    "key": "contributors_path",
+    "value": "contributors.tsv",
+    "legacy_fields": [
+      "contributors_path"
+    ],
+    "legacy_values": [
+      "contributors.tsv"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Value already satisfies the .tsv path pattern, so it is kept verbatim."
+  },
+  {
+    "key": "data_path",
+    "value": "data",
+    "legacy_fields": [
+      "data_path"
+    ],
+    "legacy_values": [
+      "data"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Bare directory name already conforms to the pattern."
+  },
+  {
+    "key": "antibodies_path",
+    "value": "antibodies.tsv",
+    "legacy_fields": [
+      "antibodies_path"
+    ],
+    "legacy_values": [
+      "antibodies.tsv"
+    ],
+    "resolution": "copied",
+    "candidates": [],
+    "reasoning": "Value already satisfies the .tsv path pattern."
+  },
+  {
+    "key": "is_image_preprocessing_required",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [
+      "Yes",
+      "No"
+    ],
+    "reasoning": "The record gives no tile or stitching information from which preprocessing need could be determined."
+  },
+  {
+    "key": "slide_id",
+    "value": null,
+    "legacy_fields": [
+      "tissue_id",
+      "donor_id"
+    ],
+    "legacy_values": [
+      "UFL0004-SP-2-2",
+      "UFL0004"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "tissue_id is the section identifier and better serves parent_sample_id; no separate slide identifier (e.g. with a slide suffix) exists in the record."
+  },
+  {
+    "key": "tile_configuration",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No stitching or tile arrangement is described, so no label could be justified."
+  },
+  {
+    "key": "scan_direction",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "The record contains no imaging direction information."
+  },
+  {
+    "key": "tiled_image_columns",
+    "value": null,
+    "legacy_fields": [
+      "step_z_value"
+    ],
+    "legacy_values": [
+      "179"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "step_z_value is a z-stack step count, not a tile grid column count, so nothing supplies this field."
+  },
+  {
+    "key": "tiled_image_count",
+    "value": null,
+    "legacy_fields": [
+      "number_of_channels"
+    ],
+    "legacy_values": [
+      "1"
+    ],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "number_of_channels counts fluorescence channels, not raw tiled images, so it was not used."
+  },
+  {
+    "key": "intended_tile_overlap_percentage",
+    "value": null,
+    "legacy_fields": [],
+    "legacy_values": [],
+    "resolution": "no_value",
+    "candidates": [],
+    "reasoning": "No overlap percentage is stated in the record."
+  },
+  {
+    "key": "metadata_schema_id",
+    "value": "a4ff738c-a7e9-40c1-966e-22cf9c885fad",
+    "legacy_fields": [
+      "version"
+    ],
+    "legacy_values": [
+      "2"
+    ],
+    "resolution": "defaulted",
+    "candidates": [],
+    "reasoning": "Legacy 'version' is a bare counter, not the UUID schema identifier, so the template's own default ID is used."
+  },
+  {
+    "key": null,
+    "value": null,
+    "legacy_fields": [
+      "assay_category",
+      "description",
+      "donor_id",
+      "execution_datetime",
+      "increment_z_unit",
+      "increment_z_value",
+      "number_of_antibodies",
+      "number_of_channels",
+      "operator",
+      "operator_email",
+      "pi",
+      "pi_email",
+      "range_z_unit",
+      "range_z_value",
+      "resolution_x_unit",
+      "resolution_x_value",
+      "resolution_y_unit",
+      "resolution_y_value",
+      "step_z_value",
+      "version"
+    ],
+    "legacy_values": [
+      "imaging",
+      "imaging light sheet",
+      "UFL0004",
+      "2020-07-23 14:53",
+      "um",
+      "2.48",
+      "1",
+      "1",
+      "Seth Currlin",
+      "scurrlin@ufl.edu",
+      "Kevin Otto",
+      "Kevin.Otto@b5.ufl.edu",
+      "um",
+      "443.92",
+      "um",
+      "873.6",
+      "um",
+      "873.6",
+      "179",
+      "2"
+    ],
+    "resolution": "unmapped",
+    "candidates": [],
+    "reasoning": "These keys cover assay category/prose description, donor, acquisition timestamp, z-stack and XY resolution parameters, antibody and channel counts, personnel contacts and a version counter - none of which the Light Sheet template has a field for; personnel belong in the contributors.tsv file, and version was superseded by metadata_schema_id's default."
+  }
+]
