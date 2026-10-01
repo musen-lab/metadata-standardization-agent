@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import httpx
+import openai
 import pytest
 from langchain_core.messages import AIMessage
 
@@ -228,6 +230,22 @@ class TestTextAnswer:
         bad = {"record": {"manufacturer": "Acme", "model": "X100", "colour": "red"}, "log": "not a list"}
         assert utils._parse_text_answer(json.dumps(bad), build_response_model(TEMPLATE)) is None
 
+    def test_extra_log_key_does_not_discard_a_valid_record(self, no_extraction: None) -> None:
+        answer = {
+            "record": self.ANSWER["record"],
+            "log": [{**LOG_ENTRY, "pattern_note": "required"}],
+        }
+        result = utils.extract_output_metadata(self._state(json.dumps(answer)))
+        assert result["metadata"] == self.ANSWER["record"]
+        assert result["decisions"] == [LOG_ENTRY]
+
+    def test_extra_record_key_still_fails_validation(self) -> None:
+        answer = {
+            "record": {**self.ANSWER["record"], "colour": "red"},
+            "log": [{**LOG_ENTRY, "pattern_note": "required"}],
+        }
+        assert utils._parse_text_answer(json.dumps(answer), build_response_model(TEMPLATE)) is None
+
     def test_a_record_block_alone_is_not_an_answer(self) -> None:
         """The prompt-only conditions' ```json record blocks keep their own path."""
         text = _response(record='{"manufacturer": "Acme", "model": "X100"}')
@@ -304,3 +322,12 @@ class TestExtractOutputMetadata:
         result = utils.extract_output_metadata(self._state(_response(record='{"manufacturer": "Acme"}')))
         assert result["decisions"] == []
         assert result["metadata"] == {"manufacturer": "Acme", "model": None}
+
+    def test_extraction_timeout_is_a_record_failure(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        class TimedOutLLM:
+            def invoke(self, _prompt: str, **_kwargs: Any) -> Any:
+                raise openai.APITimeoutError(request=httpx.Request("POST", "http://localhost:4000/v1/chat/completions"))
+
+        monkeypatch.setattr(utils, "_get_extraction_llm", TimedOutLLM)
+        with pytest.raises(ValueError, match="Extraction LLM timed out after 120 seconds"):
+            utils.extract_output_metadata(self._state("no usable JSON"))

@@ -8,6 +8,7 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, Optional
 
+import openai
 from pydantic import BaseModel, ValidationError
 
 if TYPE_CHECKING:
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
 
     from arms_agent.state import AgentState
 
-from arms_agent.schema import build_output_model, build_response_model
+from arms_agent.schema import ProcessingLogEntry, build_output_model, build_response_model
 from arms_agent.tools import get_cedar_template
 from arms_agent.tracing import record_migrated_record, record_processing_log
 
@@ -25,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 # The shared extraction client, with the settings it was built from: model, endpoint, key, streaming.
 _extraction_llm: tuple[tuple[str, str | None, str | None, bool], ChatOpenAI] | None = None
+
+_EXTRACTION_TIMEOUT_SECONDS = 120
 
 
 def _fenced_block_re(marker: str) -> re.Pattern[str]:
@@ -60,6 +63,24 @@ def _parse_text_answer(text: str, response_model: type[BaseModel]) -> BaseModel 
         try:
             return response_model.model_validate(parsed)
         except ValidationError as error:
+            # Some tool-capable models add explanatory keys to otherwise valid log
+            # entries.  The log is diagnostic; its extra keys must not force a valid
+            # migrated record through a second LLM.  Keep record validation strict.
+            extras = error.errors()
+            if extras and all(
+                item["type"] == "extra_forbidden" and len(item["loc"]) == 3 and item["loc"][0] == "log"
+                for item in extras
+            ):
+                cleaned = dict(parsed)
+                cleaned["log"] = [
+                    {key: value for key, value in entry.items() if key in ProcessingLogEntry.model_fields}
+                    for entry in parsed["log"]
+                ]
+                logger.warning(
+                    "Ignored unexpected processing-log key(s) in text answer: %s",
+                    sorted({str(item["loc"][2]) for item in extras}),
+                )
+                return response_model.model_validate(cleaned)
             logger.warning("The answer written as text does not satisfy the response schema: %s", error)
             return None
     return None
@@ -136,6 +157,9 @@ def _get_extraction_llm() -> ChatOpenAI:
     The client is rebuilt whenever the model, endpoint, key, or streaming in the environment has
     changed since, so a notebook that reloads ``.env`` to switch endpoints does not keep
     sending the extraction call, and the old key, to the old one.
+
+    The fallback gets one 120-second request with no automatic retries. A slow fallback
+    must not occupy a record slot indefinitely while the rest of a sweep waits.
     """
     global _extraction_llm  # noqa: PLW0603
     from arms_agent.agent import resolve_base_url, streaming_kwargs
@@ -147,7 +171,17 @@ def _get_extraction_llm() -> ChatOpenAI:
         from langchain_openai import ChatOpenAI as _ChatOpenAI
 
         logger.debug("Creating the extraction client with model=%s", model)
-        _extraction_llm = (settings, _ChatOpenAI(model=model, temperature=0, base_url=settings[1], **stream_kwargs))
+        _extraction_llm = (
+            settings,
+            _ChatOpenAI(
+                model=model,
+                temperature=0,
+                base_url=settings[1],
+                request_timeout=_EXTRACTION_TIMEOUT_SECONDS,
+                max_retries=0,
+                **stream_kwargs,
+            ),
+        )
     return _extraction_llm[1]
 
 
@@ -237,16 +271,20 @@ def _from_response_text(state: AgentState, config: RunnableConfig | None = None)
         },
     }
     llm = _get_extraction_llm()
-    result = llm.invoke(
-        f"Extract the JSON metadata object from the following text. "
-        f"Return only the JSON object, nothing else. "
-        f"Use null (not empty strings) for any field whose value is unknown, "
-        f"missing, or empty.\n\n{final_text}",
-        # Without the run config this call is invisible to the token tracker and to
-        # Langfuse, so its cost and content go unrecorded.
-        config=config,
-        **model_kwargs,
-    )
+    try:
+        result = llm.invoke(
+            f"Extract the JSON metadata object from the following text. "
+            f"Return only the JSON object, nothing else. "
+            f"Use null (not empty strings) for any field whose value is unknown, "
+            f"missing, or empty.\n\n{final_text}",
+            # Without the run config this call is invisible to the token tracker and to
+            # Langfuse, so its cost and content go unrecorded.
+            config=config,
+            **model_kwargs,
+        )
+    except openai.APITimeoutError as error:
+        msg = f"Extraction LLM timed out after {_EXTRACTION_TIMEOUT_SECONDS} seconds"
+        raise ValueError(msg) from error
     metadata = json.loads(result.content)
     logger.debug("Extracted metadata with %d top-level keys", len(metadata))
     record_migrated_record(metadata, source="extraction_llm")
@@ -281,5 +319,12 @@ def extract_agent_final_response(messages: list[AnyMessage]) -> str:
             text_parts = [block["text"] for block in content if isinstance(block, dict) and block.get("text")]
             if text_parts:
                 return "\n".join(text_parts)
+    last_ai = next((message for message in reversed(messages) if message.type == "ai"), None)
+    if last_ai is not None:
+        logger.warning(
+            "Agent ended without answer text or a structured response (finish_reason=%r, tool_calls=%d)",
+            last_ai.response_metadata.get("finish_reason"),
+            len(getattr(last_ai, "tool_calls", [])),
+        )
     msg = "Agent produced no text response."
     raise ValueError(msg)

@@ -332,6 +332,28 @@ def test_a_failed_record_does_not_stop_the_others(tmp_path: Path) -> None:
     assert total["files"] == 2, "the total counts the predictions"
 
 
+def test_an_empty_agent_reply_is_retried_once_then_the_job_continues(tmp_path: Path) -> None:
+    class _TransientEmptyResponse(_StubWorkflow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.attempts: dict[str, int] = {}
+
+        async def ainvoke(self, state: dict[str, Any], config: dict[str, Any] | None = None) -> dict[str, Any]:
+            name = (config or {})["metadata"]["input_file"]
+            self.attempts[name] = self.attempts.get(name, 0) + 1
+            if name == "record-0.json" and self.attempts[name] == 1:
+                raise ValueError("Agent produced no text response.")
+            return await super().ainvoke(state, config)
+
+    _write_inputs(tmp_path, 3)
+    workflow = _TransientEmptyResponse()
+    result = _run_again(tmp_path, workflow)
+
+    assert [path.name for path in result.written] == [f"record-{index}.json" for index in range(3)]
+    assert result.failed == []
+    assert workflow.attempts == {"record-0.json": 2, "record-1.json": 1, "record-2.json": 1}
+
+
 def test_a_failed_attempt_is_recorded_with_its_traceback_and_spend(tmp_path: Path) -> None:
     _write_inputs(tmp_path, 1)
     _run_again(tmp_path, _RaisingWorkflow(ValueError("no text"), {"record-0.json"}))

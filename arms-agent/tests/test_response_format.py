@@ -401,6 +401,8 @@ class TestExtractionModel:
         monkeypatch.setattr("langchain_openai.ChatOpenAI", lambda **kwargs: seen.update(kwargs))
         utils._get_extraction_llm()
         assert seen["model"] == "gpt-4.1-mini"
+        assert seen["request_timeout"] == 120
+        assert seen["max_retries"] == 0
 
     def test_the_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """The Stanford gateway lists gpt-4.1 but not gpt-4.1-mini."""

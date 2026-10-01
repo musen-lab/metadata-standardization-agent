@@ -331,14 +331,23 @@ async def _process_file(
         # Entered inside this file's own task, so the tracing context each file
         # attaches stays private to it while files are processed concurrently.
         try:
-            with traced_run(run_config["run_name"], {"input_file": input_file.name, "template_iri": template_iri}):
-                result = await workflow.ainvoke(
-                    {
-                        "messages": [HumanMessage(content=user_message)],
-                        "cedar_template_iri": template_iri,
-                    },
-                    config=run_config,
-                )
+            for attempt in range(2):
+                try:
+                    with traced_run(
+                        run_config["run_name"], {"input_file": input_file.name, "template_iri": template_iri}
+                    ):
+                        result = await workflow.ainvoke(
+                            {
+                                "messages": [HumanMessage(content=user_message)],
+                                "cedar_template_iri": template_iri,
+                            },
+                            config=run_config,
+                        )
+                    break
+                except ValueError as error:
+                    if str(error) != "Agent produced no text response." or attempt:
+                        raise
+                    logger.warning("[%s] %s returned no answer; retrying once", task_name, input_file.name)
         except OUTAGE_ERRORS as error:
             logger.error("[%s] %s: the endpoint failed: %s", task_name, input_file.name, _one_line(error))
             outages.append(error)
