@@ -92,11 +92,17 @@ class ConditionMark(NamedTuple):
 
     *fill* is ``None`` when the size sits in *style* itself; every mark the figures draw
     sets it, in colour as well as without, so that each is sized for its shape.
+
+    *hatch* is the pattern the mark is filled with, ``None`` for a plain fill.  *halo* puts a
+    white ring under the mark: an ink-bordered mark would otherwise merge with the one beneath
+    it, which a white border does for the solid colour marks.
     """
 
     style: dict[str, object]
     letter: str | None
     fill: bool | None = None
+    halo: bool = False
+    hatch: str | None = None
 
 
 #: The black width every mark comes out, whichever condition it stands for and whatever
@@ -230,22 +236,31 @@ def _condition_marks(
 
 
 #: One colour per model, in the order the models are listed, for the figures that compare
-#: models under one condition.  None of the three is a condition's hue, so a model is never
-#: mistaken for the baseline or ARMS.  Violet, aqua and yellow clear colour-vision-deficiency
-#: separation between every pair (the check a scatter needs, not only neighbours); the aqua
-#: and the yellow fall below 3:1 against a white page, so a model is always named in the
-#: legend rather than left to its colour.  A fourth model would need a fourth hue validated
-#: with them, not one generated.
-MODEL_COLOURS = ("#4a3aa7", "#1baf7a", "#eda100")
+#: models under one condition: the Okabe-Ito set, chosen for staying apart under every common
+#: colour-vision deficiency.  The model also has its name in the legend and, where marks
+#: stack, beside the stack, so the yellow and sky blue that fall below 3:1 against a white
+#: page are never left to their colour alone.  Its blue and orange sit near the conditions'
+#: hues, which is harmless: these figures hold one condition and say which in their caption.
+MODEL_COLOURS = ("#0072b2", "#e69f00", "#009e73", "#cc79a7", "#56b4e9", "#d55e00", "#f0e442", "#000000")
+
+#: With colour off, the model is the pattern its mark is filled with, in the order the models
+#: are listed: solid ink first, then lines in four directions, two grids, and dots.  The field
+#: type keeps the shape, so the fill is what is left to tell models apart, and a pattern stays
+#: legible at a mark's size where shades of grey would merge in print.
+MODEL_HATCHES = (None, "////", "\\\\\\\\", "----", "||||", "++++", "xxxx", "....")
+
+#: How heavy a pattern's lines are drawn: light enough that a hatched mark reads lighter than
+#: the solid one, heavy enough to survive print.
+MODEL_HATCH_LINE_WIDTH = 0.9
 
 
 def _model_marks(models: tuple[str, ...], *, no_color: bool) -> list[tuple[str, ConditionMark]]:
     """Every model in the order given, with the mark it takes.
 
-    In colour, each model takes its hue from :data:`MODEL_COLOURS`.  With colour off the model
-    is the letter written inside its mark, ``A``, ``B``, ``C``, and the marks alternate solid
-    and hollow so that overlapping ones stay apart.  A lone model has no letter, as a lone
-    condition has none.
+    In colour, each model takes its colour from :data:`MODEL_COLOURS`, as a solid mark with
+    the white border every colour mark has.  With colour off, each takes its pattern from
+    :data:`MODEL_HATCHES`, drawn in ink on white, with an ink border so the pattern has an
+    edge and a white halo under it so that overlapping marks keep a seam between them.
 
     Raises:
         ValueError: If *models* is empty, names a model twice, or holds more models than
@@ -256,20 +271,16 @@ def _model_marks(models: tuple[str, ...], *, no_color: bool) -> list[tuple[str, 
     if len(set(models)) != len(models):
         raise ValueError(f"Each model may be named once, got {list(models)}")
     if len(models) > len(MODEL_COLOURS):
-        raise ValueError(f"At most {len(MODEL_COLOURS)} models can be told apart by colour, got {len(models)}")
+        raise ValueError(f"At most {len(MODEL_COLOURS)} models can be told apart, got {len(models)}")
     if not no_color:
         return [(model, _colour_mark(colour)) for model, colour in zip(models, MODEL_COLOURS, strict=False)]
     marks = []
-    for index, model in enumerate(models):
-        # Solid and hollow in turn, as the baseline and system groups are, so two models
-        # that land on one spot still show as two marks rather than one black blob.
-        filled = index % 2 == 0
+    for model, hatch in zip(models, MODEL_HATCHES, strict=False):
         style = {
             "color": NO_COLOR_INK,
-            "markerfacecolor": NO_COLOR_INK if filled else "white",
-            "markeredgecolor": "white" if filled else NO_COLOR_INK,
+            "markerfacecolor": NO_COLOR_INK if hatch is None else "white",
+            "markeredgecolor": NO_COLOR_INK,
             "markeredgewidth": NO_COLOR_EDGE_WIDTH,
         }
-        letter = chr(ord("A") + index) if len(models) > 1 else None
-        marks.append((model, ConditionMark(style, letter, fill=filled)))
+        marks.append((model, ConditionMark(style, None, fill=False, halo=True, hatch=hatch)))
     return marks

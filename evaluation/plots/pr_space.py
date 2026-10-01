@@ -28,6 +28,7 @@ from plots.marks import (
     FIELD_TYPE_LABELS,
     FIELD_TYPE_MARKERS,
     MARKER_ZORDER,
+    MODEL_HATCH_LINE_WIDTH,
     NO_COLOR_EDGE_WIDTH,
     ConditionMark,
     _condition_marks,
@@ -42,6 +43,7 @@ from plots.theme import (
     CONTOUR_LABEL_COLOUR,
     FIGURE_TITLE_SIZE,
     GRID_COLOUR,
+    LABEL_COLOUR,
     LEGEND_LINE_INCHES,
     LEGEND_TEXT_SIZE,
     NO_COLOR_INK,
@@ -82,6 +84,10 @@ SPLIT_ROW_INCHES = 2.9
 
 #: Width allowed per field-type column in the split layout.
 SPLIT_COLUMN_INCHES = 3.4
+
+#: Keys per row in the legend of what the points compare: four names fit under the narrowest
+#: figure without crowding, and eight models wrap to two even rows.
+RUN_KEYS_PER_ROW = 4
 
 #: How far left of a panel its row label sits, in points: clear of the y-axis label
 #: and its tick numbers, which is what stands between them.
@@ -168,7 +174,35 @@ def _draw_pr_path(
     """
     zorder = MARKER_ZORDER.get(marker, 2.0)
     for (recall, precision), mark in zip(points, marks, strict=True):
-        ax.plot(recall, precision, marker, zorder=zorder, **_mark_style(mark, marker))
+        style = _mark_style(mark, marker)
+        if mark.halo:
+            # A ring of page under the mark, at the mark's own depth and drawn just before it, so
+            # it parts this mark from the ones beneath without covering any drawn after it.
+            ax.plot(
+                recall,
+                precision,
+                marker,
+                markersize=style["markersize"] + 2 * NO_COLOR_EDGE_WIDTH,
+                color="white",
+                markeredgewidth=0,
+                zorder=zorder,
+            )
+        if mark.hatch:
+            # A line cannot carry a pattern; a one-point scatter can.  Its size is an area.
+            dot = ax.scatter(
+                [recall],
+                [precision],
+                s=style["markersize"] ** 2,
+                marker=marker,
+                facecolors=style["markerfacecolor"],
+                edgecolors=style["markeredgecolor"],
+                linewidths=style["markeredgewidth"],
+                hatch=mark.hatch,
+                zorder=zorder,
+            )
+            dot.set_hatch_linewidth(MODEL_HATCH_LINE_WIDTH)
+        else:
+            ax.plot(recall, precision, marker, zorder=zorder, **style)
         if mark.letter:
             ax.annotate(
                 mark.letter,
@@ -218,8 +252,8 @@ def _pr_legends(
     """
     # A swatch, not a marker: every marker shape in the panels stands for a field type, so a
     # circle here would read as "ontology-constrained" before it read as a colour.  The
-    # swatch keeps what the key does mean -- the colour, or with colour off the fill,
-    # hollow or solid -- and the letter goes in the label, where a swatch has no room for it.
+    # swatch keeps what the key does mean -- the colour, or with colour off the fill, hollow,
+    # solid or patterned -- and the letter goes in the label, where a swatch has no room for it.
     run_keys = [
         Patch(
             facecolor=mark.style["markerfacecolor"],
@@ -227,6 +261,9 @@ def _pr_legends(
             # since the white seam its mark carries in a panel would thin it here.
             edgecolor=mark.style["markerfacecolor"] if mark.fill is not False else mark.style["markeredgecolor"],
             linewidth=NO_COLOR_EDGE_WIDTH,
+            # With colour off a model is its pattern, so its key carries the same one.
+            hatch=mark.hatch,
+            hatch_linewidth=MODEL_HATCH_LINE_WIDTH,
             label=f"{mark.letter}  {label}" if mark.letter else label,
         )
         for label, mark in keys
@@ -255,20 +292,17 @@ def _pr_legends(
 
     # The keys are set well apart: a two-column row of two names centred under a figure a
     # foot wide otherwise reads as one long label rather than as two.
-    style: dict[str, object] = {"frameon": False, "handletextpad": 0.5, "loc": "lower center"}
+    style: dict[str, object] = {
+        "frameon": False,
+        "handletextpad": 0.5,
+        "loc": "lower center",
+    }
     line = LEGEND_LINE_INCHES / fig.get_size_inches()[1]
     if not show_field_keys:
-        fig.legend(handles=run_keys, ncol=len(run_keys), bbox_to_anchor=(0.5, 0.0), fontsize=LEGEND_TEXT_SIZE, **style)
-        return 1.3 * line
+        rows = _run_legend(fig, run_keys, 0.0, {"fontsize": LEGEND_TEXT_SIZE, **style})
+        return (0.3 + rows) * line
 
-    fig.legend(
-        handles=run_keys,
-        ncol=len(run_keys),
-        bbox_to_anchor=(0.5, 1.05 * line),
-        fontsize=LEGEND_TEXT_SIZE,
-        columnspacing=3.5,
-        **style,
-    )
+    rows = _run_legend(fig, run_keys, 1.05 * line, {"fontsize": LEGEND_TEXT_SIZE, "columnspacing": 3.5, **style})
     fig.legend(
         handles=field_keys,
         ncol=len(field_keys),
@@ -277,7 +311,32 @@ def _pr_legends(
         columnspacing=3.0,
         **style,
     )
-    return 2.4 * line
+    return (1.4 + rows) * line
+
+
+def _run_legend(fig: plt.Figure, keys: list[Patch], bottom: float, style: dict[str, object]) -> int:
+    """Lay the keys of what is compared out in rows under the figure, and return how many rows.
+
+    Up to :data:`RUN_KEYS_PER_ROW` keys to a row, and fewer when a row that long would run
+    past the figure's edges -- a narrow figure of eight models would otherwise lose the
+    names at both ends.  The keys read across each row in the order given.
+    """
+    renderer = fig.canvas.get_renderer()
+    for columns in range(min(len(keys), RUN_KEYS_PER_ROW), 0, -1):
+        rows = ceil(len(keys) / columns)
+        # A legend fills its columns top to bottom; handed over column by column, the keys
+        # read across each row instead.
+        ordered = [
+            keys[row * columns + column]
+            for column in range(columns)
+            for row in range(rows)
+            if row * columns + column < len(keys)
+        ]
+        legend = fig.legend(handles=ordered, ncol=columns, bbox_to_anchor=(0.5, bottom), **style)
+        if columns == 1 or legend.get_window_extent(renderer).width <= fig.bbox.width:
+            return rows
+        legend.remove()
+    raise AssertionError("unreachable: one column always fits")
 
 
 def plot_pr_condition_comp(
@@ -402,10 +461,17 @@ def plot_pr_model_comp(
     assay: pooled over fewer, its score would stand on different assays from the others'
     and could not be compared with them.
 
-    Each model takes a hue from :data:`~plots.marks.MODEL_COLOURS`, which shares none with the
-    conditions, so a model is never read as the baseline or ARMS.  The hues go to the models
-    drawn, in the order *models* lists them.  With *no_color* the model is the letter written
-    inside its mark, ``A``, ``B``, ``C``, on marks alternately solid and hollow.
+    Up to eight models can be drawn.  The marker shape is the field type, as everywhere, and
+    the model is the colour -- one of :data:`~plots.marks.MODEL_COLOURS`, a colour-blind-safe
+    set, given to the models drawn in the order *models* lists them.  With *no_color* the model
+    is the pattern its mark is filled with instead, from :data:`~plots.marks.MODEL_HATCHES`:
+    solid ink, then lines and grids in ink on white.
+
+    Where marks of one field type land on the same spot, only the top one can be seen, so the
+    stack is named: a box beside it lists every model in it, top first, joined to it by a faint
+    line.  The box goes as close as it can without covering a mark or another box, and the line
+    runs under the marks.  With a single field type the field-type key is left off, since one
+    shape has nothing to tell apart; *title* can name the field type instead.
 
     Raises:
         ValueError: If *models* is empty or names a model twice, more models are drawn than
@@ -435,12 +501,8 @@ def plot_pr_model_comp(
     _plot_pr_points(
         data_root,
         [(model, condition) for model in drawn],
-        # Hollow marks first, as the baseline group is drawn first in plot_pr_condition_comp: a hollow
-        # mark is white inside, and laid over a solid one it would hide it.
-        sorted(
-            (([index], [mark]) for index, (_model, mark) in enumerate(marked)),
-            key=lambda group: group[1][0].fill is not False,
-        ),
+        # One group per model, in the order listed: a later model is drawn over an earlier one.
+        [([index], [mark]) for index, (_model, mark) in enumerate(marked)],
         marked,
         assays=assays,
         field_types=field_types,
@@ -451,6 +513,7 @@ def plot_pr_model_comp(
         save_path=save_path,
         run=run,
         partial=True,
+        name_stacks=True,
     )
 
 
@@ -477,6 +540,7 @@ def _plot_pr_points(
     save_path: str | None,
     run: int,
     partial: bool = False,
+    name_stacks: bool = False,
 ) -> None:
     """Draw and finish a precision/recall figure: the layout both public figures share.
 
@@ -488,6 +552,9 @@ def _plot_pr_points(
     an assay is drawn when any point has, and each panel holds the points it has.  Only the
     assays asked for are scored, and with *partial* only those a point has predictions for,
     so an assay no run reached is never scored and never warns about its missing records.
+
+    With *name_stacks*, marks of one field type that land on one spot are named beside it,
+    by their labels in *keys* -- see :func:`_name_stacks`.
     """
     _check_assay_keys(assays)
     labels = dict(ASSAY_ORDER)
@@ -589,6 +656,19 @@ def _plot_pr_points(
                 )
         return drawn_series
 
+    def drawn_points(row: str, drawn: tuple[str, ...]) -> list[tuple[str, int, tuple[float, float]]]:
+        """Every (field type, point index, position) of one panel, in the order :func:`series` draws them."""
+        return [
+            (field_type, index, placed(index, field_type, row))
+            for group, _marks in groups
+            for index in group
+            if present(index, row)
+            for field_type in drawn
+        ]
+
+    # The panels whose stacks are named once the layout is final, with what each one holds.
+    panels: list[tuple[plt.Axes, list[tuple[str, int, tuple[float, float]]]]] = []
+
     if shared_window:
         columns = min(PANELS_PER_ROW, len(rows))
         grid_rows = ceil(len(rows) / columns)
@@ -607,6 +687,7 @@ def _plot_pr_points(
         for ax, row in zip(flat, rows, strict=False):
             _pr_panel_series(ax, series(row, field_types), error_axes=error_axes, show_f1_contours=show_f1_contours)
             ax.set_title(panel_title(row), fontsize=PANEL_TITLE_SIZE)
+            panels.append((ax, drawn_points(row, field_types)))
         for ax in flat[len(rows) :]:
             ax.set_visible(False)
         for grid_row in axes:
@@ -628,6 +709,7 @@ def _plot_pr_points(
                 _pr_panel_series(
                     ax, series(row, (field_type,)), error_axes=error_axes, show_f1_contours=show_f1_contours
                 )
+                panels.append((ax, drawn_points(row, (field_type,))))
                 if row_index == 0:
                     ax.set_title(FIELD_TYPE_LABELS[field_type], fontsize=PANEL_TITLE_SIZE)
             # "Precision" belongs against the axis it measures; the assay names the whole
@@ -661,12 +743,167 @@ def _plot_pr_points(
                 break
 
     # With one field type per panel, named in the column title, a marker key would only
-    # repeat it.
-    strip = _pr_legends(fig, keys, field_types, show_field_keys=shared_window)
+    # repeat it; with one field type in all, there is only one shape to key.
+    strip = _pr_legends(fig, keys, field_types, show_field_keys=shared_window and len(field_types) > 1)
     fig.tight_layout(rect=(0.0, strip, 1.0, 1.0))
     if title:
         # After tight_layout, which does not know about a suptitle added later: adding it
         # first would have the layout reserve the space and then leave a gap when there
         # is no title.
         fig.suptitle(title, fontsize=FIGURE_TITLE_SIZE, y=1.0, va="bottom")
+    if name_stacks:
+        # Last, so every box is placed against the panels where they will finally sit.
+        names = [label for label, _mark in keys]
+        for ax, panel_points in panels:
+            _name_stacks(ax, panel_points, names)
     _finish(fig, save_path)
+
+
+#: How close two marks of one field type sit, in points, before the lower one counts as hidden
+#: and the stack is named.  Two thirds of a mark's width: closer than that, what shows of the
+#: lower mark is a sliver of rim, too little to name the model by its colour or pattern.
+STACK_DISTANCE_POINTS = 8.0
+
+#: How far a stack's name box may sit from it, nearest first, in points.  The first is far
+#: enough that the line to the box still shows past the mark it starts under.
+STACK_LABEL_DISTANCES = (22, 26, 30, 35, 40, 46, 53, 60, 68, 77, 87, 100, 115, 130, 150)
+
+#: The directions a name box is tried in, in degrees.  Never straight sideways or up and down:
+#: a line along a gridline disappears into it, and every point at a score of 1 sits on one.
+STACK_LABEL_ANGLES = tuple(angle for angle in range(0, 360, 15) if angle % 90)
+
+#: How much clear page a name box keeps around every mark, in points: a mark's radius and a
+#: little air.
+STACK_LABEL_CLEARANCE = 9.0
+
+#: The line from a stack to its name: a guide, quieter than the gridlines it crosses.
+STACK_LINE_COLOUR = "#cfcfca"
+STACK_BOX_EDGE_COLOUR = "#c9c9c4"
+STACK_LABEL_SIZE = 6.5
+
+#: The id every stack name box carries, which tells it apart from the contour labels.
+STACK_NAME_GID = "stack-name"
+
+
+def _name_stacks(
+    ax: plt.Axes,
+    panel_points: list[tuple[str, int, tuple[float, float]]],
+    names: list[str],
+) -> None:
+    """Name every stack of marks in *ax* that hides one mark under another.
+
+    *panel_points* is every mark in the panel as (field type, index into *names*, position), in
+    the order they were drawn.  A stack is marks of one field type within
+    :data:`STACK_DISTANCE_POINTS` of each other; shapes of different field types stack by
+    :data:`~plots.marks.MARKER_ZORDER` and stay visible, so they are never a stack.  The box
+    lists the stack's names top first -- the mark the reader can see heads the list.
+
+    The box goes to the nearest of the spots tried that covers no mark and no box already
+    placed, and stays inside the panel.  A line that has to pass a mark costs a little, and is
+    drawn under the marks so that it runs behind them rather than over them.  Where every spot
+    covers something, the one covering fewest marks is taken: a crowded panel still says what
+    is in the stack.
+    """
+    renderer = ax.figure.canvas.get_renderer()
+    to_pixels = ax.figure.dpi / 72
+    marks = [ax.transData.transform(xy) for _field_type, _index, xy in panel_points]
+    frame = ax.get_window_extent(renderer)
+    placed: list[object] = []
+
+    for stack in _stacks(panel_points, marks, STACK_DISTANCE_POINTS * to_pixels):
+        top_first = [names[panel_points[member][1]] for member in reversed(stack)]
+        # The bottom mark's own position: the stack's first member, in this field type.
+        anchor = panel_points[stack[0]][2]
+        start = ax.transData.transform(anchor)
+        best: tuple[float, object, tuple[float, float]] | None = None
+        for distance in STACK_LABEL_DISTANCES:
+            for angle in np.deg2rad(STACK_LABEL_ANGLES):
+                offset = (distance * np.cos(angle), distance * np.sin(angle))
+                box = ax.annotate(
+                    "\n".join(top_first),
+                    anchor,
+                    xytext=offset,
+                    textcoords="offset points",
+                    ha="right" if offset[0] < 0 else "left",
+                    va="top" if offset[1] < 0 else "bottom",
+                    fontsize=STACK_LABEL_SIZE,
+                    color=LABEL_COLOUR,
+                    linespacing=1.15,
+                    zorder=5,
+                    gid=STACK_NAME_GID,
+                    bbox={
+                        "boxstyle": "round,pad=0.25",
+                        "facecolor": "white",
+                        "edgecolor": STACK_BOX_EDGE_COLOUR,
+                        "linewidth": 0.6,
+                    },
+                )
+                box.draw(renderer)  # the box's extent is only known once it has been laid out
+                extent = box.get_bbox_patch().get_window_extent(renderer)
+                end = (min(max(start[0], extent.x0), extent.x1), min(max(start[1], extent.y0), extent.y1))
+                clearance = STACK_LABEL_CLEARANCE * to_pixels
+                near = extent.expanded(1.0, 1.0).padded(clearance)
+                covered = sum(near.contains(x, y) for x, y in marks) + sum(extent.overlaps(o) for o in placed)
+                # A line behind another box would seem to lead to that box instead.
+                covered += sum(_runs_through(start, end, other) for other in placed)
+                crossed = sum(_passes(start, end, mark, clearance * 0.75) for mark in marks)
+                inside = frame.contains(extent.x0, extent.y0) and frame.contains(extent.x1, extent.y1)
+                cost = (0 if inside else 1e6) + covered * 1e3 + crossed * 2 + distance / 100
+                if best is None or cost < best[0]:
+                    if best is not None:
+                        best[1].remove()
+                    best = (cost, box, end)
+                else:
+                    box.remove()
+        _cost, box, end = best
+        placed.append(box.get_bbox_patch().get_window_extent(renderer))
+        x_end, y_end = ax.transData.inverted().transform(end)
+        ax.plot(
+            [anchor[0], x_end],
+            [anchor[1], y_end],
+            color=STACK_LINE_COLOUR,
+            linewidth=0.6,
+            solid_capstyle="butt",
+            zorder=1.5,  # over the contours, under every mark
+        )
+
+
+def _stacks(
+    panel_points: list[tuple[str, int, tuple[float, float]]],
+    marks: list[np.ndarray],
+    reach: float,
+) -> list[list[int]]:
+    """The groups, two or more each, of marks of one field type within *reach* pixels of each other.
+
+    Each group lists positions in *panel_points*, in drawing order, bottom first.
+    """
+    stacks = []
+    taken: set[int] = set()
+    for first, (field_type, _index, _xy) in enumerate(panel_points):
+        if first in taken:
+            continue
+        members = [first] + [
+            other
+            for other in range(first + 1, len(panel_points))
+            if other not in taken
+            and panel_points[other][0] == field_type
+            and np.hypot(*(marks[other] - marks[first])) < reach
+        ]
+        taken.update(members)
+        if len(members) > 1:
+            stacks.append(members)
+    return stacks
+
+
+def _passes(start: np.ndarray, end: tuple[float, float], mark: np.ndarray, reach: float) -> bool:
+    """Whether the line from *start* to *end* passes within *reach* of *mark*, other than the mark it starts at."""
+    if np.hypot(*(mark - start)) < 2:
+        return False
+    run = np.subtract(end, start)
+    along = np.clip(np.dot(mark - start, run) / max(np.dot(run, run), 1e-9), 0.0, 1.0)
+    return bool(np.hypot(*(mark - (start + along * run))) < reach)
+
+
+def _runs_through(start: np.ndarray, end: tuple[float, float], box: object) -> bool:
+    """Whether the line from *start* to *end* passes through *box*, a pixel extent."""
+    return any(box.contains(*(start + step * np.subtract(end, start))) for step in np.linspace(0.0, 1.0, 25))

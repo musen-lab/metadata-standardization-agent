@@ -19,7 +19,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from plots import pr_space  # noqa: E402
-from plots.marks import MODEL_COLOURS, _model_marks  # noqa: E402
+from plots.marks import MODEL_COLOURS, MODEL_HATCHES, _model_marks  # noqa: E402
 from plots.pr_space import plot_pr_condition_comp, plot_pr_model_comp  # noqa: E402
 
 if TYPE_CHECKING:
@@ -80,20 +80,20 @@ def _points(ax: plt.Axes) -> dict[str, list[tuple[float, float]]]:
 
 
 class TestModelMarks:
-    def test_each_model_takes_the_next_colour(self) -> None:
-        marks = _model_marks(("a", "b", "c"), no_color=False)
+    def test_each_model_takes_the_next_colour_solid(self) -> None:
+        marks = _model_marks(tuple("abcdefgh"), no_color=False)
         assert [mark.style["markerfacecolor"] for _model, mark in marks] == list(MODEL_COLOURS)
+        assert all(mark.style["markeredgecolor"] == "white" and mark.hatch is None for _model, mark in marks)
 
-    def test_without_colour_the_models_are_lettered_and_alternate_fill(self) -> None:
-        marks = _model_marks(("a", "b", "c"), no_color=True)
-        assert [mark.letter for _model, mark in marks] == ["A", "B", "C"]
-        assert [mark.fill for _model, mark in marks] == [True, False, True]
+    def test_without_colour_each_model_takes_the_next_pattern(self) -> None:
+        marks = _model_marks(tuple("abcdefgh"), no_color=True)
+        assert [mark.hatch for _model, mark in marks] == list(MODEL_HATCHES)
+        assert len(set(MODEL_HATCHES)) == 8
+        # The first is solid ink; the rest are ink patterns on white.  None is lettered.
+        assert [mark.style["markerfacecolor"] for _model, mark in marks][1:] == ["white"] * 7
+        assert all(mark.halo and mark.letter is None for _model, mark in marks)
 
-    def test_a_lone_model_has_no_letter(self) -> None:
-        [(_model, mark)] = _model_marks(("a",), no_color=True)
-        assert mark.letter is None
-
-    @pytest.mark.parametrize("models", [(), ("a", "a"), ("a", "b", "c", "d")])
+    @pytest.mark.parametrize("models", [(), ("a", "a"), tuple("abcdefghi")])
     def test_models_that_cannot_be_told_apart_are_refused(self, models: tuple[str, ...]) -> None:
         with pytest.raises(ValueError, match="model"):
             _model_marks(models, no_color=False)
@@ -154,22 +154,122 @@ class TestModelFigure:
             plot_pr_model_comp(str(data_root), ("absent", "missing"), assays=("atacseq",))
 
 
+def _eight_models(data_root: Path) -> tuple[str, ...]:
+    """Eight models that all score perfectly, so every one of their marks lands on one spot."""
+    models = tuple(f"m{index}" for index in range(8))
+    for model in models:
+        for name, record in _PREDICTIONS["good"].items():
+            _write(data_root / "atacseq" / "output" / model / "arms-agent" / f"{name}.json", record)
+    return models
+
+
+def _stack_boxes(ax: plt.Axes) -> list[str]:
+    """The text of every stack name box in *ax*."""
+    return [text.get_text() for text in ax.texts if text.get_gid() == pr_space.STACK_NAME_GID]
+
+
+class TestPatternedFigure:
+    def test_without_colour_every_model_is_drawn_in_its_pattern(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        models = _eight_models(data_root)
+        plot_pr_model_comp(str(data_root), models, field_types=("ontology",), no_color=True)
+        ax = captured[0].axes[0]
+        hatches = [collection.get_hatch() for collection in ax.collections]
+        assert hatches == [hatch for hatch in MODEL_HATCHES if hatch]
+        legend_hatches = [handle.get_hatch() for handle in captured[0].legends[0].legend_handles]
+        assert sorted(legend_hatches, key=str) == sorted(MODEL_HATCHES, key=str)
+
+    def test_wrapped_keys_read_across_each_row_and_stay_inside_the_figure(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        models = _eight_models(data_root)
+        plot_pr_model_comp(str(data_root), models, no_color=True)
+        fig = captured[0]
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        legend = fig.legends[0]
+        assert legend.get_window_extent(renderer).width <= fig.bbox.width
+        placed = [(text.get_window_extent(renderer), text.get_text()) for text in legend.get_texts()]
+        reading = [label for box, label in sorted(placed, key=lambda item: (-round(item[0].y0), item[0].x0))]
+        assert reading == list(models)
+
+
+class TestStackNames:
+    def test_a_stack_is_named_top_first(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        """ "good" and "copy" score the same, so "copy", drawn later, hides "good" and heads the list."""
+        for name, record in _PREDICTIONS["good"].items():
+            _write(data_root / "atacseq" / "output" / "copy" / "arms-agent" / f"{name}.json", record)
+        plot_pr_model_comp(str(data_root), ("good", "half", "copy"), field_types=("ontology", "non_ontology"))
+        boxes = _stack_boxes(captured[0].axes[0])
+        # One stack per field type; "half" sits elsewhere in both and is never in one.
+        assert boxes == ["copy\ngood", "copy\ngood"]
+
+    def test_each_line_starts_at_its_own_stack(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        """A model's stacks sit at different spots per field type; each line leaves its own one.
+
+        "half" scores (0.5, 1.0) on ontology fields and (0.5, 0.5) on the rest.
+        """
+        for name, record in _PREDICTIONS["half"].items():
+            _write(data_root / "atacseq" / "output" / "twin" / "arms-agent" / f"{name}.json", record)
+        plot_pr_model_comp(str(data_root), ("half", "twin"), field_types=("ontology", "non_ontology"))
+        ax = captured[0].axes[0]
+        leaders = [line for line in ax.get_lines() if len(line.get_xdata()) == 2 and line.get_zorder() < 2]
+        starts = {(float(line.get_xdata()[0]), float(line.get_ydata()[0])) for line in leaders}
+        assert starts == {(0.5, 1.0), (0.5, 0.5)}
+
+    def test_marks_apart_are_not_named(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_pr_model_comp(str(data_root), ("good", "half"), field_types=("ontology", "non_ontology"))
+        assert _stack_boxes(captured[0].axes[0]) == []
+
+    def test_different_field_types_on_one_spot_are_not_a_stack(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        """Their shapes stack largest to smallest and stay visible, so there is nothing hidden to name."""
+        plot_pr_model_comp(str(data_root), ("good",), field_types=("ontology", "non_ontology"))
+        assert _stack_boxes(captured[0].axes[0]) == []
+
+    def test_a_name_box_covers_no_mark_and_its_line_runs_under_them(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        models = _eight_models(data_root)
+        plot_pr_model_comp(str(data_root), (*models[:4], "half"), field_types=("ontology", "non_ontology"))
+        fig = captured[0]
+        ax = fig.axes[0]
+        renderer = fig.canvas.get_renderer()
+        box = next(text for text in ax.texts if text.get_gid() == pr_space.STACK_NAME_GID)
+        extent = box.get_bbox_patch().get_window_extent(renderer)
+        marks = [line for line in ax.get_lines() if line.get_linestyle() == "None"]
+        for mark in marks:
+            x, y = ax.transData.transform((mark.get_xdata()[0], mark.get_ydata()[0]))
+            assert not extent.contains(x, y)
+        leaders = [line for line in ax.get_lines() if len(line.get_xdata()) == 2 and line.get_zorder() < 2]
+        assert len(leaders) == 2  # one stack per field type
+        assert all(leader.get_zorder() < min(mark.get_zorder() for mark in marks) for leader in leaders)
+        assert extent.x1 <= ax.get_window_extent(renderer).x1
+
+
+class TestFieldTypeKey:
+    def test_one_field_type_has_no_field_type_key(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_pr_model_comp(str(data_root), ("good", "half"), field_types=("ontology",))
+        [legend] = captured[0].legends
+        assert [text.get_text() for text in legend.get_texts()] == ["good", "half"]
+
+    def test_several_field_types_keep_their_key(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_pr_model_comp(str(data_root), ("good", "half"), field_types=("ontology", "non_ontology"))
+        assert len(captured[0].legends) == 2
+
+    def test_the_title_is_written_over_the_figure(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_pr_model_comp(str(data_root), ("good", "half"), field_types=("ontology",), title="Ontology fields")
+        assert captured[0].get_suptitle() == "Ontology fields"
+
+
 class TestShapeStacking:
     def test_square_behind_circle_behind_triangle(self, data_root: Path, captured: list[plt.Figure]) -> None:
         """Three field types on one spot stay three shapes: the largest at the back."""
         plot_pr_model_comp(str(data_root), ("good",))
         zorders = {line.get_marker(): line.get_zorder() for line in captured[0].axes[0].get_lines()}
         assert zorders["s"] < zorders["o"] < zorders["^"]
-
-    def test_a_letter_sits_over_its_own_mark_and_under_the_next_shape(
-        self, data_root: Path, captured: list[plt.Figure]
-    ) -> None:
-        plot_pr_model_comp(str(data_root), ("good", "half"), no_color=True)
-        ax = captured[0].axes[0]
-        marks = {line.get_marker(): line.get_zorder() for line in ax.get_lines()}
-        letters = sorted(text.get_zorder() for text in ax.texts if text.get_text() in {"A", "B"})
-        assert marks["s"] < letters[0] < marks["o"]
-        assert letters[-1] > marks["^"]
 
 
 class TestConditionLegend:
