@@ -1,4 +1,4 @@
-"""Tests for :mod:`analysis.data_analysis.stability`: whether answers change between runs."""
+"""Tests for :mod:`analysis.data_analysis.stability`: consistency on reference fields."""
 
 from __future__ import annotations
 
@@ -91,7 +91,7 @@ class TestCollectFieldStability:
         assert (row["n_answers"], row["band"]) == (2, "inconsistent")
 
     def test_the_same_wrong_answer_every_time_is_consistent(self, stability: pd.DataFrame) -> None:
-        """Right or wrong does not enter: "kidney" three times is deterministic."""
+        """A stable wrong value remains consistent when the reference field is populated."""
         assert _row(stability, "r2", "tissue")["band"] == "consistent"
 
     def test_a_change_of_case_is_a_different_answer(self, stability: pd.DataFrame) -> None:
@@ -104,11 +104,19 @@ class TestCollectFieldStability:
     def test_a_value_filled_in_only_some_runs_is_inconsistent(self, stability: pd.DataFrame) -> None:
         assert _row(stability, "r1", "lab_id")["band"] == "inconsistent"  # "X", "", ""
 
-    def test_a_field_nobody_filled_is_not_counted(self, stability: pd.DataFrame) -> None:
-        """Blank in gold and in every run: consistent by agreeing on nothing, so left out."""
-        counted = set(zip(stability["record"], stability["field"], strict=True))
-        assert ("r1.json", "note") not in counted
-        assert ("r2.json", "lab_id") not in counted
+    def test_reference_blank_fields_left_blank_are_counted_as_consistent(self, stability: pd.DataFrame) -> None:
+        for record, field in (("r1", "note"), ("r1", "instrument"), ("r2", "lab_id")):
+            row = _row(stability, record, field)
+            assert (row["n_answers"], row["band"]) == (1, "consistent")
+
+    def test_reference_blank_field_filled_in_all_runs_is_inconsistent(self, data_root: Path) -> None:
+        for run in (1, 2, 3):
+            path = data_root / "atacseq" / "output" / "m" / "sys" / f"run-{run}" / "r2.json"
+            record = json.loads(path.read_text())
+            record["lab_id"] = "X"
+            _write(path, record)
+        row = _row(collect_field_stability(data_root, "m", "sys", runs=(1, 2, 3)), "r2", "lab_id")
+        assert (row["n_answers"], row["band"]) == (1, "inconsistent")
 
     def test_a_record_missing_from_one_run_is_skipped(self, stability: pd.DataFrame) -> None:
         assert "r3.json" not in set(stability["record"])
@@ -140,13 +148,13 @@ class TestCollectFieldStability:
 
 class TestSummarizeFieldStability:
     def test_shares_per_assay_and_pooled(self, stability: pd.DataFrame) -> None:
-        # Counted: r1 tissue/title/lab_id, r2 tissue/title/note/instrument = 7 instances.
+        # Both complete records contribute every reference field: 2 x 5 = 10 instances.
         # Inconsistent: r1 title, r1 lab_id, r2 instrument.
         table = summarize_field_stability(stability).set_index("assay")
         for row in ("ATACseq", "All assays"):
-            assert table.loc[row, "n_instances"] == 7
-            assert table.loc[row, "consistent"] == pytest.approx(4 / 7)
-            assert table.loc[row, "inconsistent"] == pytest.approx(3 / 7)
+            assert table.loc[row, "n_instances"] == 10
+            assert table.loc[row, "consistent"] == pytest.approx(7 / 10)
+            assert table.loc[row, "inconsistent"] == pytest.approx(3 / 10)
 
     def test_the_shares_of_a_row_add_up_to_one(self, stability: pd.DataFrame) -> None:
         table = summarize_field_stability(stability)
@@ -162,18 +170,25 @@ class TestSummarizeFieldStability:
 
 
 class TestRankInconsistentFields:
-    def test_only_fields_that_changed_are_listed(self, stability: pd.DataFrame) -> None:
+    def test_only_inconsistent_fields_are_listed(self, stability: pd.DataFrame) -> None:
         ranked = rank_inconsistent_fields(stability)
         assert set(ranked["field"]) == {"title", "lab_id", "instrument"}
         assert (ranked["n_inconsistent"] > 0).all()
 
-    def test_the_share_is_changes_over_the_instances_counted(self, stability: pd.DataFrame) -> None:
-        # title is counted in r1 (changed) and r2 (the same): one change in two.
+    def test_the_share_is_inconsistent_over_all_reference_instances(self, stability: pd.DataFrame) -> None:
+        # Title is counted in both records: one inconsistent and one consistent.
         title = rank_inconsistent_fields(stability).set_index("field").loc["title"]
         assert (title["n_records"], title["n_inconsistent"], title["inconsistent_share"]) == (2, 1, 0.5)
 
-    def test_ties_on_count_go_to_the_higher_share(self, stability: pd.DataFrame) -> None:
-        assert rank_inconsistent_fields(stability)["field"].tolist()[-1] == "title"
+    def test_fields_filled_despite_blank_reference_are_listed(self, data_root: Path) -> None:
+        for run in (1, 2, 3):
+            path = data_root / "atacseq" / "output" / "m" / "sys" / f"run-{run}" / "r2.json"
+            record = json.loads(path.read_text())
+            record["lab_id"] = "X"
+            _write(path, record)
+        stability = collect_field_stability(data_root, "m", "sys", runs=(1, 2, 3))
+        lab_id = rank_inconsistent_fields(stability).set_index("field").loc["lab_id"]
+        assert (lab_id["n_records"], lab_id["n_inconsistent"]) == (2, 2)
 
     def test_top_keeps_that_many_rows(self, stability: pd.DataFrame) -> None:
         assert len(rank_inconsistent_fields(stability, top=1)) == 1

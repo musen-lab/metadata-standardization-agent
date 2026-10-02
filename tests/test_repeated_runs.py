@@ -248,7 +248,8 @@ class TestFieldStabilityFigure:
         plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
         keys = {text.get_text(): handle for text, handle in zip(*_legend(captured[0]), strict=True)}
         dark, light = (
-            keys[label].get_facecolor() for label in ("same answer in every run", "answer changed between runs")
+            keys[label].get_facecolor()
+            for label in ("same answer; blank where reference blank", "answer changed or filled reference blank")
         )
         assert sum(dark[:3]) < sum(light[:3])
 

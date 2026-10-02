@@ -1,13 +1,13 @@
-"""How deterministic each condition is: a column per condition, a stacked bar per assay.
+"""How consistently each condition handles reference fields across runs.
 
 The companion to :func:`~analysis.data_analysis.create_run_spread_summary`.  That table shows
-how far a condition's score moves between runs; this shows how often its answers change.  Every
-field instance is either consistent -- the same answer in every run -- or not, whether or
-not that answer is right.  What is counted, and why, is :mod:`analysis.data_analysis.stability`.
+how far a condition's score moves between runs; this shows how often its answers change or
+it fills a field the reference leaves blank.  Every reference field is counted.  What is
+counted, and why, is :mod:`analysis.data_analysis.stability`.
 
 The figure is monochrome, like the manuscript's other figures: the two bands are two greys,
-dark for the same answer in every run and light for an answer that changed.  How a share
-becomes a segment is :mod:`plots.segments`.
+dark for consistent answers and light for an answer that changed or filled a reference-blank
+field.  How a share becomes a segment is :mod:`plots.segments`.
 """
 
 from __future__ import annotations
@@ -44,8 +44,8 @@ STABILITY_COLOURS = ("#2f2f2b", "#d6d6cf")
 
 #: What each band is called in the key.
 STABILITY_LABELS = {
-    "consistent": "same answer in every run",
-    "inconsistent": "answer changed between runs",
+    "consistent": "same answer; blank where reference blank",
+    "inconsistent": "answer changed or filled reference blank",
 }
 
 #: The figure is drawn as wide as the run-spread figure beside it, whatever the number of
@@ -76,14 +76,15 @@ def plot_field_stability(
     x_label: str | None = None,
     save_path: str | None = None,
 ) -> None:
-    """For each assay, how often each condition gives the same answer in every run.
+    """For each assay, how often each condition consistently answers every reference field.
 
     One column per condition, named as :data:`~plots.marks.CONDITION_LABELS` names it, and one
-    100%-wide bar per assay in each.  The bar splits the condition's field instances into those
-    whose answer was the same in every run in *runs* and those whose answer changed; a short
-    light end means the condition is close to deterministic.  Right or wrong does not enter: a
-    condition that gives the same wrong answer every time is consistent.  The columns share
-    their rows, so one assay's bars are read across.
+    100%-wide bar per assay in each.  Every field in each reference record predicted in all
+    *runs* counts.  The dark band holds fields answered alike in all runs, provided a field
+    blank in the reference stayed blank in every run.  The light band holds changed answers
+    and any value written into a reference-blank field, even when all runs wrote the same
+    value.  A stable wrong value for a populated reference field is still dark.  The columns
+    share their rows, so one assay's bars are read across.
 
     Shares rather than counts, because the assays differ in size by more than tenfold.  A
     segment too narrow to hold its number goes unlabelled; the exact shares, and how many

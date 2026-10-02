@@ -32,7 +32,7 @@ Nothing already written is overwritten unless you pass `overwrite=True`: a sweep
 The CLI follows the same rule, with `--overwrite`, and asks before it replaces anything.
 A condition directory holds one layout or the other: `run_sweep` refuses, before spending anything, to write one run where `run-<n>` directories already are, or several where a single run already is.
 Every analysis function reads run 1 unless given `run=<n>`, finding it in whichever layout the condition has, for example `create_overall_precision_recall_summary(DATA_ROOT, MODEL, "arms-agent", run=2)`.
-Two views read several runs at once: `create_run_spread_summary(DATA_ROOT, MODEL, "arms-agent", runs=(1, 2, 3))` gives precision and recall per assay as the mean with the lowest and highest run (`notebook_utils.show_run_spread` prints it for several conditions), and `plot_field_stability(DATA_ROOT, MODEL, runs=(1, 2, 3))` shows, per assay, how often each condition gives the same answer to a field in every run.
+Two views read several runs at once: `create_run_spread_summary(DATA_ROOT, MODEL, "arms-agent", runs=(1, 2, 3))` gives precision and recall per assay as the mean with the lowest and highest run (`notebook_utils.show_run_spread` prints it for several conditions), and `plot_field_stability(DATA_ROOT, MODEL, runs=(1, 2, 3))` shows, per assay, the share of all reference fields answered identically across runs. A reference-blank field counts in that share only when every run leaves it blank; any filled value enters the other band.
 
 ## Directory Conventions
 
