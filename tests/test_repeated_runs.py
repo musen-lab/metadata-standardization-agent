@@ -192,12 +192,27 @@ class TestRunSpreadFigure:
 
     def test_a_panel_per_field_type_and_metric(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_run_spread(str(data_root), "m", runs=(1, 2, 3))
-        titles = [ax.get_title() for ax in captured[0].axes]
-        assert titles == [
-            f"{FIELD_TYPE_LABELS[field_type]}\n{metric}"
-            for field_type in ("ontology", "non_ontology")
-            for metric in ("Precision", "Recall")
+        fig = captured[0]
+        assert [ax.get_title() for ax in fig.axes] == ["Precision", "Recall"] * 2
+        assert [text.get_text() for text in fig.texts] == [
+            FIELD_TYPE_LABELS[field_type] for field_type in ("ontology", "non_ontology")
         ]
+        for label, pair in zip(fig.texts, (fig.axes[:2], fig.axes[2:]), strict=True):
+            left, right = pair[0].get_position().x0, pair[-1].get_position().x1
+            assert label.get_position()[0] == pytest.approx((left + right) / 2)
+        fig.canvas.draw()
+        for label, pair in zip(fig.texts, (fig.axes[:2], fig.axes[2:]), strict=True):
+            gap = label.get_window_extent().y0 - pair[0].title.get_window_extent().y1
+            assert 0 < gap < 0.2 * fig.dpi
+
+    @pytest.mark.parametrize("field_types", ["ontology", ("ontology",)])
+    def test_a_field_type_can_be_selected(
+        self, data_root: Path, captured: list[plt.Figure], field_types: str | tuple[str, ...]
+    ) -> None:
+        plot_run_spread(str(data_root), "m", runs=(1, 2, 3), field_types=field_types)
+        fig = captured[-1]
+        assert [ax.get_title() for ax in fig.axes] == ["Precision", "Recall"]
+        assert [label.get_text() for label in fig.texts] == [FIELD_TYPE_LABELS["ontology"]]
 
     def test_each_run_is_its_distance_from_the_mean_in_points(
         self, data_root: Path, captured: list[plt.Figure]
@@ -212,9 +227,15 @@ class TestRunSpreadFigure:
     ) -> None:
         plot_run_spread(str(data_root), "m", runs=(1, 2))
         plot_run_spread(str(data_root), "m", runs=(1, 2), x_label="Run minus mean")
-        default, replaced = ({text.get_text() for text in fig.texts} for fig in captured)
-        assert "Difference from the mean of 2 runs (percentage points)" in default
-        assert "Run minus mean" in replaced
+        default, replaced = captured
+        assert [ax.get_xlabel() for ax in default.axes] == ["Deviation from mean (pp)"] * 4
+        assert [ax.get_xlabel() for ax in replaced.axes] == ["Run minus mean"] * 4
+        assert all(ax.xaxis.labelpad == 5 for fig in captured for ax in fig.axes)
+        assert all(len(ax.get_xticks()) <= 7 for ax in default.axes)
+
+    def test_unit_ticks_when_spread_is_within_five_points(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        plot_run_spread(str(data_root), "m", runs=(1, 3), field_types="ontology")
+        assert all(list(ax.get_xticks()) == list(range(-5, 6)) for ax in captured[0].axes)
 
     def test_the_title_is_written_only_when_given(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_run_spread(str(data_root), "m", runs=(1, 2))

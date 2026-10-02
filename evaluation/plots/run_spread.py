@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
+from matplotlib.ticker import MaxNLocator
 
 from analysis.data_analysis import POOLED_ASSAY, SPREAD_METRICS, collect_run_scores
 from assays import ASSAY_ORDER
@@ -59,11 +60,11 @@ RUN_ROW_INCHES = 0.42
 RUN_PANEL_INCHES = 3.0
 RUN_LABEL_INCHES = 1.9
 
-#: Height the column titles, the shared x-axis label and the legend take whatever the rows hold.
+#: Height the column titles, x-axis labels and legend take whatever the rows hold.
 RUN_CHROME_INCHES = 1.5
 
-#: Height kept between the tick numbers and the legend for the one x-axis label the panels share.
-X_LABEL_INCHES = 0.3
+#: Room above the panel titles for a field type label centred over each precision/recall pair.
+FIELD_TYPE_HEADER_INCHES = 0.2
 
 
 def plot_run_spread(
@@ -73,7 +74,7 @@ def plot_run_spread(
     baselines: tuple[str, ...] = ("baseline",),
     systems: tuple[str, ...] = ("arms-agent",),
     runs: Sequence[int] = (1, 2, 3),
-    field_types: tuple[str, ...] = ("ontology", "non_ontology"),
+    field_types: tuple[str, ...] | str = ("ontology", "non_ontology"),
     no_color: bool = False,
     title: str | None = None,
     x_label: str | None = None,
@@ -91,18 +92,23 @@ def plot_run_spread(
 
     Conditions are marked as in :func:`~plots.pr_space.plot_pr_condition_comp`, colour for the
     condition or, with *no_color*, hollow for the baselines and solid for the systems.
-    *title* is written above the figure.  *x_label* replaces the axis label under the
-    panels, which by default names what a dot's position means.  When *save_path* is given
+    *field_types* selects the field type pairs to draw; a single name such as
+    ``"ontology"`` draws just its precision and recall panels.
+    *title* is written above the figure.  *x_label* replaces the axis label under each
+    panel, which by default names what a dot's position means.  When *save_path* is given
     the figure is written there instead of shown.
 
     Raises:
         ValueError: If a group is empty, a field type is unknown, *runs* holds fewer than
             two distinct runs, or no assay was scored in every run of every condition.
     """
-    _check_pr_arguments(baselines, systems, field_types)
+    selected_field_types = (field_types,) if isinstance(field_types, str) else tuple(field_types)
+    _check_pr_arguments(baselines, systems, selected_field_types)
     conditions = (*baselines, *systems)
     scores = {
-        condition: _deviations(collect_run_scores(data_root, model, condition, runs=runs, field_types=field_types))
+        condition: _deviations(
+            collect_run_scores(data_root, model, condition, runs=runs, field_types=selected_field_types)
+        )
         for condition in conditions
     }
     present = [set(frame["assay"]) for frame in scores.values()]
@@ -111,7 +117,7 @@ def plot_run_spread(
         raise ValueError(f"No assay was scored in every one of runs {list(runs)} for every one of {conditions}")
     n_records = scores[conditions[0]].drop_duplicates("assay").set_index("assay")["n_records"]
 
-    panels = [(field_type, metric) for field_type in field_types for metric in SPREAD_METRICS]
+    panels = [(field_type, metric) for field_type in selected_field_types for metric in SPREAD_METRICS]
     fig, axes = plt.subplots(
         1,
         len(panels),
@@ -139,33 +145,42 @@ def plot_run_spread(
                 if mark.letter:
                     _letter(ax, mark, deviation, y)
         ax.axvline(0.0, color=PANEL_FRAME_COLOUR, linewidth=0.8, zorder=1)
-        ax.set_title(f"{FIELD_TYPE_LABELS[field_type]}\n{metric.capitalize()}", fontsize=PANEL_TITLE_SIZE)
+        ax.set_title(metric.capitalize(), fontsize=PANEL_TITLE_SIZE)
         _style_axes(ax)
 
     reach = max(float(frame["deviation"].abs().max()) for frame in scores.values())
-    # Ticks on the even points, and the window a point past the outermost one: the panels sit
-    # side by side, and a tick number on each edge would run into its neighbour's.
-    ticks = 2 * max(1, ceil(reach / 2))
+    # Show each point in the central range; widen the view and reduce tick density when
+    # a run is farther out, so marks stay visible and tick labels remain readable.
+    narrow = reach <= 5
+    limit = 5.5 if narrow else 2 * ceil(reach / 2) + 1
     for ax in axes:
-        ax.set_xlim(-ticks - 1, ticks + 1)
-        ax.set_xticks(range(-ticks, ticks + 1, 2))
+        ax.set_xlim(-limit, limit)
+        if narrow:
+            ax.set_xticks(range(-5, 6))
+        else:
+            ax.xaxis.set_major_locator(MaxNLocator(nbins=5, steps=(1, 2, 5, 10)))
+        ax.set_xlabel(
+            x_label if x_label is not None else "Deviation from mean (pp)",
+            fontsize=AXIS_LABEL_SIZE,
+            labelpad=5,
+        )
     axes[0].set_yticks(list(rows.values()), [f"{assay} (n={n_records[assay]})" for assay in assays])
     axes[0].set_ylim(-0.6, len(assays) - 0.4)
 
     strip = _legend(fig, conditions, marks)
-    label_height = X_LABEL_INCHES / fig.get_size_inches()[1]
-    fig.tight_layout(rect=(0.0, strip + label_height, 1.0, 1.0))
-    # One label for every panel, since they share the axis, centred under the panels rather
-    # than under the figure, whose left part is the assay names.
-    left, right = axes[0].get_position().x0, axes[-1].get_position().x1
-    fig.text(
-        (left + right) / 2,
-        strip,
-        x_label if x_label is not None else f"Difference from the mean of {len(runs)} runs (percentage points)",
-        ha="center",
-        va="bottom",
-        fontsize=AXIS_LABEL_SIZE,
-    )
+    figure_height = fig.get_size_inches()[1]
+    fig.tight_layout(rect=(0.0, strip, 1.0, 1.0 - FIELD_TYPE_HEADER_INCHES / figure_height))
+    for index, field_type in enumerate(selected_field_types):
+        pair = axes[index * len(SPREAD_METRICS) : (index + 1) * len(SPREAD_METRICS)]
+        left, right = pair[0].get_position().x0, pair[-1].get_position().x1
+        fig.text(
+            (left + right) / 2,
+            1.0 - 0.1 / figure_height,
+            FIELD_TYPE_LABELS[field_type],
+            ha="center",
+            va="top",
+            fontsize=PANEL_TITLE_SIZE,
+        )
     if title:
         # After tight_layout, which would otherwise reserve room for a title that may not be there.
         fig.suptitle(title, fontsize=FIGURE_TITLE_SIZE, y=1.0, va="bottom")
