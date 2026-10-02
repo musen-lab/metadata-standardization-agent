@@ -1,15 +1,14 @@
 """How consistently a condition answers every reference field across repeated runs.
 
 This table asks whether the model gives the same answer when it is asked the same question
-again.  The reference value also determines whether any filled value belongs in the other band.
+again.  Reference field names define what to compare; reference values do not affect the band.
 
 The unit is one **field instance**: one field of one record.  Its answers in the runs are
 compared with each other, and it falls in one of two bands:
 
-* ``consistent`` -- every run gave the same answer, including three blanks for a
-  reference-blank field;
-* ``inconsistent`` -- the answers differ, or at least one run filled a field the
-  reference leaves blank.
+* ``consistent`` -- every run gave the same answer, including all blanks or all
+  identical nonblank values;
+* ``inconsistent`` -- at least one run gave a different answer.
 
 "The same answer" is strict: blank and ``null`` count as the same blank, and any other value
 must match exactly, so ``"Lung"`` and ``"lung"`` are two different answers.  A difference the
@@ -17,8 +16,8 @@ scoring would forgive is still the model not answering the same way twice.
 
 Every reference field of a record predicted in all runs counts, including a field that
 reference and all runs leave blank.  A field the reference wants and every run leaves blank
-also counts as consistent: repeatability alone does not measure correctness.  Even if all
-runs fill the same value in a reference-blank field, it belongs to the inconsistent band.
+also counts as consistent.  So do identical nonblank answers for a reference-blank field:
+repeatability does not measure correctness.
 """
 
 from __future__ import annotations
@@ -58,14 +57,12 @@ def collect_field_stability(
 
     Columns are :data:`STABILITY_COLUMNS`.  ``assay`` is the assay's label, ``record`` the
     file name, ``n_answers`` the number of distinct answers across the runs, and ``band``
-    one of :data:`STABILITY_BANDS`.  A reference-blank field filled in every run may have
-    ``n_answers == 1`` while belonging to the inconsistent band.
+    one of :data:`STABILITY_BANDS`.  ``n_answers == 1`` always means consistent.
 
     A record counts only when every run in *runs* predicted it: consistency is a comparison
     across runs, so a record missing from one of them has nothing to be compared on.
     Every field in the reference record counts, including fields blank in the reference
-    and all runs.  Gold decides which field names count and whether any nonblank prediction
-    for a blank field enters the inconsistent band.
+    and all runs.  Gold decides which field names count, but its values do not affect the band.
 
     Raises:
         ValueError: If *runs* holds fewer than two runs, or the same run twice.
@@ -88,10 +85,9 @@ def collect_field_stability(
             if not all(path.exists() for path in paths):
                 continue
             predictions = [load_record(path) for path in paths]
-            for field, gold_value in gold.items():
+            for field in gold:
                 answers = [_answer(prediction.get(field)) for prediction in predictions]
                 n_answers = len(set(answers))
-                consistent = n_answers == 1 and (not _is_missing(gold_value) or answers[0] is None)
                 rows.append(
                     {
                         "assay": assay.label,
@@ -100,7 +96,7 @@ def collect_field_stability(
                         "field_type": "ontology" if field in ontology_fields else "non_ontology",
                         "n_runs": len(runs),
                         "n_answers": n_answers,
-                        "band": "consistent" if consistent else "inconsistent",
+                        "band": "consistent" if n_answers == 1 else "inconsistent",
                     }
                 )
     return pd.DataFrame(rows, columns=STABILITY_COLUMNS)
@@ -135,7 +131,7 @@ def summarize_field_stability(stability: pd.DataFrame, *, field_type: str | None
 
 
 def rank_inconsistent_fields(stability: pd.DataFrame, *, top: int | None = 10) -> pd.DataFrame:
-    """The fields most often inconsistent or filled despite a blank reference, per assay.
+    """The fields whose answers change most often across runs, per assay.
 
     One row per ``(assay, field)`` that was inconsistent at least once, with ``n_records``
     (field instances counted), ``n_inconsistent`` and ``inconsistent_share``, sorted by

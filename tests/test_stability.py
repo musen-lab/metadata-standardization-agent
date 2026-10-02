@@ -109,14 +109,14 @@ class TestCollectFieldStability:
             row = _row(stability, record, field)
             assert (row["n_answers"], row["band"]) == (1, "consistent")
 
-    def test_reference_blank_field_filled_in_all_runs_is_inconsistent(self, data_root: Path) -> None:
+    def test_reference_blank_field_filled_identically_in_all_runs_is_consistent(self, data_root: Path) -> None:
         for run in (1, 2, 3):
             path = data_root / "atacseq" / "output" / "m" / "sys" / f"run-{run}" / "r2.json"
             record = json.loads(path.read_text())
             record["lab_id"] = "X"
             _write(path, record)
         row = _row(collect_field_stability(data_root, "m", "sys", runs=(1, 2, 3)), "r2", "lab_id")
-        assert (row["n_answers"], row["band"]) == (1, "inconsistent")
+        assert (row["n_answers"], row["band"]) == (1, "consistent")
 
     def test_a_record_missing_from_one_run_is_skipped(self, stability: pd.DataFrame) -> None:
         assert "r3.json" not in set(stability["record"])
@@ -180,7 +180,7 @@ class TestRankInconsistentFields:
         title = rank_inconsistent_fields(stability).set_index("field").loc["title"]
         assert (title["n_records"], title["n_inconsistent"], title["inconsistent_share"]) == (2, 1, 0.5)
 
-    def test_fields_filled_despite_blank_reference_are_listed(self, data_root: Path) -> None:
+    def test_fields_filled_identically_despite_blank_reference_are_not_inconsistent(self, data_root: Path) -> None:
         for run in (1, 2, 3):
             path = data_root / "atacseq" / "output" / "m" / "sys" / f"run-{run}" / "r2.json"
             record = json.loads(path.read_text())
@@ -188,7 +188,7 @@ class TestRankInconsistentFields:
             _write(path, record)
         stability = collect_field_stability(data_root, "m", "sys", runs=(1, 2, 3))
         lab_id = rank_inconsistent_fields(stability).set_index("field").loc["lab_id"]
-        assert (lab_id["n_records"], lab_id["n_inconsistent"]) == (2, 2)
+        assert (lab_id["n_records"], lab_id["n_inconsistent"]) == (2, 1)
 
     def test_top_keeps_that_many_rows(self, stability: pd.DataFrame) -> None:
         assert len(rank_inconsistent_fields(stability, top=1)) == 1

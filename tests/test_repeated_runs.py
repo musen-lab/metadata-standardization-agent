@@ -249,7 +249,7 @@ class TestFieldStabilityFigure:
         keys = {text.get_text(): handle for text, handle in zip(*_legend(captured[0]), strict=True)}
         dark, light = (
             keys[label].get_facecolor()
-            for label in ("same answer; blank where reference blank", "answer changed or filled reference blank")
+            for label in ("Same answer in every run", "Answer changed in at least one run")
         )
         assert sum(dark[:3]) < sum(light[:3])
 
@@ -263,20 +263,17 @@ class TestFieldStabilityFigure:
 
     def test_the_axis_says_what_is_measured(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_field_stability(str(data_root), "m", runs=(1, 2, 3))
-        assert "Share of field instances" in {text.get_text() for text in captured[0].texts}
+        assert [ax.get_xlabel() for ax in captured[0].axes] == ["Share of field instances"] * 2
 
     def test_a_restricted_figure_names_its_field_type(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_field_stability(str(data_root), "m", runs=(1, 2), field_type="ontology")
-        labels = {text.get_text() for text in captured[0].texts}
-        assert f"Share of {FIELD_TYPE_LABELS['ontology']}" in labels
+        assert [ax.get_xlabel() for ax in captured[0].axes] == [f"Share of {FIELD_TYPE_LABELS['ontology']}"] * 2
 
     def test_the_title_and_the_axis_label_can_be_given(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_field_stability(str(data_root), "m", runs=(1, 2), title="Consistency", x_label="Share of fields")
         fig = captured[0]
         assert fig._suptitle.get_text() == "Consistency"
-        labels = {text.get_text() for text in fig.texts}
-        assert "Share of fields" in labels
-        assert "Share of field instances" not in labels
+        assert [ax.get_xlabel() for ax in fig.axes] == ["Share of fields"] * 2
 
     def test_one_run_is_refused(self, data_root: Path) -> None:
         with pytest.raises(ValueError, match="two runs"):

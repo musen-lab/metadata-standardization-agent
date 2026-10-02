@@ -125,12 +125,13 @@ def _stack_row(
     hatches: list[str] | None = None,
     no_color: bool = False,
     label_size: float = 8,
+    min_labelled_share: float = MIN_LABELLED_SHARE,
 ) -> list[tuple[float, str]]:
     """One 100%-wide bar, drawn left to right in *categories* order, its numbers at *label_size* points.
 
-    Returns the ``(centre, number)`` of every segment too narrow to hold its own number, for
-    a caller that wants to set them outside; an empty list when nothing was too narrow or
-    when *label_segments* is off.
+    Returns the ``(centre, number)`` of every segment narrower than
+    *min_labelled_share*, for a caller that wants to set them outside; an empty list when
+    nothing was too narrow or when *label_segments* is off.
     """
     narrow: list[tuple[float, str]] = []
     left = 0.0
@@ -159,7 +160,7 @@ def _stack_row(
             # axis by construction -- so the outline is drawn whole instead.
             clip_on=False,
         )
-        if label_segments and share < MIN_LABELLED_SHARE:
+        if label_segments and share < min_labelled_share:
             narrow.append((left + share / 2, f"{share:.0%}"))
         elif label_segments:
             # The ramp crosses the contrast threshold partway along, so one lettering colour
