@@ -17,8 +17,8 @@ The package is layered.  Underneath are three modules that no figure owns:
 On top of those sits one module per figure, each holding the public function, the
 constants that place it, and nothing else:
 
-* :mod:`plots.pr_space` -- operating points in precision/recall space, the main figure, and
-  the same space comparing models under one condition.
+* :mod:`plots.pr_space` -- operating points in precision/recall space, comparing conditions,
+  models, or runs.
 * :mod:`plots.run_spread` -- across repeated runs, how far each run's precision and recall
   land from the mean of the runs.
 * :mod:`plots.stability` -- across repeated runs, how often each condition gives the same
@@ -43,7 +43,7 @@ from plots.accuracy_bars import plot_grouped_bar_chart
 from plots.availability import plot_availability_difficulty
 from plots.error_composition import plot_corpus_error_composition, plot_error_composition
 from plots.pr_bars import plot_pr_bar_chart
-from plots.pr_space import plot_pr_condition_comp, plot_pr_model_comp
+from plots.pr_space import plot_pr_condition_comp, plot_pr_model_comp, plot_pr_run_comp
 from plots.run_spread import plot_run_spread
 from plots.stability import plot_field_stability
 
@@ -56,5 +56,6 @@ __all__ = [
     "plot_pr_bar_chart",
     "plot_pr_condition_comp",
     "plot_pr_model_comp",
+    "plot_pr_run_comp",
     "plot_run_spread",
 ]

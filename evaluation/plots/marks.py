@@ -32,8 +32,8 @@ CONDITION_COLOURS = ("#4472C4", "#ED7D31")
 #: under its own name.
 CONDITION_LABELS = {
     "baseline": "Baseline",
-    "template-tool": "GetTemplate-tool Only",
-    "term-tool": "TermSearch-tool Only",
+    "template-tool": "Template-tool Only",
+    "term-tool": "Search-tool Only",
     "arms-agent": "ARMS",
 }
 

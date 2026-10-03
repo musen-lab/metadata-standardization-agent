@@ -1,7 +1,8 @@
 """Operating points in precision/recall space: one panel per assay, or one for the corpus.
 
 The paper's main figure.  A panel is a window on the unit square with a mark per (condition,
-field type) -- or, in :func:`plot_pr_model_comp`, per (model, field type) under one condition --
+field type) -- or per (model, field type) in :func:`plot_pr_model_comp`, or per (run, field
+type) in :func:`plot_pr_run_comp` --
 which is why this module is mostly furniture: the window, the constant-F1 contours behind
 the marks, the two legends under them, and the two ways of laying the panels out.  What the
 marks themselves look like is :mod:`plots.marks`.
@@ -15,7 +16,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.inset import InsetIndicator
 from matplotlib.lines import Line2D
+from matplotlib.markers import MarkerStyle
 from matplotlib.patches import Patch
+from matplotlib.path import Path
 from matplotlib.ticker import MaxNLocator
 from matplotlib.transforms import Bbox
 
@@ -32,7 +35,9 @@ from plots.marks import (
     FIELD_TYPE_MARKERS,
     MARKER_ZORDER,
     MODEL_HATCH_LINE_WIDTH,
+    MODEL_HATCHES,
     NO_COLOR_EDGE_WIDTH,
+    NO_COLOR_INK_DIAMETER,
     ConditionMark,
     _condition_marks,
     _mark_style,
@@ -47,6 +52,7 @@ from plots.theme import (
     FIGURE_TITLE_SIZE,
     GRID_COLOUR,
     LABEL_COLOUR,
+    LABEL_ON_DARK_BELOW,
     LEGEND_LINE_INCHES,
     LEGEND_TEXT_SIZE,
     NO_COLOR_INK,
@@ -55,6 +61,7 @@ from plots.theme import (
     PANEL_TITLE_SIZE,
     TICK_LABEL_SIZE,
     _finish,
+    _relative_luminance,
 )
 
 #: Every panel is the whole unit square, whatever it plots.  Cropping to the data would
@@ -167,21 +174,23 @@ def _draw_pr_path(
     points: list[tuple[float, float]],
     marks: list[ConditionMark],
     marker: str = "o",
+    *,
+    gid: str | None = None,
+    point_ids: list[tuple[str, int]] | None = None,
+    zorder: float | None = None,
 ) -> None:
     """Draw one group's operating points.
 
-    The points are not joined.  A line between them reads as a path something travelled,
-    and these are separate systems measured once each -- nothing lies between two of them
-    to trace.  The order within a group is carried by the colour ramp, which says the conditions
-    are ordered without claiming anything about the space between them.
+    The points are not joined.  They are discrete measurements; nothing between two
+    points was measured, whether the points compare conditions, models, or runs.
     """
-    zorder = MARKER_ZORDER.get(marker, 2.0)
-    for (recall, precision), mark in zip(points, marks, strict=True):
+    zorder = MARKER_ZORDER.get(marker, 2.0) if zorder is None else zorder
+    for point_number, ((recall, precision), mark) in enumerate(zip(points, marks, strict=True)):
         style = _mark_style(mark, marker)
         if mark.halo:
             # A ring of page under the mark, at the mark's own depth and drawn just before it, so
             # it parts this mark from the ones beneath without covering any drawn after it.
-            ax.plot(
+            [halo] = ax.plot(
                 recall,
                 precision,
                 marker,
@@ -190,6 +199,7 @@ def _draw_pr_path(
                 markeredgewidth=0,
                 zorder=zorder,
             )
+            halo.set_gid(gid)
         if mark.hatch:
             # A line cannot carry a pattern; a one-point scatter can.  Its size is an area.
             dot = ax.scatter(
@@ -204,25 +214,37 @@ def _draw_pr_path(
                 zorder=zorder,
             )
             dot.set_hatch_linewidth(MODEL_HATCH_LINE_WIDTH)
+            dot.set_gid(gid)
         else:
-            ax.plot(recall, precision, marker, zorder=zorder, **style)
+            [dot] = ax.plot(recall, precision, marker, zorder=zorder, **style)
+            dot.set_gid(gid)
         if mark.letter:
-            ax.annotate(
+            letter = ax.annotate(
                 mark.letter,
                 (recall, precision),
                 ha="center",
                 va="center",
-                fontsize=6.5,
-                color="white" if mark.style["markerfacecolor"] == NO_COLOR_INK else NO_COLOR_INK,
+                fontsize=6.5 if len(mark.letter) == 1 else 5.5,
+                color=(
+                    "white"
+                    if _relative_luminance(mark.style["markerfacecolor"]) < LABEL_ON_DARK_BELOW
+                    else NO_COLOR_INK
+                ),
                 # Just over its own mark and under the next shape forward, so a letter is
                 # covered along with the mark it names rather than showing through.
                 zorder=zorder + 0.05,
             )
+            letter.set_gid(_point_letter_gid(*point_ids[point_number]) if point_ids is not None else gid)
+
+
+def _point_letter_gid(field_type: str, index: int) -> str:
+    """Identify one point's centred label in its panel or inset."""
+    return f"pr-point-label-{field_type}-{index}"
 
 
 def _pr_panel_series(
     ax: plt.Axes,
-    series: list[tuple[list[tuple[float, float]], list[ConditionMark], str]],
+    series: list[tuple[list[tuple[float, float]], list[ConditionMark], str, list[tuple[str, int]]]],
     *,
     error_axes: bool = False,
     show_f1_contours: bool = True,
@@ -230,8 +252,8 @@ def _pr_panel_series(
     """Draw every (points, colours, marker) series of one panel, over shared contours."""
     if show_f1_contours:
         _draw_iso_f1(ax, error_axes=error_axes)
-    for points, marks, marker in series:
-        _draw_pr_path(ax, points, marks, marker)
+    for points, marks, marker, point_ids in series:
+        _draw_pr_path(ax, points, marks, marker, point_ids=point_ids)
     _style_pr_axes(ax)
 
 
@@ -244,8 +266,7 @@ def _pr_legends(
 ) -> float:
     """Colour for what the points compare, and -- when a panel holds more than one -- marker for the field type.
 
-    *keys* is one (label, mark) per thing compared: a condition in :func:`plot_pr_condition_comp`, a
-    model in :func:`plot_pr_model_comp`.
+    *keys* is one (label, mark) per thing compared: a condition, model, or run.
 
     Stacked rather than side by side: on one line the condition names and the field-type names
     collide as soon as either list grows.  *show_field_keys* is ``False`` when every
@@ -264,7 +285,7 @@ def _pr_legends(
             # since the white seam its mark carries in a panel would thin it here.
             edgecolor=mark.style["markerfacecolor"] if mark.fill is not False else mark.style["markeredgecolor"],
             linewidth=NO_COLOR_EDGE_WIDTH,
-            # With colour off a model is its pattern, so its key carries the same one.
+            # With colour off a model or run is its pattern, so its key carries the same one.
             hatch=mark.hatch,
             hatch_linewidth=MODEL_HATCH_LINE_WIDTH,
             label=f"{mark.letter}  {label}" if mark.letter else label,
@@ -423,7 +444,7 @@ def plot_pr_condition_comp(
     indices = list(range(len(conditions)))
     _plot_pr_points(
         data_root,
-        [(model, condition) for condition in conditions],
+        [(model, condition, run) for condition in conditions],
         [
             (indices[: len(baselines)], marks[: len(baselines)]),
             (indices[len(baselines) :], marks[len(baselines) :]),
@@ -436,7 +457,7 @@ def plot_pr_condition_comp(
         show_f1_contours=show_f1_contours,
         title=title,
         save_path=save_path,
-        run=run,
+        name_stacks=True,
         inset=inset,
     )
 
@@ -511,7 +532,7 @@ def plot_pr_model_comp(
     marked = _model_marks(drawn, no_color=no_color)
     _plot_pr_points(
         data_root,
-        [(model, condition) for model in drawn],
+        [(model, condition, run) for model in drawn],
         # One group per model, in the order listed: a later model is drawn over an earlier one.
         [([index], [mark]) for index, (_model, mark) in enumerate(marked)],
         marked,
@@ -522,9 +543,123 @@ def plot_pr_model_comp(
         show_f1_contours=show_f1_contours,
         title=title,
         save_path=save_path,
-        run=run,
         partial=True,
         name_stacks=True,
+        inset=inset,
+    )
+
+
+def plot_pr_run_comp(
+    data_root: str,
+    model: str,
+    *,
+    runs: tuple[int, ...] = (1, 2, 3),
+    baselines: tuple[str, ...] = ("baseline",),
+    systems: tuple[str, ...] = ("arms-agent",),
+    condition: str | None = None,
+    assays: tuple[str, ...] = (),
+    field_types: tuple[str, ...] = ("ontology", "non_ontology", "all"),
+    shared_window: bool = True,
+    error_axes: bool = False,
+    show_f1_contours: bool = True,
+    no_color: bool = False,
+    inset: bool = False,
+    title: str | None = None,
+    save_path: str | None = None,
+) -> None:
+    """Compare one model's runs as operating points in precision/recall space.
+
+    Each condition in *baselines* and *systems* takes the colour it has in
+    :func:`plot_pr_condition_comp`; each run's number is centred in its marker.  Field
+    types keep their marker shapes.  With *no_color*, a single baseline is hollow and a
+    single system solid; patterns distinguish conditions when either group has several.
+    The numbers identify clear runs; a run whose marker is mostly covered gets a
+    leader label instead.  *inset* enlarges nearby distinct points.  The layout and axis options
+    mean what they do in the other precision/recall figures.
+
+    *condition* selects just one condition for callers of the original one-condition
+    API.  It cannot be combined with custom *baselines* or *systems*.
+
+    With *assays*, a condition's run is shown wherever it has predictions.  In the pooled
+    view, a point is shown only when it covers every assay, so pooled points stand on the
+    same corpus.  Runs without predictions are omitted; at least two different run
+    numbers must be available across the conditions to compare.
+
+    Raises:
+        TypeError: If *model* is not a single model name.
+        ValueError: If no condition is given, a condition is repeated, fewer than two
+            distinct runs are requested or available, more conditions than monochrome
+            patterns are drawn, or a field type or assay key is unknown.
+    """
+    if not isinstance(model, str):
+        raise TypeError("model must be a single model name")
+    if condition is not None:
+        if baselines != ("baseline",) or systems != ("arms-agent",):
+            raise ValueError("condition cannot be combined with baselines or systems")
+        baselines, systems = (), (condition,)
+    conditions = (*baselines, *systems)
+    if not conditions:
+        raise ValueError("baselines or systems needs at least one condition")
+    if len(set(conditions)) != len(conditions):
+        raise ValueError(f"Each condition may be named once, got {list(conditions)}")
+    unknown = [name for name in field_types if name not in FIELD_TYPE_LABELS]
+    if unknown:
+        raise ValueError(f"field_types must be drawn from {tuple(FIELD_TYPE_LABELS)}, got {unknown}")
+    if len(runs) < 2:
+        raise ValueError(f"A run comparison needs at least two runs, got {list(runs)}")
+    if len(set(runs)) != len(runs):
+        raise ValueError(f"Each run may be named once, got {list(runs)}")
+    _check_assay_keys(assays)
+    if assays:
+        wanted = [get_assay(data_root, key) for key in assays]
+        covers = any
+    else:
+        wanted = [assay for assay in iter_assays(data_root) if assay.has_gold]
+        covers = all
+    drawn = tuple(
+        (condition, run)
+        for condition in conditions
+        for run in runs
+        if covers(assay.has_predictions(model, condition, run=run) for assay in wanted)
+    )
+    if len({run for _condition, run in drawn}) < 2:
+        where = f"assays {list(assays)}" if assays else "every assay"
+        raise ValueError(f"Fewer than two of {list(runs)} have predictions under {model} for {where}")
+    drawn_conditions = tuple(dict.fromkeys(condition for condition, _run in drawn))
+    drawn_baselines = tuple(condition for condition in baselines if condition in drawn_conditions)
+    drawn_systems = tuple(condition for condition in systems if condition in drawn_conditions)
+    if no_color and (len(drawn_baselines) > 1 or len(drawn_systems) > 1):
+        if len(drawn_conditions) > len(MODEL_HATCHES):
+            raise ValueError(f"At most {len(MODEL_HATCHES)} conditions can be told apart without colour")
+        marks = dict(_model_marks(drawn_conditions, no_color=True))
+    else:
+        marks = dict(_condition_marks(drawn_baselines, drawn_systems, no_color=no_color))
+    groups = [
+        (
+            [index for index, (drawn_condition, _run) in enumerate(drawn) if drawn_condition == condition],
+            [
+                marks[condition]._replace(letter=str(run))
+                for drawn_condition, run in drawn
+                if drawn_condition == condition
+            ],
+        )
+        for condition in drawn_conditions
+    ]
+    _plot_pr_points(
+        data_root,
+        [(model, condition, run) for condition, run in drawn],
+        groups,
+        [(condition_label(condition), marks[condition]) for condition in drawn_conditions],
+        assays=assays,
+        field_types=field_types,
+        shared_window=shared_window,
+        error_axes=error_axes,
+        show_f1_contours=show_f1_contours,
+        title=title,
+        save_path=save_path,
+        partial=True,
+        name_stacks=True,
+        point_names=[f"{condition_label(condition)}, {run}" for condition, run in drawn],
         inset=inset,
     )
 
@@ -539,7 +674,7 @@ def _check_assay_keys(assays: tuple[str, ...]) -> None:
 
 def _plot_pr_points(
     data_root: str,
-    points: list[tuple[str, str]],
+    points: list[tuple[str, str, int]],
     groups: list[tuple[list[int], list[ConditionMark]]],
     keys: list[tuple[str, ConditionMark]],
     *,
@@ -550,14 +685,14 @@ def _plot_pr_points(
     show_f1_contours: bool,
     title: str | None,
     save_path: str | None,
-    run: int,
     partial: bool = False,
     name_stacks: bool = False,
+    point_names: list[str] | None = None,
     inset: bool = False,
 ) -> None:
-    """Draw and finish a precision/recall figure: the layout both public figures share.
+    """Draw and finish a precision/recall figure: the layout all three public figures share.
 
-    *points* is one (model, condition) per operating point.  *groups* splits them, by index
+    *points* is one (model, condition, run) per operating point.  *groups* splits them, by index
     into *points*, into the groups drawn one after another, each with its marks.  *keys* is
     the legend, one (label, mark) per thing compared.
 
@@ -566,9 +701,9 @@ def _plot_pr_points(
     assays asked for are scored, and with *partial* only those a point has predictions for,
     so an assay no run reached is never scored and never warns about its missing records.
 
-    With *name_stacks*, marks of one field type that land on one spot are named beside it,
-    by their labels in *keys* -- see :func:`_name_stacks`.  With *inset*, marks crowded together
-    are drawn again, enlarged, in an inset of their panel -- see :func:`_draw_insets`.
+    With *name_stacks*, marks with less than 80% of their shape visible are named beside
+    their positions, by *point_names* or their labels in *keys* -- see :func:`_name_stacks`.
+    With *inset*, nearby marks are drawn again, enlarged -- see :func:`_draw_insets`.
     """
     _check_assay_keys(assays)
     labels = dict(ASSAY_ORDER)
@@ -580,14 +715,14 @@ def _plot_pr_points(
                 model,
                 condition,
                 category=field_type,
-                run=run,
+                run=point_run,
                 assays=[
                     key
                     for key in assays
-                    if not partial or get_assay(data_root, key).has_predictions(model, condition, run=run)
+                    if not partial or get_assay(data_root, key).has_predictions(model, condition, run=point_run)
                 ],
             ).set_index("assay")
-            for index, (model, condition) in enumerate(points)
+            for index, (model, condition, point_run) in enumerate(points)
             for field_type in field_types
         }
         wanted = {labels[key] for key in assays}
@@ -619,8 +754,8 @@ def _plot_pr_points(
         }
     else:
         summaries = [
-            create_overall_precision_recall_summary(data_root, model, condition, run=run).set_index("category")
-            for model, condition in points
+            create_overall_precision_recall_summary(data_root, model, condition, run=point_run).set_index("category")
+            for model, condition, point_run in points
         ]
         rows = [POOLED_LABEL]
 
@@ -646,7 +781,9 @@ def _plot_pr_points(
         recall, precision = score(index, field_type, row)
         return (1.0 - recall if error_axes else recall, precision)
 
-    def series(row: str, drawn: tuple[str, ...]) -> list[tuple[list[tuple[float, float]], list[str], str]]:
+    def series(
+        row: str, drawn: tuple[str, ...]
+    ) -> list[tuple[list[tuple[float, float]], list[ConditionMark], str, list[tuple[str, int]]]]:
         """The (points, colours, marker) series of one panel.
 
         Group before field type, so a whole condition is laid down before the next one
@@ -666,6 +803,7 @@ def _plot_pr_points(
                         [placed(index, field_type, row) for index, _mark in kept],
                         [mark for _index, mark in kept],
                         FIELD_TYPE_MARKERS[field_type],
+                        [(field_type, index) for index, _mark in kept],
                     )
                 )
         return drawn_series
@@ -766,7 +904,7 @@ def _plot_pr_points(
         # is no title.
         fig.suptitle(title, fontsize=FIGURE_TITLE_SIZE, y=1.0, va="bottom")
     # Last, so every inset and box is placed against the panels where they will finally sit.
-    names = [label for label, _mark in keys]
+    names = point_names if point_names is not None else [label for label, _mark in keys]
     marks_of = {index: mark for group, group_marks in groups for index, mark in zip(group, group_marks, strict=True)}
     insets = [_draw_insets(ax, panel_points, marks_of) if inset else [] for ax, panel_points in panels]
     if name_stacks:
@@ -776,109 +914,219 @@ def _plot_pr_points(
         for (ax, panel_points), panel_insets in zip(panels, insets, strict=True):
             zoomed = frozenset(member for _inset, members in panel_insets for member in members)
             extents = tuple(ax_inset.get_window_extent() for ax_inset, _members in panel_insets)
-            _name_stacks(ax, panel_points, names, avoid=extents, avoid_lines=_connector_lines(ax), skip=zoomed)
+            _name_stacks(
+                ax, panel_points, names, marks_of, avoid=extents, avoid_lines=_connector_lines(ax), skip=zoomed
+            )
             for ax_inset, _members in panel_insets:
-                _name_stacks(ax_inset, _in_view(ax_inset, panel_points), names)
+                _name_stacks(ax_inset, _in_view(ax_inset, panel_points), names, marks_of)
     _finish(fig, save_path)
 
 
-#: How close two marks of one field type sit, in points, before the lower one counts as hidden
-#: and the stack is named.  Two thirds of a mark's width: closer than that, what shows of the
-#: lower mark is a sliver of rim, too little to name the model by its colour or pattern.
-STACK_DISTANCE_POINTS = 8.0
+#: The marker's shape must remain at least this visible to carry its own centred label.
+STACK_MIN_VISIBLE_FRACTION = 0.8
+
+#: A marker's diameter, in points, for leaving space around a displaced exact tie.
+STACK_DISTANCE_POINTS = NO_COLOR_INK_DIAMETER
 
 #: How far a stack's name box may sit from it, nearest first, in points.  The first is far
 #: enough that the line to the box still shows past the mark it starts under.
-STACK_LABEL_DISTANCES = (22, 26, 30, 35, 40, 46, 53, 60, 68, 77, 87, 100, 115, 130, 150)
+STACK_LABEL_DISTANCES = (16, 22, 29, 38, 49, 63, 80, 100, 125)
 
-#: The directions a name box is tried in, in degrees.  Never straight sideways or up and down:
-#: a line along a gridline disappears into it, and every point at a score of 1 sits on one.
-STACK_LABEL_ANGLES = tuple(angle for angle in range(0, 360, 15) if angle % 90)
+#: The directions a name box is tried in, in degrees.
+STACK_LABEL_ANGLES = tuple(range(0, 360, 30))
 
 #: How much clear page a name box keeps around every mark, in points: a mark's radius and a
 #: little air.
 STACK_LABEL_CLEARANCE = 9.0
 
 #: The line from a stack to its name: a guide, quieter than the gridlines it crosses.
-STACK_LINE_COLOUR = "#cfcfca"
-STACK_BOX_EDGE_COLOUR = "#c9c9c4"
+STACK_LINE_COLOUR = "#92928c"
 STACK_LABEL_SIZE = 6.5
 
 #: The id every stack name box carries, which tells it apart from the contour labels.
 STACK_NAME_GID = "stack-name"
+STACK_COPY_GID = "stack-copy"
+STACK_SCORE_LINK_GID = "stack-score-link"
+
+
+def _stack_copy_cost(
+    target: np.ndarray,
+    origin: np.ndarray,
+    used: list[np.ndarray],
+    marks: list[np.ndarray],
+    tied: list[int],
+    frame: Bbox,
+    avoid: tuple[Bbox, ...],
+    to_pixels: float,
+) -> float:
+    """Prefer a visible copy near its true score with space for its marker."""
+    margin = NO_COLOR_INK_DIAMETER * to_pixels / 2
+    inside = frame.x0 + margin <= target[0] <= frame.x1 - margin and frame.y0 + margin <= target[1] <= frame.y1 - margin
+    collision = sum(max(0, 9 * to_pixels - np.hypot(*(target - other))) ** 2 for other in used)
+    collision += sum(
+        max(0, STACK_DISTANCE_POINTS * to_pixels - np.hypot(*(target - other))) ** 2
+        for index, other in enumerate(marks)
+        if index not in tied
+    )
+    blocked = any(extent.padded(margin).contains(*target) for extent in avoid)
+    return (0 if inside else 1e6) + (1e6 if blocked else 0) + collision + np.hypot(*(target - origin)) / 100
+
+
+def _obscured_members(
+    ax: plt.Axes,
+    panel_points: list[tuple[str, int, tuple[float, float]]],
+    marks_of: dict[int, ConditionMark],
+) -> set[int]:
+    """Find marks with less than 80% of their outline visible after later marks cover them.
+
+    Sample the boundary rather than the interior: the outline is what lets a reader
+    recognize a circle, square, or triangle, including a hollow marker.  Marker paths
+    and sizes are the same ones used to draw the points, measured after panel layout.
+    """
+    to_pixels = ax.figure.dpi / 72
+    outlines: list[np.ndarray] = []
+    covers: list[Path] = []
+    orders: list[tuple[float, int]] = []
+    for drawing_order, (field_type, index, xy) in enumerate(panel_points):
+        marker = FIELD_TYPE_MARKERS[field_type]
+        mark = marks_of[index]
+        size = float(_mark_style(mark, marker)["markersize"]) * to_pixels
+        polygon = MarkerStyle(marker)
+        vertices = polygon.get_path().transformed(polygon.get_transform()).to_polygons()[0]
+        edges = np.diff(vertices, axis=0)
+        lengths = np.hypot(edges[:, 0], edges[:, 1])
+        cumulative = np.cumsum(lengths)
+        distances = np.linspace(0, cumulative[-1], 96, endpoint=False)
+        segments = np.searchsorted(cumulative, distances, side="right")
+        before = np.r_[0.0, cumulative[:-1]][segments]
+        boundary = vertices[segments] + edges[segments] * ((distances - before) / lengths[segments])[:, None]
+        centre = ax.transData.transform(xy)
+        outlines.append(centre + boundary * size * 0.97)
+        cover_size = size + (2 * NO_COLOR_EDGE_WIDTH * to_pixels if mark.halo else 0)
+        covers.append(Path(centre + vertices * cover_size))
+        orders.append((MARKER_ZORDER[marker], drawing_order))
+    hidden = set()
+    for index, outline in enumerate(outlines):
+        covered = np.zeros(len(outline), dtype=bool)
+        for later, cover in enumerate(covers):
+            if orders[later] > orders[index]:
+                covered |= cover.contains_points(outline, radius=NO_COLOR_EDGE_WIDTH * to_pixels)
+        if np.mean(~covered) < STACK_MIN_VISIBLE_FRACTION:
+            hidden.add(index)
+    return hidden
 
 
 def _name_stacks(
     ax: plt.Axes,
     panel_points: list[tuple[str, int, tuple[float, float]]],
     names: list[str],
+    marks_of: dict[int, ConditionMark],
     *,
     avoid: tuple[Bbox, ...] = (),
     avoid_lines: tuple[tuple[np.ndarray, np.ndarray], ...] = (),
     skip: frozenset[int] = frozenset(),
 ) -> None:
-    """Name every stack of marks in *ax* that hides one mark under another.
+    """Give obscured marks nearby labels and leaders; leave clear marks labelled in place.
 
     *panel_points* is every mark in the panel as (field type, index into *names*, position), in
-    the order they were drawn.  A stack is marks of one field type within
-    :data:`STACK_DISTANCE_POINTS` of each other; shapes of different field types stack by
-    :data:`~plots.marks.MARKER_ZORDER` and stay visible, so they are never a stack.  The box
-    lists the stack's names top first -- the mark the reader can see heads the list.
+    the order they were drawn.  A mark is obscured when less than 80% of its outline
+    remains visible.  Its centred letter or run number is removed, so the leader label
+    is its sole label.  A clear top mark keeps its centred label and needs no leader.
+    Obscured marks at exactly one score are repeated nearby and connected to that score.
 
-    The box goes to the nearest of the spots tried that covers no mark and no box already
-    placed, and stays inside the panel.  A line that has to pass a mark costs a little, and is
-    drawn under the marks so that it runs behind them rather than over them.  Where every spot
-    covers something, the one covering fewest marks is taken: a crowded panel still says what
-    is in the stack.
+    A label goes to the nearest of the spots tried that covers no mark or earlier label
+    and stays inside the panel.  Leaders run under the marks.  Where every spot covers
+    something, the one covering fewest marks is taken.
 
     *avoid* is pixel extents a box must keep off as it keeps off other boxes -- the panel's
     insets -- and *avoid_lines* pixel segments it must not sit across, the insets' connectors.
-    *skip* is positions in *panel_points* whose stacks are named elsewhere, in an inset; they
-    still count as marks a box must not cover.
+    *skip* is positions in *panel_points* named elsewhere, in an inset; they still count
+    as marks a label must not cover.
     """
     renderer = ax.figure.canvas.get_renderer()
     to_pixels = ax.figure.dpi / 72
     marks = [ax.transData.transform(xy) for _field_type, _index, xy in panel_points]
+    anchors = [xy for _field_type, _index, xy in panel_points]
+    obscured = _obscured_members(ax, panel_points, marks_of)
+    hidden_letters = {_point_letter_gid(panel_points[member][0], panel_points[member][1]) for member in obscured}
+    for letter in list(ax.texts):
+        if letter.get_gid() in hidden_letters:
+            letter.remove()
     frame = ax.get_window_extent(renderer)
-    placed: list[Bbox] = list(avoid)
+    placed: list[Bbox] = [
+        *avoid,
+        *(text.get_window_extent(renderer) for text in ax.texts if text.get_text().startswith("F1=")),
+    ]
 
-    for stack in _stacks(panel_points, marks, STACK_DISTANCE_POINTS * to_pixels):
-        if skip.issuperset(stack):
+    ties: dict[tuple[float, float], list[int]] = {}
+    for member, (_field_type, _index, xy) in enumerate(panel_points):
+        ties.setdefault(xy, []).append(member)
+    for tied in ties.values():
+        if len(tied) > 1:
+            origin = marks[tied[-1]]
+            used = [origin]
+            for member in reversed([member for member in tied if member in obscured and member not in skip]):
+                candidates = [
+                    origin + radius * to_pixels * np.array((np.cos(angle), np.sin(angle)))
+                    for radius in (10, 14, 19, 25)
+                    for angle in np.deg2rad(range(0, 360, 45))
+                ]
+
+                target = min(
+                    candidates,
+                    key=lambda candidate: _stack_copy_cost(
+                        candidate, origin, used, marks, tied, frame, avoid, to_pixels
+                    ),
+                )
+                used.append(target)
+                copied = tuple(ax.transData.inverted().transform(target))
+                field_type, index, scored = panel_points[member]
+                [score_link] = ax.plot(
+                    [scored[0], copied[0]],
+                    [scored[1], copied[1]],
+                    color=STACK_LINE_COLOUR,
+                    linewidth=0.7,
+                    zorder=1.4,
+                )
+                score_link.set_gid(STACK_SCORE_LINK_GID)
+                _draw_pr_path(
+                    ax,
+                    [copied],
+                    [marks_of[index]._replace(letter=None)],
+                    FIELD_TYPE_MARKERS[field_type],
+                    gid=STACK_COPY_GID,
+                    zorder=1.9,  # below the original marks, so their visible labels stay clear
+                )
+                anchors[member] = copied
+                marks[member] = target
+    for member in sorted(obscured, reverse=True):
+        if member in skip:
             continue
-        top_first = [names[panel_points[member][1]] for member in reversed(stack)]
-        # The bottom mark's own position: the stack's first member, in this field type.
-        anchor = panel_points[stack[0]][2]
-        start = ax.transData.transform(anchor)
+        anchor = anchors[member]
+        start = marks[member]
         best: tuple[float, plt.Annotation, tuple[float, float]] | None = None
         for distance in STACK_LABEL_DISTANCES:
             for angle in np.deg2rad(STACK_LABEL_ANGLES):
                 offset = (distance * np.cos(angle), distance * np.sin(angle))
                 box = ax.annotate(
-                    "\n".join(top_first),
+                    names[panel_points[member][1]],
                     anchor,
                     xytext=offset,
                     textcoords="offset points",
                     ha="right" if offset[0] < 0 else "left",
-                    va="top" if offset[1] < 0 else "bottom",
+                    va="center",
                     fontsize=STACK_LABEL_SIZE,
                     color=LABEL_COLOUR,
-                    linespacing=1.15,
                     zorder=5,
                     gid=STACK_NAME_GID,
-                    bbox={
-                        "boxstyle": "round,pad=0.25",
-                        "facecolor": "white",
-                        "edgecolor": STACK_BOX_EDGE_COLOUR,
-                        "linewidth": 0.6,
-                    },
+                    bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.3},
                 )
-                box.draw(renderer)  # the box's extent is only known once it has been laid out
+                box.draw(renderer)  # its extent is known only after layout
                 extent = box.get_bbox_patch().get_window_extent(renderer)
                 end = (min(max(start[0], extent.x0), extent.x1), min(max(start[1], extent.y0), extent.y1))
                 clearance = STACK_LABEL_CLEARANCE * to_pixels
-                near = extent.expanded(1.0, 1.0).padded(clearance)
+                near = extent.padded(clearance)
                 covered = sum(near.contains(x, y) for x, y in marks) + sum(extent.overlaps(o) for o in placed)
-                # A line behind another box would seem to lead to that box instead.
                 covered += sum(_runs_through(start, end, other) for other in placed)
                 covered += sum(_runs_through(head, tail, extent) for head, tail in avoid_lines)
                 crossed = sum(_passes(start, end, mark, clearance * 0.75) for mark in marks)
@@ -897,37 +1145,10 @@ def _name_stacks(
             [anchor[0], x_end],
             [anchor[1], y_end],
             color=STACK_LINE_COLOUR,
-            linewidth=0.6,
+            linewidth=0.7,
             solid_capstyle="butt",
             zorder=1.5,  # over the contours, under every mark
         )
-
-
-def _stacks(
-    panel_points: list[tuple[str, int, tuple[float, float]]],
-    marks: list[np.ndarray],
-    reach: float,
-) -> list[list[int]]:
-    """The groups, two or more each, of marks of one field type within *reach* pixels of each other.
-
-    Each group lists positions in *panel_points*, in drawing order, bottom first.
-    """
-    stacks = []
-    taken: set[int] = set()
-    for first, (field_type, _index, _xy) in enumerate(panel_points):
-        if first in taken:
-            continue
-        members = [first] + [
-            other
-            for other in range(first + 1, len(panel_points))
-            if other not in taken
-            and panel_points[other][0] == field_type
-            and np.hypot(*(marks[other] - marks[first])) < reach
-        ]
-        taken.update(members)
-        if len(members) > 1:
-            stacks.append(members)
-    return stacks
 
 
 def _passes(start: np.ndarray, end: tuple[float, float], mark: np.ndarray, reach: float) -> bool:
@@ -1047,7 +1268,13 @@ def _draw_insets(
     for slot, (group, (x0, x1, y0, y1)) in zip(layout, kept, strict=True):
         ax_inset = ax.inset_axes(slot)
         for field_type, index, xy in panel_points:
-            _draw_pr_path(ax_inset, [xy], [marks_of[index]], FIELD_TYPE_MARKERS[field_type])
+            _draw_pr_path(
+                ax_inset,
+                [xy],
+                [marks_of[index]],
+                FIELD_TYPE_MARKERS[field_type],
+                point_ids=[(field_type, index)],
+            )
         ax_inset.set_xlim(x0, x1)
         ax_inset.set_ylim(y0, y1)
         ax_inset.set_aspect("equal")

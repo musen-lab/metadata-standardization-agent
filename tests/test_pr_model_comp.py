@@ -73,7 +73,7 @@ def _points(ax: plt.Axes) -> dict[str, list[tuple[float, float]]]:
     """Every point in *ax*, keyed by its fill colour."""
     points: dict[str, list[tuple[float, float]]] = {}
     for line in ax.get_lines():
-        if line.get_linestyle() == "None" and len(line.get_xdata()) == 1:
+        if line.get_gid() != pr_space.STACK_COPY_GID and line.get_linestyle() == "None" and len(line.get_xdata()) == 1:
             key = to_hex(line.get_markerfacecolor())
             points.setdefault(key, []).append((float(line.get_xdata()[0]), float(line.get_ydata()[0])))
     return points
@@ -175,7 +175,9 @@ class TestPatternedFigure:
         models = _eight_models(data_root)
         plot_pr_model_comp(str(data_root), models, field_types=("ontology",), no_color=True)
         ax = captured[0].axes[0]
-        hatches = [collection.get_hatch() for collection in ax.collections]
+        hatches = [
+            collection.get_hatch() for collection in ax.collections if collection.get_gid() != pr_space.STACK_COPY_GID
+        ]
         assert hatches == [hatch for hatch in MODEL_HATCHES if hatch]
         legend_hatches = [handle.get_hatch() for handle in captured[0].legends[0].legend_handles]
         assert sorted(legend_hatches, key=str) == sorted(MODEL_HATCHES, key=str)
@@ -196,14 +198,37 @@ class TestPatternedFigure:
 
 
 class TestStackNames:
+    def test_callout_threshold_uses_the_visible_shape(self) -> None:
+        fig, ax, _points, marks_of = _inset_panel([(0.5, 0.5), (0.5, 0.5)])
+        centre = ax.transData.transform((0.5, 0.5))
+
+        def pair(apart_in_diameters: float) -> list[tuple[str, int, tuple[float, float]]]:
+            distance = apart_in_diameters * pr_space.NO_COLOR_INK_DIAMETER * fig.dpi / 72
+            second = tuple(ax.transData.inverted().transform((centre[0] + distance, centre[1])))
+            return [("ontology", 0, (0.5, 0.5)), ("ontology", 1, second)]
+
+        assert pr_space._obscured_members(ax, pair(0.8), marks_of) == {0}
+        assert pr_space._obscured_members(ax, pair(1.2), marks_of) == set()
+        plt.close(fig)
+
+    def test_touching_distinct_scores_keep_their_positions_and_label_only_the_hidden_mark(self) -> None:
+        scores = [(0.80, 0.80), (0.81, 0.81)]
+        fig, ax, panel_points, marks_of = _inset_panel(scores)
+        for index, score in enumerate(scores):
+            pr_space._draw_pr_path(ax, [score], [marks_of[index]])
+        pr_space._name_stacks(ax, panel_points, ["first", "second"], marks_of)
+        assert _stack_boxes(ax) == ["first"]
+        assert sorted(point for values in _points(ax).values() for point in values) == scores
+        assert not any(line.get_gid() == pr_space.STACK_COPY_GID for line in ax.get_lines())
+        plt.close(fig)
+
     def test_a_stack_is_named_top_first(self, data_root: Path, captured: list[plt.Figure]) -> None:
-        """ "good" and "copy" score the same, so "copy", drawn later, hides "good" and heads the list."""
+        """The top model remains clear, so only the model under it needs a callout."""
         for name, record in _PREDICTIONS["good"].items():
             _write(data_root / "atacseq" / "output" / "copy" / "arms-agent" / f"{name}.json", record)
-        plot_pr_model_comp(str(data_root), ("good", "half", "copy"), field_types=("ontology", "non_ontology"))
+        plot_pr_model_comp(str(data_root), ("good", "half", "copy"), field_types=("ontology",))
         boxes = _stack_boxes(captured[0].axes[0])
-        # One stack per field type; "half" sits elsewhere in both and is never in one.
-        assert boxes == ["copy\ngood", "copy\ngood"]
+        assert boxes == ["good"]
 
     def test_each_line_starts_at_its_own_stack(self, data_root: Path, captured: list[plt.Figure]) -> None:
         """A model's stacks sit at different spots per field type; each line leaves its own one.
@@ -214,20 +239,20 @@ class TestStackNames:
             _write(data_root / "atacseq" / "output" / "twin" / "arms-agent" / f"{name}.json", record)
         plot_pr_model_comp(str(data_root), ("half", "twin"), field_types=("ontology", "non_ontology"))
         ax = captured[0].axes[0]
-        leaders = [line for line in ax.get_lines() if len(line.get_xdata()) == 2 and line.get_zorder() < 2]
-        starts = {(float(line.get_xdata()[0]), float(line.get_ydata()[0])) for line in leaders}
+        score_links = [line for line in ax.get_lines() if line.get_gid() == pr_space.STACK_SCORE_LINK_GID]
+        starts = {(float(line.get_xdata()[0]), float(line.get_ydata()[0])) for line in score_links}
         assert starts == {(0.5, 1.0), (0.5, 0.5)}
 
     def test_marks_apart_are_not_named(self, data_root: Path, captured: list[plt.Figure]) -> None:
-        plot_pr_model_comp(str(data_root), ("good", "half"), field_types=("ontology", "non_ontology"))
+        plot_pr_model_comp(str(data_root), ("good", "half"), field_types=("ontology",))
         assert _stack_boxes(captured[0].axes[0]) == []
 
-    def test_different_field_types_on_one_spot_are_not_a_stack(
+    def test_a_shape_hidden_by_a_different_field_type_gets_a_callout(
         self, data_root: Path, captured: list[plt.Figure]
     ) -> None:
-        """Their shapes stack largest to smallest and stay visible, so there is nothing hidden to name."""
+        """The visibility rule applies across shapes when one covers another's outline."""
         plot_pr_model_comp(str(data_root), ("good",), field_types=("ontology", "non_ontology"))
-        assert _stack_boxes(captured[0].axes[0]) == []
+        assert _stack_boxes(captured[0].axes[0]) == ["good"]
 
     def test_a_name_box_covers_no_mark_and_its_line_runs_under_them(
         self, data_root: Path, captured: list[plt.Figure]
@@ -243,8 +268,8 @@ class TestStackNames:
         for mark in marks:
             x, y = ax.transData.transform((mark.get_xdata()[0], mark.get_ydata()[0]))
             assert not extent.contains(x, y)
-        leaders = [line for line in ax.get_lines() if len(line.get_xdata()) == 2 and line.get_zorder() < 2]
-        assert len(leaders) == 2  # one stack per field type
+        leaders = [line for line in ax.get_lines() if len(line.get_xdata()) == 2 and line.get_zorder() == 1.5]
+        assert len(leaders) == len(_stack_boxes(ax))
         assert all(leader.get_zorder() < min(mark.get_zorder() for mark in marks) for leader in leaders)
         assert extent.x1 <= ax.get_window_extent(renderer).x1
 
@@ -268,11 +293,24 @@ class TestShapeStacking:
     def test_square_behind_circle_behind_triangle(self, data_root: Path, captured: list[plt.Figure]) -> None:
         """Three field types on one spot stay three shapes: the largest at the back."""
         plot_pr_model_comp(str(data_root), ("good",))
-        zorders = {line.get_marker(): line.get_zorder() for line in captured[0].axes[0].get_lines()}
+        zorders = {
+            line.get_marker(): line.get_zorder()
+            for line in captured[0].axes[0].get_lines()
+            if line.get_gid() != pr_space.STACK_COPY_GID
+        }
         assert zorders["s"] < zorders["o"] < zorders["^"]
 
 
 class TestConditionLegend:
+    def test_tied_conditions_get_separate_marker_callouts(self, data_root: Path, captured: list[plt.Figure]) -> None:
+        for name, record in _PREDICTIONS["good"].items():
+            _write(data_root / "atacseq" / "output" / "good" / "baseline" / f"{name}.json", record)
+        plot_pr_condition_comp(str(data_root), "good", field_types=("ontology",))
+        ax = captured[0].axes[0]
+        assert _stack_boxes(ax) == ["Baseline"]
+        assert len([line for line in ax.get_lines() if line.get_gid() == pr_space.STACK_COPY_GID]) == 1
+        assert len([line for line in ax.get_lines() if line.get_gid() == pr_space.STACK_SCORE_LINK_GID]) == 1
+
     def test_conditions_and_field_types_take_their_manuscript_names(
         self, data_root: Path, captured: list[plt.Figure]
     ) -> None:
@@ -281,7 +319,7 @@ class TestConditionLegend:
         plot_pr_condition_comp(str(data_root), "good", baselines=("template-tool",), systems=("arms-agent",))
         labels = [text.get_text() for legend in captured[0].legends for text in legend.get_texts()]
         assert labels == [
-            "GetTemplate-tool Only",
+            "Template-tool Only",
             "ARMS",
             "Ontology-constrained Fields",
             "Non-ontology-constrained Fields",
@@ -359,7 +397,7 @@ class TestInsets:
         for fig in captured:
             # "good" and "copy" tie exactly: nothing to enlarge, so no inset either way.
             assert len(fig.axes) == 1
-            assert _stack_boxes(fig.axes[0]) == ["copy\ngood"]
+            assert _stack_boxes(fig.axes[0]) == ["good"]
 
     def test_the_condition_figure_accepts_insets(self, data_root: Path, captured: list[plt.Figure]) -> None:
         """Its marks here sit far apart, so it draws, and draws no inset: the option reaches it unharmed."""
