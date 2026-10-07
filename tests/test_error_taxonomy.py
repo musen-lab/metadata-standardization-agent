@@ -20,30 +20,31 @@ from analysis.data_analysis import (
     CONFUSION_CELLS_BY_CATEGORY,
     SUBCATEGORIES,
     category_shares,
-    close_match_reasons,
     collect_field_errors,
     deduplicate_errors,
+    near_match_reasons,
     reconcile_with_confusion,
     summarize_error_categories,
     summarize_error_subcategories,
+    summarize_error_subcategories_by_field_type,
 )
 from analysis.data_analysis.error_taxonomy import (
-    CLOSE_MATCH,
-    COMPLETELY_WRONG,
-    DELETIONS,
-    ENTIRELY_DONT_KNOW,
+    CONFIRMED_VALUE_MAPPING,
+    DIFFERENT_VALUE,
+    EXTERNAL_GAP,
     INSERTIONS,
-    KEPT_THIS_FIELD_S_VALUE,
-    MISLOCATE_LEGACY_VALUE,
-    ONE_CONTAINS_THE_OTHER,
-    OVERESTIMATE_LEGACY_VALUE,
+    MISSED_VALUE,
+    NEAR_MATCH,
+    OMISSIONS,
     POOLED_ASSAY,
+    SAME_READ_FORMAT,
     SAME_VALUE_OTHER_SHAPE,
     SUBSTITUTIONS,
-    TOO_OPTIMISTIC_ANSWER,
-    UNDERESTIMATE_LEGACY_VALUE,
-    USED_THE_VOCABULARY,
+    UNEXPECTED_COPY,
+    UNEXPECTED_FILL,
+    WRONG_MAPPING,
     _check_levels_agree,
+    _legacy_fields_carrying,
 )
 
 if TYPE_CHECKING:
@@ -66,12 +67,12 @@ def _write(path: Path, record: dict) -> None:
     path.write_text(json.dumps(record))
 
 
-def _case(root: Path, name: str, *, gold: dict, predicted: dict, legacy: dict) -> None:
-    """One atacseq record, with its legacy input and one run's prediction."""
-    _write(root / "schemas" / "atacseq.json", SCHEMA)
-    _write(root / "atacseq" / "gold" / f"{name}.json", gold)
-    _write(root / "atacseq" / "input" / f"{name}.json", legacy)
-    _write(root / "atacseq" / "output" / "m" / "sys" / f"{name}.json", predicted)
+def _case(root: Path, name: str, *, gold: dict, predicted: dict, legacy: dict, assay: str = "atacseq") -> None:
+    """One record, with its legacy input and one run's prediction."""
+    _write(root / "schemas" / f"{assay}.json", SCHEMA)
+    _write(root / assay / "gold" / f"{name}.json", gold)
+    _write(root / assay / "input" / f"{name}.json", legacy)
+    _write(root / assay / "output" / "m" / "sys" / f"{name}.json", predicted)
 
 
 def _one(root: Path) -> dict:
@@ -82,32 +83,53 @@ def _one(root: Path) -> dict:
 
 
 class TestSubstitutions:
-    def test_close_match_when_only_the_shape_differs(self, tmp_path: Path) -> None:
+    def test_near_match_when_only_the_shape_differs(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"title": "Lung Biopsy"}, predicted={"title": "lung  biopsy "}, legacy={})
         row = _one(tmp_path)
-        assert (row["category"], row["subcategory"]) == (SUBSTITUTIONS, CLOSE_MATCH)
-        assert SAME_VALUE_OTHER_SHAPE in row["close_match_reasons"]
+        assert (row["category"], row["subcategory"]) == (SUBSTITUTIONS, NEAR_MATCH)
+        assert SAME_VALUE_OTHER_SHAPE in row["near_match_reasons"]
 
     def test_a_number_in_another_shape_is_close(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"count": 10}, predicted={"count": "10.0"}, legacy={})
-        assert SAME_VALUE_OTHER_SHAPE in _one(tmp_path)["close_match_reasons"]
+        assert SAME_VALUE_OTHER_SHAPE in _one(tmp_path)["near_match_reasons"]
 
-    def test_close_match_when_the_run_said_gold_s_value_plus_extra(self, tmp_path: Path) -> None:
+    @pytest.mark.parametrize(
+        ("reference", "prediction"),
+        [(5, -5), (-5, 5), ("5", "-5"), ("-0.5", ".5"), (".5", "5"), (9007199254740992, 9007199254740993)],
+    )
+    def test_distinct_numbers_do_not_qualify_as_near_matches(
+        self, tmp_path: Path, reference: int | str, prediction: int | str
+    ) -> None:
+        _case(tmp_path, "r", gold={"count": reference}, predicted={"count": prediction}, legacy={})
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
+
+    @pytest.mark.parametrize(("reference", "prediction"), [(".NET", "NET"), ("A-5", "A5"), ("sample/", "sample")])
+    def test_meaningful_punctuation_is_preserved(self, tmp_path: Path, reference: str, prediction: str) -> None:
+        _case(tmp_path, "r", gold={"title": reference}, predicted={"title": prediction}, legacy={})
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
+
+    def test_metadata_directory_notation_can_be_equivalent(self, tmp_path: Path) -> None:
+        _case(tmp_path, "r", gold={"data_path": "/Proteomics/"}, predicted={"data_path": "./Proteomics"}, legacy={})
+        assert _one(tmp_path)["subcategory"] == NEAR_MATCH
+
+    @pytest.mark.parametrize("prediction", ["../Proteomics", "./proteomics"])
+    def test_distinct_dataset_paths_do_not_qualify_as_near_matches(self, tmp_path: Path, prediction: str) -> None:
+        _case(tmp_path, "r", gold={"data_path": "./Proteomics"}, predicted={"data_path": prediction}, legacy={})
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
+
+    def test_numeric_looking_identifiers_keep_leading_zeros(self, tmp_path: Path) -> None:
+        _case(tmp_path, "r", gold={"sample_id": "001"}, predicted={"sample_id": "1"}, legacy={})
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
+
+    def test_text_containment_alone_is_not_close(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"title": "Orbitrap Fusion"}, predicted={"title": "Orbitrap Fusion Lumos"}, legacy={})
-        row = _one(tmp_path)
-        assert row["subcategory"] == CLOSE_MATCH
-        assert ONE_CONTAINS_THE_OTHER in row["close_match_reasons"]
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
 
-    def test_close_match_when_the_run_kept_this_field_s_record_value(self, tmp_path: Path) -> None:
-        # The record said "lungs", gold corrected it, the run kept the record's word for it.
-        _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": "lungs"}, legacy={"tissue": "lungs"})
-        row = _one(tmp_path)
-        assert row["subcategory"] == CLOSE_MATCH
-        assert KEPT_THIS_FIELD_S_VALUE in row["close_match_reasons"]
+    def test_copying_the_same_legacy_field_alone_is_not_close(self, tmp_path: Path) -> None:
+        _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": "kidney"}, legacy={"tissue": "kidney"})
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
 
-    def test_close_match_when_the_run_used_the_vocabulary_and_gold_did_not(self, tmp_path: Path) -> None:
-        # The curator kept the record's "MS", which the template does not permit; the run
-        # answered "MS1", which it does.  A disagreement about normalising, not about fact.
+    def test_permitted_vocabulary_membership_alone_is_not_close(self, tmp_path: Path) -> None:
         _case(
             tmp_path,
             "r",
@@ -115,21 +137,67 @@ class TestSubstitutions:
             predicted={"ms_scan_mode": "MS1"},
             legacy={"ms_scan_mode": "MS"},
         )
-        row = _one(tmp_path)
-        assert row["subcategory"] == CLOSE_MATCH
-        assert USED_THE_VOCABULARY in row["close_match_reasons"]
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
 
-    def test_the_vocabulary_reason_needs_the_run_to_be_permissible_too(self, tmp_path: Path) -> None:
-        # Gold being off-vocabulary is not on its own a reason to call the run close: the
-        # run has to have picked a term the template allows.
+    def test_prototype_to_custom_is_a_different_value(self, tmp_path: Path) -> None:
+        field = "preparation_instrument_model"
+        reference = "prototype robot - Stanford/Nolan Lab"
+        _case(tmp_path, "r", gold={field: reference}, predicted={field: "Custom"}, legacy={field: reference})
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
+        assert near_match_reasons(reference, "Custom", field, {field: reference}, {"custom"}) == []
+
+    def test_doi_host_and_whitespace_differences_are_close(self, tmp_path: Path) -> None:
         _case(
             tmp_path,
             "r",
-            gold={"ms_scan_mode": "MS"},
-            predicted={"ms_scan_mode": "nonsense"},
-            legacy={"ms_scan_mode": "MS"},
+            gold={"preparation_protocol_doi": "https://dx.doi.org/10.17504/protocols.io.3fugjnw "},
+            predicted={"preparation_protocol_doi": "https://doi.org/10.17504/protocols.io.3fugjnw"},
+            legacy={"protocols_io_doi": "10.17504/protocols.io.3fugjnw"},
         )
-        assert USED_THE_VOCABULARY not in _one(tmp_path)["close_match_reasons"]
+        row = _one(tmp_path)
+        assert row["subcategory"] == NEAR_MATCH
+        assert SAME_VALUE_OTHER_SHAPE in row["near_match_reasons"]
+
+    @pytest.mark.parametrize("prediction", ["70/6/104", "70+6+104"])
+    def test_read_length_separators_do_not_change_the_answer(self, tmp_path: Path, prediction: str) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"sequencing_read_format": "70,6,104"},
+            predicted={"sequencing_read_format": prediction},
+            legacy={},
+        )
+        row = _one(tmp_path)
+        assert row["subcategory"] == NEAR_MATCH
+        assert SAME_READ_FORMAT in row["near_match_reasons"]
+
+    def test_read_length_order_changes_are_different_values(self, tmp_path: Path) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"sequencing_read_format": "70,6,104"},
+            predicted={"sequencing_read_format": "104/6/70"},
+            legacy={},
+        )
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
+
+    def test_confirmed_mapping_is_explicit_and_scoped_to_the_field(self, tmp_path: Path) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"title": "legacy term"},
+            predicted={"title": "standard term"},
+            legacy={"title": "legacy term"},
+        )
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
+        mappings = {"title": {("legacy term", "standard term"): "Confirmed by curator review"}}
+        errors = collect_field_errors(tmp_path, "m", "sys", confirmed_value_mappings=mappings)
+        assert errors.iloc[0]["subcategory"] == NEAR_MATCH
+        assert CONFIRMED_VALUE_MAPPING in errors.iloc[0]["near_match_reasons"]
+        assert (
+            near_match_reasons("legacy term", "standard term", "tissue", {}, None, confirmed_value_mappings=mappings)
+            == []
+        )
 
     def test_mislocated_when_the_value_came_from_another_field(self, tmp_path: Path) -> None:
         _case(
@@ -140,46 +208,220 @@ class TestSubstitutions:
             legacy={"tissue": "lung tissue", "title": "SN123"},
         )
         row = _one(tmp_path)
-        assert (row["category"], row["subcategory"]) == (SUBSTITUTIONS, MISLOCATE_LEGACY_VALUE)
+        assert (row["category"], row["subcategory"]) == (SUBSTITUTIONS, WRONG_MAPPING)
 
-    def test_close_match_wins_over_mislocated(self, tmp_path: Path) -> None:
+    @pytest.mark.parametrize(
+        ("field", "source", "reference", "prediction"),
+        [
+            ("dataset_type", "assay_type", "ATACseq", "SNARE-seq2"),
+            ("barcode_offset", "cell_barcode_offset", "Not applicable", "0"),
+            ("barcode_size", "cell_barcode_size", "Not applicable", "40"),
+        ],
+    )
+    def test_valid_atacseq_mappings_with_different_values(
+        self, tmp_path: Path, field: str, source: str, reference: str, prediction: str
+    ) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={field: reference},
+            predicted={field: prediction},
+            legacy={source: prediction, "unrelated_field": prediction},
+        )
+        row = _one(tmp_path)
+        assert row["subcategory"] == DIFFERENT_VALUE
+        assert row["legacy_sources"][source] == prediction
+        assert not row["near_match_reasons"]
+
+    def test_valid_mapping_requires_a_matching_value_in_the_valid_source(self, tmp_path: Path) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"barcode_offset": "Not applicable"},
+            predicted={"barcode_offset": "0"},
+            legacy={"cell_barcode_offset": "12", "sequencing_phix_percent": "0"},
+        )
+        assert _one(tmp_path)["subcategory"] == WRONG_MAPPING
+
+    def test_near_match_wins_over_mislocated(self, tmp_path: Path) -> None:
         # The asserted value equals gold's once shape is relaxed *and* sits in another
         # field.  Calling it a mislocation would report where a right answer came from.
         _case(tmp_path, "r", gold={"tissue": "Lung"}, predicted={"tissue": "lung"}, legacy={"title": "lung"})
-        assert _one(tmp_path)["subcategory"] == CLOSE_MATCH
+        assert _one(tmp_path)["subcategory"] == NEAR_MATCH
 
     def test_completely_wrong_when_neither_near_gold_nor_in_the_record(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": "kidney"}, legacy={"title": "unrelated"})
         row = _one(tmp_path)
-        assert (row["category"], row["subcategory"]) == (SUBSTITUTIONS, COMPLETELY_WRONG)
+        assert (row["category"], row["subcategory"]) == (SUBSTITUTIONS, DIFFERENT_VALUE)
 
-    def test_a_value_that_loosens_away_to_nothing_is_carried_by_no_field(self, tmp_path: Path) -> None:
-        # "." and "/" both loosen to the empty string, so the record is not the source of
-        # the assertion -- but the two are equal once loosened, so the row is close.
+    def test_empty_normalized_values_do_not_establish_equivalence(self, tmp_path: Path) -> None:
+        # Erasing both values through punctuation trimming is not evidence of equivalence.
         _case(tmp_path, "r", gold={"title": "/"}, predicted={"title": "."}, legacy={"title": "/"})
-        assert _one(tmp_path)["subcategory"] == CLOSE_MATCH
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
 
 
 class TestDeletionsAndInsertions:
     def test_underestimated_when_the_record_held_gold_s_value(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": None}, legacy={"organ": "lung"})
         row = _one(tmp_path)
-        assert (row["category"], row["subcategory"]) == (DELETIONS, UNDERESTIMATE_LEGACY_VALUE)
+        assert (row["category"], row["subcategory"]) == (OMISSIONS, MISSED_VALUE)
 
     def test_dont_know_when_the_record_held_nothing(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": None}, legacy={"organ": "kidney"})
         row = _one(tmp_path)
-        assert (row["category"], row["subcategory"]) == (DELETIONS, ENTIRELY_DONT_KNOW)
+        assert (row["category"], row["subcategory"]) == (OMISSIONS, EXTERNAL_GAP)
+
+    @pytest.mark.parametrize(
+        ("assay", "field", "reference", "legacy"),
+        [
+            ("rnaseq", "library_preparation_kit", "Custom", {"rnaseq_assay_method": "SNARE-Seq2-RNA"}),
+            ("rnaseq", "umi_read", "Read 2 (R2)", {"cell_barcode_read": "R2"}),
+            (
+                "atacseq",
+                "sequencing_reagent_kit",
+                "Illumina; NovaSeq 6000 S4 Reagent Kit v1.5 (300 cycles); PN 20028312",
+                {"sequencing_reagent_kit": "NovaSeq 6000 S4 Reagent"},
+            ),
+            ("codex", "preparation_instrument_vendor", "Akoya Biosciences", {"preparation_instrument_vendor": "CODEX"}),
+            ("af", "analyte_class", "Endogenous fluorophore", {"analyte_class": "", "assay_type": "AF"}),
+            ("atacseq", "umi_read", "Not applicable", {"assay_type": "bulkATACseq"}),
+        ],
+    )
+    def test_context_alone_does_not_establish_the_omitted_reference(
+        self, tmp_path: Path, assay: str, field: str, reference: str, legacy: dict
+    ) -> None:
+        _case(tmp_path, "r", assay=assay, gold={field: reference}, predicted={field: None}, legacy=legacy)
+        row = _one(tmp_path)
+        assert (row["category"], row["subcategory"]) == (OMISSIONS, EXTERNAL_GAP)
+        assert row["omission_basis"] == "legacy hint insufficient to establish reference"
+        assert not row["legacy_support_sources"]
+        assert row["legacy_hint_sources"]
+        assert not row["legacy_sources"]
+
+    @pytest.mark.parametrize("legacy_value", [None, "", "  ", "Unknown", "not specified"])
+    def test_empty_or_unknown_source_fields_are_not_hints(self, tmp_path: Path, legacy_value: str | None) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"acquisition_instrument_model": "NovaSeq 6000"},
+            predicted={"acquisition_instrument_model": None},
+            legacy={"acquisition_instrument_model": legacy_value},
+        )
+        row = _one(tmp_path)
+        assert row["subcategory"] == EXTERNAL_GAP
+        assert row["omission_basis"] == "no supporting legacy value detected"
+        assert not row["legacy_hint_sources"]
+
+    def test_unrelated_populated_fields_do_not_rule_out_an_external_gap(self, tmp_path: Path) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"nuclear_marker_or_stain": "DAPI"},
+            predicted={"nuclear_marker_or_stain": None},
+            legacy={"assay_type": "Cell DIVE", "donor_id": "DAPI-study", "number_of_channels": 3},
+            assay="celldive",
+        )
+        assert _one(tmp_path)["subcategory"] == EXTERNAL_GAP
+
+    def test_numeric_zero_is_a_real_context_hint(self, tmp_path: Path) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"barcode_offset": "Not applicable"},
+            predicted={"barcode_offset": None},
+            legacy={"cell_barcode_offset": 0},
+        )
+        row = _one(tmp_path)
+        assert row["legacy_hint_sources"] == {"cell_barcode_offset": 0}
+        assert row["subcategory"] == EXTERNAL_GAP
+        assert not row["legacy_support_sources"]
+
+    def test_nested_target_field_provides_a_context_hint(self, tmp_path: Path) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"acquisition_instrument_model": "NovaSeq 6000"},
+            predicted={"acquisition_instrument_model": None},
+            legacy={"other_metadata": {"acquisition_instrument_model": "NovaSeq"}},
+        )
+        row = _one(tmp_path)
+        assert row["subcategory"] == EXTERNAL_GAP
+        assert row["legacy_hint_sources"] == {"other_metadata.acquisition_instrument_model": "NovaSeq"}
+
+    def test_omission_hints_do_not_depend_on_the_agent_noticing_them(self, tmp_path: Path) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"ms_scan_mode": "MS2"},
+            predicted={"ms_scan_mode": None},
+            legacy={"ms_scan_mode": "MS2"},
+        )
+        _write(
+            tmp_path / "atacseq" / "output" / "m" / "sys" / "decisions" / "r.json",
+            [{"key": "ms_scan_mode", "value": None, "legacy_fields": [], "reasoning": "No source found."}],
+        )
+        row = _one(tmp_path)
+        assert row["subcategory"] == MISSED_VALUE
+        assert row["legacy_support_sources"] == {"ms_scan_mode": "MS2"}
 
     def test_overestimated_when_the_run_wrote_a_value_the_record_holds(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"title": ""}, predicted={"title": "lung"}, legacy={"tissue": "lung"})
         row = _one(tmp_path)
-        assert (row["category"], row["subcategory"]) == (INSERTIONS, OVERESTIMATE_LEGACY_VALUE)
+        assert (row["category"], row["subcategory"]) == (INSERTIONS, UNEXPECTED_COPY)
+
+    @pytest.mark.parametrize(
+        ("field", "reference", "legacy"),
+        [
+            ("umi_size", "12", {"library_pcr_cycles": "12", "cell_barcode_size": "12"}),
+            ("umi_offset", "16", {"cell_barcode_size": "16"}),
+            ("umi_read", "Read 1 (R1)", {"cell_barcode_read": "R1"}),
+            ("umi_offset", "16", {"umi_offset": "17", "cell_barcode_size": "16"}),
+            ("umi_read", "Not applicable", {"assay_type": "bulkATACseq"}),
+            ("lc_column_vendor", "Waters", {"lc_instrument_vendor": "Waters"}),
+        ],
+    )
+    def test_different_properties_and_conflicting_offsets_cannot_support_omissions(
+        self, tmp_path: Path, field: str, reference: str, legacy: dict
+    ) -> None:
+        _case(tmp_path, "r", gold={field: reference}, predicted={field: None}, legacy=legacy)
+        row = _one(tmp_path)
+        assert row["subcategory"] == EXTERNAL_GAP
+        assert not row["legacy_support_sources"]
+
+    @pytest.mark.parametrize(
+        ("field", "reference", "legacy", "source"),
+        [
+            ("umi_size", "12", {"umi_size": 12}, "umi_size"),
+            ("umi_offset", "0", {"umi_offset": 0}, "umi_offset"),
+            ("umi_read", "Read 1 (R1)", {"umi_read": "R1"}, "umi_read"),
+            ("barcode_read", "Read 2 (R2)", {"cell_barcode_read": "R2"}, "cell_barcode_read"),
+            ("barcode_size", "16", {"cell_barcode_size": "16"}, "cell_barcode_size"),
+            ("umi_size", "12", {"other_metadata": {"umi_size": "12"}}, "other_metadata.umi_size"),
+        ],
+    )
+    def test_direct_umi_evidence_and_valid_renames_support_omissions(
+        self, tmp_path: Path, field: str, reference: str, legacy: dict, source: str
+    ) -> None:
+        _case(tmp_path, "r", gold={field: reference}, predicted={field: None}, legacy=legacy)
+        row = _one(tmp_path)
+        assert row["subcategory"] == MISSED_VALUE
+        assert source in row["legacy_support_sources"]
+        assert row["omission_basis"] == "reference established by legacy source"
+
+    def test_renamed_source_with_a_different_value_does_not_establish_the_reference(self, tmp_path: Path) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"barcode_read": "Read 2 (R2)"},
+            predicted={"barcode_read": None},
+            legacy={"cell_barcode_read": "I5"},
+        )
+        assert _one(tmp_path)["subcategory"] == EXTERNAL_GAP
 
     def test_too_optimistic_when_the_record_holds_nothing(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"title": ""}, predicted={"title": "from nowhere"}, legacy={"tissue": "lung"})
         row = _one(tmp_path)
-        assert (row["category"], row["subcategory"]) == (INSERTIONS, TOO_OPTIMISTIC_ANSWER)
+        assert (row["category"], row["subcategory"]) == (INSERTIONS, UNEXPECTED_FILL)
 
     def test_the_two_pairs_mirror_each_other(self, tmp_path: Path) -> None:
         # One question -- did the record hold the value? -- asked of gold's for a deletion
@@ -187,7 +429,86 @@ class TestDeletionsAndInsertions:
         _case(tmp_path, "a", gold={"tissue": "lung"}, predicted={"tissue": None}, legacy={"organ": "lung"})
         _case(tmp_path, "b", gold={"title": ""}, predicted={"title": "lung"}, legacy={"organ": "lung"})
         errors = collect_field_errors(str(tmp_path), "m", "sys")
-        assert set(errors["subcategory"]) == {UNDERESTIMATE_LEGACY_VALUE, OVERESTIMATE_LEGACY_VALUE}
+        assert set(errors["subcategory"]) == {MISSED_VALUE, UNEXPECTED_COPY}
+
+
+@pytest.mark.parametrize(
+    ("legacy", "source"),
+    [
+        ({"other_metadata": {"Seq_run": "NS-1699"}}, "other_metadata.Seq_run"),
+        ({"other_metadata": {"runs": [{"Seq_run": "NS-1699"}]}}, "other_metadata.runs[0].Seq_run"),
+        ({"other_metadata": {"Seq_run": [None, "", "NS-1699"]}}, "other_metadata.Seq_run[2]"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("reference", "prediction", "subcategory"),
+    [
+        (None, "NS-1699", UNEXPECTED_COPY),
+        ("NS-1699", None, MISSED_VALUE),
+        ("other run", "NS-1699", WRONG_MAPPING),
+    ],
+)
+def test_nested_legacy_values_determine_provenance(
+    tmp_path: Path, legacy: dict, source: str, reference: str | None, prediction: str | None, subcategory: str
+) -> None:
+    _case(
+        tmp_path,
+        "r",
+        gold={"sequencing_batch_id": reference},
+        predicted={"sequencing_batch_id": prediction},
+        legacy=legacy,
+    )
+    assert _one(tmp_path)["subcategory"] == subcategory
+    assert _legacy_fields_carrying("NS-1699", legacy) == {source}
+
+
+@pytest.mark.parametrize(
+    "legacy",
+    [
+        {"other_metadata": {"Seq_run": "NS-16990"}},
+        {"other_metadata": {"NS-1699": "unrelated"}},
+    ],
+)
+def test_nested_lookup_does_not_match_substrings_or_keys(tmp_path: Path, legacy: dict) -> None:
+    _case(tmp_path, "r", gold={"title": None}, predicted={"title": "NS-1699"}, legacy=legacy)
+    assert _one(tmp_path)["subcategory"] == UNEXPECTED_FILL
+
+
+def test_nested_lookup_preserves_whole_container_matches() -> None:
+    value = {"Seq_run": "NS-1699"}
+    assert _legacy_fields_carrying(value, {"other_metadata": value}) == {"other_metadata"}
+
+
+@pytest.mark.parametrize("recorded", ["225 pM", "225", "225.0"])
+def test_numeric_values_recorded_with_units_are_available(tmp_path: Path, recorded: str) -> None:
+    _case(
+        tmp_path,
+        "r",
+        gold={"count": None},
+        predicted={"count": 225.0},
+        legacy={"other_metadata": {"concentration": recorded}},
+    )
+    row = _one(tmp_path)
+    assert row["subcategory"] == UNEXPECTED_COPY
+    assert row["legacy_sources"] == {"other_metadata.concentration": recorded}
+
+
+@pytest.mark.parametrize("recorded", ["NS-225", "225 pM in pooled sample", "2250 pM"])
+def test_numeric_availability_does_not_match_identifiers_or_free_text(tmp_path: Path, recorded: str) -> None:
+    _case(tmp_path, "r", gold={"count": None}, predicted={"count": 225.0}, legacy={"other": recorded})
+    assert _one(tmp_path)["subcategory"] == UNEXPECTED_FILL
+
+
+@pytest.mark.parametrize(
+    ("prediction", "recorded"),
+    [(-5, "5"), (5, "-5"), (-5, "5 mM"), (9007199254740993, "9007199254740992")],
+)
+def test_legacy_availability_preserves_numeric_sign_and_precision(
+    tmp_path: Path, prediction: int, recorded: str
+) -> None:
+    _case(tmp_path, "r", gold={"count": None}, predicted={"count": prediction}, legacy={"other": recorded})
+    assert _one(tmp_path)["subcategory"] == UNEXPECTED_FILL
+    assert _one(tmp_path)["legacy_sources"] == {}
 
 
 class TestPartition:
@@ -213,7 +534,7 @@ class TestPartition:
 
     def test_the_category_is_the_confusion_case(self, tmp_path: Path) -> None:
         errors = self._mixed(tmp_path)
-        expected = {"substitution": SUBSTITUTIONS, "deletion": DELETIONS, "insertion": INSERTIONS}
+        expected = {"substitution": SUBSTITUTIONS, "deletion": OMISSIONS, "insertion": INSERTIONS}
         assert [expected[case] for case in errors["case"]] == list(errors["category"])
 
     def test_costs_follows_the_case(self, tmp_path: Path) -> None:
@@ -227,7 +548,7 @@ class TestPartition:
         # cells would contradict the reconciliation counted right beside it.
         assert CONFUSION_CELLS_BY_CATEGORY == {
             SUBSTITUTIONS: "FP + FN",
-            DELETIONS: "FN",
+            OMISSIONS: "FN",
             INSERTIONS: "FP",
         }
 
@@ -251,8 +572,8 @@ class TestPartition:
         # The category comes from the case and the sub-category from the classifier, by two
         # routes that could drift apart without anything raising.
         errors = self._mixed(tmp_path)
-        errors.loc[errors.index[0], "category"] = DELETIONS
-        errors.loc[errors.index[0], "subcategory"] = CLOSE_MATCH
+        errors.loc[errors.index[0], "category"] = OMISSIONS
+        errors.loc[errors.index[0], "subcategory"] = NEAR_MATCH
         with pytest.raises(ValueError, match="wrong category"):
             _check_levels_agree(errors)
 
@@ -263,21 +584,17 @@ class TestPartition:
         assert collect_field_errors(str(tmp_path), "m", "sys").empty
 
 
-class TestCloseMatchReasons:
-    def test_every_reason_is_reported_not_only_the_first(self) -> None:
-        # The four overlap heavily, and a break-down keeping only the first would describe
-        # the order they are tested in as much as the run.
-        reasons = close_match_reasons("Orbitrap", "Orbitrap", "tissue", {"tissue": "Orbitrap"}, None)
-        assert SAME_VALUE_OTHER_SHAPE in reasons
-        assert ONE_CONTAINS_THE_OTHER in reasons
-        assert KEPT_THIS_FIELD_S_VALUE in reasons
+class TestNearMatchReasons:
+    def test_formatting_equivalence_has_a_specific_reason(self) -> None:
+        reasons = near_match_reasons("Orbitrap", "orbitrap ", "tissue", {"tissue": "Orbitrap"}, None)
+        assert reasons == [SAME_VALUE_OTHER_SHAPE]
 
-    def test_no_reasons_means_not_a_close_match(self) -> None:
-        assert close_match_reasons("lung", "kidney", "tissue", {}, None) == []
+    def test_no_reasons_means_not_a_near_match(self) -> None:
+        assert near_match_reasons("lung", "kidney", "tissue", {}, None) == []
 
     def test_rows_that_are_not_close_carry_no_reasons(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": None}, legacy={})
-        assert _one(tmp_path)["close_match_reasons"] == ""
+        assert _one(tmp_path)["near_match_reasons"] == ""
 
 
 class TestBookkeeping:
@@ -363,7 +680,7 @@ class TestDeduplication:
         _case(tmp_path, "a", gold={"tissue": "lung"}, predicted={"tissue": None}, legacy={"organ": "lung"})
         _case(tmp_path, "b", gold={"tissue": "lung"}, predicted={"tissue": None}, legacy={})
         errors = collect_field_errors(str(tmp_path), "m", "sys")
-        assert set(errors["subcategory"]) == {UNDERESTIMATE_LEGACY_VALUE, ENTIRELY_DONT_KNOW}
+        assert set(errors["subcategory"]) == {MISSED_VALUE, EXTERNAL_GAP}
         assert len(deduplicate_errors(errors)) == 2
 
     def test_an_unhashable_value_does_not_raise(self, tmp_path: Path) -> None:
@@ -377,6 +694,30 @@ class TestDeduplication:
         distinct = deduplicate_errors(collect_field_errors(str(tmp_path), "m", "sys"))
         assert distinct.empty
         assert "n_instances" in distinct.columns
+
+
+class TestFieldTypeSummary:
+    def test_counts_partition_the_deduplicated_cases(self, tmp_path: Path) -> None:
+        _case(
+            tmp_path,
+            "r",
+            gold={"ms_scan_mode": "MS2", "title": "expected"},
+            predicted={"ms_scan_mode": None, "title": None},
+            legacy={"ms_scan_mode": "MS2"},
+        )
+        cases = deduplicate_errors(collect_field_errors(tmp_path, "m", "sys"))
+        table = summarize_error_subcategories_by_field_type(cases).set_index("subcategory")
+        assert table.loc[MISSED_VALUE, "ontology"] == 1
+        assert table.loc[EXTERNAL_GAP, "non_ontology"] == 1
+        assert table["total"].sum() == len(cases) == 2
+        assert table["total"].equals(table[["ontology", "non_ontology"]].sum(axis=1))
+        assert list(table.index) == list(SUBCATEGORIES)
+
+    def test_no_disagreements_reports_zero_for_every_subcategory(self, tmp_path: Path) -> None:
+        _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": "lung"}, legacy={})
+        table = summarize_error_subcategories_by_field_type(collect_field_errors(tmp_path, "m", "sys"))
+        assert list(table.subcategory) == list(SUBCATEGORIES)
+        assert table[["ontology", "non_ontology", "total"]].to_numpy().sum() == 0
 
 
 class TestCategoryShares:

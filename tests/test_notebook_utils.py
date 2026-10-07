@@ -18,9 +18,12 @@ from analysis.data_analysis import (
     summarize_error_categories,
     summarize_error_subcategories,
 )
+from notebook_utils import show_error_analysis, show_error_examples
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from pytest import CaptureFixture
 
 SCHEMA = {
     "children": [
@@ -72,6 +75,71 @@ def _corpus(root: Path):
         legacy={"organ": "spleen"},
     )
     return collect_field_errors(str(root), "m", "sys")
+
+
+def test_show_error_analysis_uses_short_labels(tmp_path: Path, capsys: CaptureFixture[str]) -> None:
+    cases = [
+        ("near_match", "substitutions", "Lung Biopsy", "lung  biopsy", {}),
+        ("wrong_mapping", "substitutions", "lung", "kidney", {"other": "kidney"}),
+        ("different_value", "substitutions", "lung", "kidney", {}),
+        ("missed_value", "omissions", "lung", None, {"title": "lung"}),
+        ("external_gap", "omissions", "lung", None, {}),
+        ("unexpected_copy", "insertions", "", "lung", {"other": "lung"}),
+        ("unexpected_fill", "insertions", "", "lung", {}),
+    ]
+    for label, _category, reference, prediction, legacy in cases:
+        _case(
+            tmp_path,
+            "atacseq",
+            label,
+            gold={"title": reference},
+            predicted={"title": prediction},
+            legacy=legacy,
+        )
+
+    errors = show_error_analysis(tmp_path, "m", "sys", apply_dedup=True)
+    output = capsys.readouterr().out
+    assert len(errors) == len(cases)
+    assert dict(zip(errors["subcategory"], errors["category"], strict=True)) == {
+        label: category for label, category, *_ in cases
+    }
+    for label, category, *_ in cases:
+        assert label in output
+        assert category in output
+    assert "FP: 5 counted, 5 categorised -- accounted for" in output
+    assert "FN: 5 counted, 5 categorised -- accounted for" in output
+
+
+def test_examples_show_nested_legacy_sources(tmp_path: Path, capsys: CaptureFixture[str]) -> None:
+    _case(
+        tmp_path,
+        "rnaseq",
+        "r",
+        gold={"title": None},
+        predicted={"title": "NS-1699"},
+        legacy={"other_metadata": {"Seq_run": "NS-1699"}},
+    )
+    errors = show_error_analysis(tmp_path, "m", "sys")
+    capsys.readouterr()
+    examples = show_error_examples(errors, subcategory="unexpected_copy")
+    assert examples.iloc[0]["legacy_sources"] == {"other_metadata.Seq_run": "NS-1699"}
+    assert '"other_metadata.Seq_run": "NS-1699"' in capsys.readouterr().out
+
+
+def test_report_passes_confirmed_value_mappings_to_classifier(tmp_path: Path, capsys: CaptureFixture[str]) -> None:
+    _case(
+        tmp_path,
+        "atacseq",
+        "r",
+        gold={"title": "legacy term"},
+        predicted={"title": "standard term"},
+        legacy={"title": "legacy term"},
+    )
+    mappings = {"title": {("legacy term", "standard term"): "Confirmed by curator review"}}
+    errors = show_error_analysis(tmp_path, "m", "sys", confirmed_value_mappings=mappings)
+    assert errors.iloc[0]["subcategory"] == "near_match"
+    assert "Confirmed by curator review" in errors.iloc[0]["near_match_reasons"]
+    assert "near_match" in capsys.readouterr().out
 
 
 class TestTheTwoLevels:

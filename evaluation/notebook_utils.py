@@ -1,7 +1,7 @@
 """Assemble and print the tables `experiment.ipynb` shows.
 
 The measurements themselves live in :mod:`analysis` -- this module only arranges what
-they return and prints it, so the notebook can call rather than define.  Everything here
+they return and prints it, so the notebook can call rather than define. Everything here
 both prints and returns what it printed, so a cell can show a table and still keep the
 frame for a follow-up question.
 
@@ -12,6 +12,7 @@ the *alpha* passed in, no metric definitions, no scoring.  Those belong in
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -26,6 +27,7 @@ from analysis.data_analysis import (
     reconcile_with_confusion,
     summarize_error_categories,
     summarize_error_subcategories,
+    summarize_error_subcategories_by_field_type,
 )
 from analysis.metrics import CONFUSION_CATEGORIES
 from analysis.significance import (
@@ -326,6 +328,20 @@ def show_deduplicated_tests(
     return table
 
 
+def show_error_subcategories_by_field_type(errors: pd.DataFrame) -> pd.DataFrame:
+    """Print subcategory counts by field type and return the table, including totals.
+
+    Count the supplied rows once each. Pass deduplicated errors to count distinct
+    disagreements, or the full collection to count record–field instances. All seven
+    subcategories and both field types are retained, including zeros.
+    """
+    table = summarize_error_subcategories_by_field_type(errors)
+    table.loc[len(table)] = ["Total", *table[["ontology", "non_ontology", "total"]].sum().tolist()]
+    print("\n    sub-categories by field type:")
+    print(table.to_string(index=False))
+    return table
+
+
 def show_error_analysis(
     data_root: str | Path,
     model: str,
@@ -335,11 +351,36 @@ def show_error_analysis(
     apply_dedup: bool = False,
     top_fields: int = 10,
     run: int = 1,
+    confirmed_value_mappings: dict[str, dict[tuple[str, str], str]] | None = None,
 ) -> pd.DataFrame:
-    """Print why *condition* loses precision and why it loses recall, and return the errors.
+    """Print *condition*'s reference disagreements by category and subcategory.
 
-    Two tables, counting by assay: the categories first, then the sub-categories they break
-    into.  Both levels are printed because they answer different questions -- the category
+    Substitutions split into ``near_match``, ``wrong_mapping``, and ``different_value``;
+    omissions into ``missed_value`` and ``external_gap``; insertions into
+    ``unexpected_copy`` and ``unexpected_fill``.  Near matches allow equivalent text,
+    numbers, DOI resolver URLs, dataset-path notation, read-length separators, and value
+    mappings confirmed by a reviewer to preserve the same information.  Text containment,
+    legacy preservation, and permitted-vocabulary membership alone do not qualify.
+    Different values include remaining substitutions, even when
+    copied from the same legacy field.  Wrong mappings are candidates identified by a
+    matching value in another legacy field, excluding reviewed valid source mappings.
+    ATACseq's assay_type, cell_barcode_offset, and cell_barcode_size correctly map to
+    dataset_type, barcode_offset, and barcode_size; differing values from those sources
+    are different_value. Other source-to-target semantics still need review.
+    Omissions are ``missed_value`` only when the reference is established by a value
+    at the target field or a supported legacy source alias. Related methods, kits,
+    barcode fields, and PCR counts alone cannot establish UMI values. Missing new-schema
+    fields suggest ``external_gap`` unless a supported alias supplies the value.
+    External gaps remain candidates pending external-provenance verification.
+    ``legacy_hint_sources`` records context without deciding the label;
+    ``legacy_support_sources``, ``legacy_target_present``, and ``omission_basis``
+    expose the actual evidence used.
+    Legacy-value lookup includes nested objects and list items.
+
+    Two tables count by assay: the categories first, then their subcategories. A third
+    printed table counts subcategories by field type, including a total row, using
+    :func:`show_error_subcategories_by_field_type`. It follows the same deduplication and
+    field-type filter. Both category levels are printed because they answer different questions -- the category
     is what the figures draw and what a headline can carry, the sub-category is what
     :func:`show_error_examples` reads back -- and the sub-categories run in their
     categories' order, so printing them together is what makes the roll-up checkable down a
@@ -362,7 +403,9 @@ def show_error_analysis(
     ``pointer`` of ``<assay>/<record>#<field>`` to open.  Pass it to
     :func:`show_error_examples` to read a category or a sub-category.
     """
-    errors = collect_field_errors(data_root, model, condition, run=run)
+    errors = collect_field_errors(
+        data_root, model, condition, run=run, confirmed_value_mappings=confirmed_value_mappings
+    )
     if errors.empty:
         print(f"No errors to categorise: {condition!r} has no predictions under {model!r}.")
         return errors
@@ -374,6 +417,10 @@ def show_error_analysis(
     for cell, totals in counts.items():
         agree = "accounted for" if totals["counted"] == totals["categorised"] else "MISMATCH"
         print(f"  {cell}: {totals['counted']} counted, {totals['categorised']} categorised -- {agree}")
+    print("  near_match: a different representation confirmed to convey the same information")
+    print("  wrong_mapping: candidate mapping error, excluding reviewed valid source mappings")
+    print("  missed_value: reference established by a matching target field or supported legacy alias")
+    print("  external_gap: legacy information does not establish the reference; external provenance requires review")
     if field_type is not None:
         print(f"  restricted to {field_type} fields")
 
@@ -392,6 +439,8 @@ def show_error_analysis(
     print(subcategories.to_string(index=False) if len(subcategories) else "  none")
 
     selected = errors if field_type is None else errors[errors["field_type"] == field_type]
+    show_error_subcategories_by_field_type(selected)
+
     print(f"\n--- the {top_fields} fields carrying the most errors ---")
     worst = (
         selected.groupby(["assay", "field"], observed=True)
@@ -447,6 +496,15 @@ def show_error_examples(
         print(f"    gold      {row['gold_value']!r}")
         print(f"    predicted {row['predicted_value']!r}")
         print(f"    legacy    {row['legacy_value']!r}")
+        sources = row.get("legacy_sources", {})
+        print(f"    legacy sources  {json.dumps(sources, ensure_ascii=False)}")
+        if row.get("omission_basis"):
+            print(f"    omission basis  {row['omission_basis']}")
+            print(f"    legacy hints    {json.dumps(row.get('legacy_hint_sources', {}), ensure_ascii=False)}")
+            print(f"    legacy support  {json.dumps(row.get('legacy_support_sources', {}), ensure_ascii=False)}")
+            print(f"    target present  {row.get('legacy_target_present')}")
+        if row["near_match_reasons"]:
+            print(f"    near-match evidence  {row['near_match_reasons']}")
         if row["resolution"]:
             print(f"    the run called this {row['resolution']!r}: {row['reasoning']}")
     return selected.head(n)

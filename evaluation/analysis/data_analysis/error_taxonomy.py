@@ -9,16 +9,20 @@ the template's permissible values, and, when the run kept one, the run's own dec
 Every error is labelled at two levels, and carries both:
 
 * its **category** is the confusion case, named for what the run did:
-  :data:`SUBSTITUTIONS`, :data:`DELETIONS`, :data:`INSERTIONS`.
+  :data:`SUBSTITUTIONS`, :data:`OMISSIONS`, :data:`INSERTIONS`.
 * its **sub-category** says which of the several ways that came about.
 
-Under :data:`DELETIONS` and :data:`INSERTIONS` the sub-categories split on one question --
-whether the legacy record held the value at issue -- so the two mirror each other:
-:data:`UNDERESTIMATE_LEGACY_VALUE` left behind what was there, :data:`OVERESTIMATE_LEGACY_VALUE`
-took what was not wanted, and :data:`ENTIRELY_DONT_KNOW` and :data:`TOO_OPTIMISTIC_ANSWER`
-are the pair where the record said nothing.  A substitution splits on the same question
--- :data:`MISLOCATE_LEGACY_VALUE` against :data:`COMPLETELY_WRONG` -- after
-:data:`CLOSE_MATCH` is taken out of it first.
+Omissions require legacy evidence that establishes the reference value for the target
+field. Related context alone is insufficient. Insertions split on whether the legacy
+record holds the asserted value.
+Substitutions first check representation equivalence or explicitly confirmed term
+mappings, then exclude reviewed valid source-field mappings before identifying candidate
+mapping errors from another legacy field.  All other
+substitutions are different values, including uncorrected same-field legacy values.
+These labels describe reference disagreements, including cases where the reference
+preserves a legacy value that does not meet the specification. External-gap candidates
+lack sufficient legacy evidence, even when a method or kit provides a starting hint.
+External provenance still requires separate verification.
 
 **One row per error.**  The category *is* the confusion case, so a substitution has one
 label rather than one per side, and the frame holds one row per (record, field).  Which
@@ -34,6 +38,7 @@ from __future__ import annotations
 
 import json
 import re
+from decimal import Decimal, InvalidOperation
 from typing import TYPE_CHECKING, Any
 
 from analysis.corpus import iter_assays, load_record
@@ -41,6 +46,7 @@ from analysis.metrics import _is_missing
 from analysis.metrics.matching import DELETION, INSERTION, SUBSTITUTION, _classify_field
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
     import pandas as pd
@@ -66,14 +72,14 @@ POOLED_ASSAY = "All assays"
 SUBSTITUTIONS = "substitutions"
 
 #: Gold holds a value and the run asserted nothing.
-DELETIONS = "deletions"
+OMISSIONS = "omissions"
 
 #: Gold leaves the field blank and the run asserted something.
 INSERTIONS = "insertions"
 
-CATEGORIES = (SUBSTITUTIONS, DELETIONS, INSERTIONS)
+CATEGORIES = (SUBSTITUTIONS, OMISSIONS, INSERTIONS)
 
-CATEGORY_BY_CASE = {SUBSTITUTION: SUBSTITUTIONS, DELETION: DELETIONS, INSERTION: INSERTIONS}
+CATEGORY_BY_CASE = {SUBSTITUTION: SUBSTITUTIONS, DELETION: OMISSIONS, INSERTION: INSERTIONS}
 
 #: Which confusion cells a category lands in, in the metric's own notation.  The same fact
 #: the ``costs`` column carries in words, kept separately because a figure has room for
@@ -81,7 +87,7 @@ CATEGORY_BY_CASE = {SUBSTITUTION: SUBSTITUTIONS, DELETION: DELETIONS, INSERTION:
 #: precision/recall tables is already holding the short form.
 CONFUSION_CELLS_BY_CATEGORY = {
     SUBSTITUTIONS: "FP + FN",
-    DELETIONS: "FN",
+    OMISSIONS: "FN",
     INSERTIONS: "FP",
 }
 
@@ -89,74 +95,77 @@ CONFUSION_CELLS_BY_CATEGORY = {
 # Sub-categories of a substitution.
 # ---------------------------------------------------------------------------
 
-#: Some part of the assertion is right without being gold's value exactly.  Four ways in,
-#: and they overlap heavily -- 62% of these rows satisfy more than one -- so this is one
-#: label rather than four.  :func:`close_match_reasons` returns every reason that applies,
-#: for a reader who wants to break it down; a break-down has to pick an order between them,
-#: which is the thing this label avoids having to defend.
-CLOSE_MATCH = "close_match"
+#: The asserted value differs from the reference but conveys the same information.
+NEAR_MATCH = "near_match"
 
-#: The asserted value is a legacy value, carried by a *different* field of the record: the
-#: instinct to copy was right and the source field was wrong.
-MISLOCATE_LEGACY_VALUE = "mislocate_legacy_value"
+#: A candidate field-mapping error: the asserted value comes from another legacy field,
+#: differs from the reference, and does not qualify as a near match.
+WRONG_MAPPING = "wrong_mapping"
 
-#: Neither near gold nor carried by the record: nothing in the input accounts for it.
-COMPLETELY_WRONG = "completely_wrong"
+# Source-to-target mappings reviewed against the ATACseq field definitions and decision
+# logs. A renamed source field is not itself evidence of a mapping error. Keep these
+# assay-specific: similarly named fields in another assay can have different meanings.
+_REVIEWED_LEGACY_FIELD_MAPPINGS = {
+    "atacseq": {
+        "dataset_type": frozenset({"assay_type"}),
+        "barcode_offset": frozenset({"cell_barcode_offset"}),
+        "barcode_size": frozenset({"cell_barcode_size"}),
+    }
+}
+
+#: The asserted value differs from the reference and qualifies as neither a near match
+#: nor a wrong mapping.  This includes uncorrected values copied from the same legacy field.
+DIFFERENT_VALUE = "different_value"
 
 # ---------------------------------------------------------------------------
-# Sub-categories of a deletion, and their mirrors under an insertion.
+# Sub-categories of an omission, and their mirrors under an insertion.
 # ---------------------------------------------------------------------------
 
-#: The run left the field blank and the record held gold's value: it was there to be copied
-#: and was left behind.
-UNDERESTIMATE_LEGACY_VALUE = "underestimate_legacy_value"
+#: The run leaves the field blank although the expected value is available in the legacy
+#: record at the target field or a supported source alias.
+MISSED_VALUE = "missed_value"
 
-#: The run left the field blank and the record held nothing to go on -- but gold has a
-#: value, so something was there to be known.  Read as a field that took more than
-#: transcription, not as one that could not be done.
-ENTIRELY_DONT_KNOW = "entirely_dont_know"
+#: The legacy record does not establish the omitted reference value. A related hint may
+#: still exist; external provenance must be verified separately.
+EXTERNAL_GAP = "external_gap"
 
-#: Gold left the field blank and the run wrote a value the record carries: it read more
-#: into the record than the curator did.  The mirror of :data:`UNDERESTIMATE_LEGACY_VALUE`.
-OVERESTIMATE_LEGACY_VALUE = "overestimate_legacy_value"
+#: The run fills a field the reference leaves blank with a value found in the legacy record.
+UNEXPECTED_COPY = "unexpected_copy"
 
-#: Gold left the field blank and the run answered from its own knowledge, the record
-#: holding nothing.  The mirror of :data:`ENTIRELY_DONT_KNOW`.
-TOO_OPTIMISTIC_ANSWER = "too_optimistic_answer"
+#: The run fills a field the reference leaves blank with a value not found in the legacy record.
+UNEXPECTED_FILL = "unexpected_fill"
 
 #: Reporting order, grouped so each sub-category sits under its category.
 SUBCATEGORIES = (
-    CLOSE_MATCH,
-    MISLOCATE_LEGACY_VALUE,
-    COMPLETELY_WRONG,
-    UNDERESTIMATE_LEGACY_VALUE,
-    ENTIRELY_DONT_KNOW,
-    OVERESTIMATE_LEGACY_VALUE,
-    TOO_OPTIMISTIC_ANSWER,
+    NEAR_MATCH,
+    WRONG_MAPPING,
+    DIFFERENT_VALUE,
+    MISSED_VALUE,
+    EXTERNAL_GAP,
+    UNEXPECTED_COPY,
+    UNEXPECTED_FILL,
 )
 
 CATEGORY_BY_SUBCATEGORY = {
-    CLOSE_MATCH: SUBSTITUTIONS,
-    MISLOCATE_LEGACY_VALUE: SUBSTITUTIONS,
-    COMPLETELY_WRONG: SUBSTITUTIONS,
-    UNDERESTIMATE_LEGACY_VALUE: DELETIONS,
-    ENTIRELY_DONT_KNOW: DELETIONS,
-    OVERESTIMATE_LEGACY_VALUE: INSERTIONS,
-    TOO_OPTIMISTIC_ANSWER: INSERTIONS,
+    NEAR_MATCH: SUBSTITUTIONS,
+    WRONG_MAPPING: SUBSTITUTIONS,
+    DIFFERENT_VALUE: SUBSTITUTIONS,
+    MISSED_VALUE: OMISSIONS,
+    EXTERNAL_GAP: OMISSIONS,
+    UNEXPECTED_COPY: INSERTIONS,
+    UNEXPECTED_FILL: INSERTIONS,
 }
 
-#: The reasons a substitution counts as a close match, in the order
-#: :func:`close_match_reasons` returns them.
+#: The reasons a substitution counts as a near match, in the order
+#: :func:`near_match_reasons` returns them.
 SAME_VALUE_OTHER_SHAPE = "same value, other shape"
-ONE_CONTAINS_THE_OTHER = "one contains the other"
-KEPT_THIS_FIELD_S_VALUE = "kept this field's record value"
-USED_THE_VOCABULARY = "used the vocabulary, gold did not"
+SAME_READ_FORMAT = "same read lengths, different separators"
+CONFIRMED_VALUE_MAPPING = "confirmed value mapping"
 
-CLOSE_MATCH_REASONS = (
+NEAR_MATCH_REASONS = (
     SAME_VALUE_OTHER_SHAPE,
-    ONE_CONTAINS_THE_OTHER,
-    KEPT_THIS_FIELD_S_VALUE,
-    USED_THE_VOCABULARY,
+    SAME_READ_FORMAT,
+    CONFIRMED_VALUE_MAPPING,
 )
 
 ERROR_COLUMNS = [
@@ -167,10 +176,15 @@ ERROR_COLUMNS = [
     "costs",
     "category",
     "subcategory",
-    "close_match_reasons",
+    "near_match_reasons",
     "gold_value",
     "predicted_value",
     "legacy_value",
+    "legacy_sources",
+    "legacy_hint_sources",
+    "legacy_support_sources",
+    "legacy_target_present",
+    "omission_basis",
     "resolution",
     "reasoning",
     "pointer",
@@ -182,11 +196,77 @@ _WHITESPACE = re.compile(r"\s+")
 #: The legacy records store them bare; the templates ask for the resolver URL.
 _DOI_PREFIX = re.compile(r"^https?://(dx\.)?doi\.org/")
 
+# A complete quantity, rather than a number occurring inside an identifier or free text.
+_QUANTITY = re.compile(r"([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s+([a-zµμ%][a-zµμ%0-9/^·.-]*)", re.I)
+
 #: Answers that commit to nothing.  Kept small and literal: a longer list would start
 #: swallowing real vocabulary terms.
 _PLACEHOLDERS = frozenset(
     {"custom", "in-house", "in house", "unknown", "other", "none", "n/a", "na", "not applicable", "not specified"}
 )
+
+# Explicit source relationships for omission review, not arbitrary word overlap. They
+# identify potentially useful context, not proof of the reference's exact value. The
+# agent's decision log is not used to decide whether a hint exists: a missed source can
+# be absent from that log. Assay-specific context is restricted to the relevant fields.
+_OMISSION_HINT_ALIASES = {
+    "barcode_offset": ("cell_barcode_offset",),
+    "barcode_read": ("cell_barcode_read",),
+    "barcode_size": ("cell_barcode_size",),
+    "preparation_matrix": ("preparation_maldi_matrix",),
+    "matrix_deposition_method": ("preparation_type", "preparation_instrument_model"),
+    "nuclear_marker_or_stain": ("nuclear_stain", "nuclear_marker", "stain"),
+    "is_staining_automated": ("staining_automated", "is_automated_staining"),
+}
+
+_SEQUENCING_BARCODE_HINTS = (
+    "cell_barcode_offset",
+    "cell_barcode_read",
+    "cell_barcode_size",
+    "sequencing_read_format",
+    "rnaseq_assay_method",
+    "transposition_method",
+    "assay_type",
+)
+_PREPARATION_HINT_TARGETS = frozenset(
+    {
+        "library_preparation_kit",
+        "sample_indexing_kit",
+        "preparation_instrument_kit",
+        "preparation_instrument_model",
+        "preparation_instrument_vendor",
+    }
+)
+_NO_LEGACY_HINT = frozenset({"unknown", "not specified", "not provided", "none", "n/a", "na", "nan"})
+
+# Source aliases describe the same property as the target. Generic method/kit context
+# belongs in legacy_hint_sources, never here. In particular, cell barcodes, read lengths
+# and PCR counts do not describe UMI structure. No 1-based/0-based offset conversion is
+# assumed without an explicit source convention.
+_OMISSION_SOURCE_ALIASES = {
+    "tissue": ("organ",),
+    "parent_sample_id": ("tissue_id",),
+    "barcode_offset": ("cell_barcode_offset",),
+    "barcode_read": ("cell_barcode_read",),
+    "barcode_size": ("cell_barcode_size",),
+    "lc_gradient_value": ("lc_gradient",),
+    "mass_to_charge_resolving_power": ("mass_resolving_power", "mz_resolving_power"),
+    "library_output_amount_unit": ("library_final_yield_unit",),
+    "sequencing_batch_id": ("Seq_run",),
+    "preparation_matrix": ("preparation_maldi_matrix",),
+    "nuclear_marker_or_stain": ("nuclear_stain", "nuclear_marker"),
+    "is_staining_automated": ("staining_automated", "is_automated_staining"),
+}
+_ASSAY_OMISSION_SOURCE_ALIASES = {
+    "atacseq": {"transposition_reagent_kit": ("transposition_kit_number",)},
+    "rnaseq": {"number_of_iterations_of_cdna_amplification": ("library_pcr_cycles",)},
+    "codex": {"number_of_biomarker_imaging_rounds": ("number_of_cycles",)},
+    "celldive": {
+        "number_of_biomarker_imaging_rounds": ("number_of_cycles",),
+        "number_of_total_imaging_rounds": ("number_of_imaging_rounds",),
+    },
+    "desi": {"analysis_protocol_doi": ("overall_protocols_io_doi", "protocols_io_doi")},
+}
 
 
 def _flatten(value: Any) -> str:
@@ -195,8 +275,8 @@ def _flatten(value: Any) -> str:
 
 
 def _loose(value: Any) -> str:
-    """Case-folded, whitespace-collapsed, punctuation-trimmed form for near-miss tests."""
-    return _WHITESPACE.sub(" ", _flatten(value).strip().casefold()).strip(" .,;:_-/")
+    """Case-folded, whitespace-collapsed form that preserves signs and punctuation."""
+    return _WHITESPACE.sub(" ", _flatten(value).strip().casefold())
 
 
 def _loose_identifier(value: Any) -> str:
@@ -210,69 +290,91 @@ def _loose_identifier(value: Any) -> str:
     return _DOI_PREFIX.sub("", _loose(value))
 
 
-def _as_number(value: Any) -> float | None:
-    """*value* as a float when it reads as one, else ``None``."""
+def _as_number(value: Any) -> Decimal | None:
+    """*value* as an exact finite decimal when it reads as one, else ``None``."""
     try:
-        return float(_flatten(value).strip())
-    except (TypeError, ValueError):
+        number = Decimal(_flatten(value).strip())
+    except (InvalidOperation, TypeError, ValueError):
         return None
+    return number if number.is_finite() else None
 
 
-def _equivalent_to_gold(predicted_value: Any, gold_value: Any, predicted_loose: str) -> bool:
-    """Whether the asserted value is gold's value in another shape.
+def _dataset_path(value: Any, *, directory: bool) -> str | None:
+    """Normalize notation for a path within an uploaded dataset, preserving case and parents."""
+    if not isinstance(value, str):
+        return None
+    path = value.strip()
+    if directory and path in {".", "./", "/"}:
+        return "."
+    if path.startswith("./"):
+        path = path[2:]
+    elif directory and path.startswith("/") and not path.startswith("//"):
+        # Legacy directory names use /Proteomics/; the ingestion specification asks
+        # for ./Proteomics.  This convention applies only to dataset-directory fields.
+        path = path[1:]
+    return path.rstrip("/") if directory else path
 
-    Two shapes to relax, not one: text, where case and whitespace differ, and number,
-    where ``10`` and ``"10.0"`` are the same quantity written differently.  Both are the
-    same finding -- the answer was right and the matcher could not see it -- so they are
-    one category rather than two, and the numeric arm is kept even though this corpus
-    happens to hold no instance of it: without it such a pair falls through to the
-    containment test and is reported as a truncation, which it is not.
+
+def _equivalent_to_gold(predicted_value: Any, gold_value: Any, predicted_loose: str, *, field: str) -> bool:
+    """Whether representation differences preserve the reference's information.
+
+    Numeric equivalence uses exact decimals, keeping signs and precision.  Punctuation
+    is preserved.  Dataset paths have field-specific notation rules, and identifiers
+    retain case and leading zeros.
     """
-    if predicted_loose == _loose(gold_value):
+    if field.endswith("_path"):
+        directory = field in {"data_path", "metadata_path"}
+        predicted_path = _dataset_path(predicted_value, directory=directory)
+        return bool(predicted_path) and predicted_path == _dataset_path(gold_value, directory=directory)
+    if field.endswith(("_id", "_sequence")):
+        return _flatten(predicted_value).strip() == _flatten(gold_value).strip()
+    if predicted_loose and predicted_loose == _loose(gold_value):
+        return True
+    predicted_identifier = _loose_identifier(predicted_value)
+    if predicted_identifier and predicted_identifier == _loose_identifier(gold_value):
         return True
     predicted_number = _as_number(predicted_value)
     return predicted_number is not None and predicted_number == _as_number(gold_value)
 
 
-def close_match_reasons(
+def near_match_reasons(
     gold_value: Any,
     predicted_value: Any,
     field: str,
     legacy: dict[str, Any],
     permissible: set[str] | None,
+    *,
+    confirmed_value_mappings: dict[str, dict[tuple[str, str], str]] | None = None,
 ) -> list[str]:
-    """Every way this substitution is still partly right, not merely the first.
+    """Evidence that a substitution conveys the same information as the reference.
 
-    Four tests, and a row can satisfy several: on this corpus 62% of close matches satisfy
-    more than one, and "same value, other shape" is contained in "one contains the other"
-    but for values that loosen away to nothing.  They are returned together rather than
-    resolved into one, because resolving them means choosing an order between overlapping
-    definitions, and a share reported against such a choice describes the order as much as
-    the run.  :data:`CLOSE_MATCH` is the one label; this is for reading underneath it.
+    Automatic checks allow formatting, DOI resolver, numeric, and sequencing-read
+    separator differences.  Text containment, copying a legacy value, and permitted-term
+    membership alone do not qualify.  ``legacy`` and ``permissible`` remain accepted for
+    callers of the previous interface, but are not evidence of equivalence.
+
+    *confirmed_value_mappings* is keyed by field, then by the exact (reference, asserted)
+    strings, with a nonempty review justification confirming that each pair conveys the
+    same information.  A permitted or more generic standard term does not qualify merely
+    because it is standard.  These equivalences are supplied by the reviewer, not inferred.
     """
     reasons: list[str] = []
-    predicted_loose, gold_loose = _loose(predicted_value), _loose(gold_value)
+    predicted_loose = _loose(predicted_value)
 
-    if _equivalent_to_gold(predicted_value, gold_value, predicted_loose):
+    if _equivalent_to_gold(predicted_value, gold_value, predicted_loose, field=field):
         reasons.append(SAME_VALUE_OTHER_SHAPE)
-    if predicted_loose and gold_loose and (predicted_loose in gold_loose or gold_loose in predicted_loose):
-        reasons.append(ONE_CONTAINS_THE_OTHER)
+    if field == "sequencing_read_format" and isinstance(gold_value, str) and isinstance(predicted_value, str):
+        read_lengths = re.compile(r"\d+(?:\s*[,/+]\s*\d+)+")
+        if read_lengths.fullmatch(gold_value.strip()) and read_lengths.fullmatch(predicted_value.strip()):
+            gold_reads = tuple(map(int, re.findall(r"\d+", gold_value)))
+            predicted_reads = tuple(map(int, re.findall(r"\d+", predicted_value)))
+            if gold_reads == predicted_reads:
+                reasons.append(SAME_READ_FORMAT)
 
-    same_field = legacy.get(field)
-    kept_it = not _is_missing(same_field) and _loose_identifier(same_field) == _loose_identifier(predicted_value)
-    if kept_it:
-        reasons.append(KEPT_THIS_FIELD_S_VALUE)
-
-    # The curator kept a value the template does not permit and the run picked a term it
-    # does: the two disagree about whether to normalise, which is not the run being wrong.
-    if (
-        permissible
-        and not _is_missing(same_field)
-        and _loose_identifier(same_field) == _loose_identifier(gold_value)
-        and _loose_identifier(gold_value) not in permissible
-        and _loose_identifier(predicted_value) in permissible
-    ):
-        reasons.append(USED_THE_VOCABULARY)
+    if confirmed_value_mappings is not None and isinstance(gold_value, str) and isinstance(predicted_value, str):
+        justification = confirmed_value_mappings.get(field, {}).get((gold_value, predicted_value))
+        if justification and justification.strip():
+            reasons.append(f"{CONFIRMED_VALUE_MAPPING}: {justification}")
 
     return reasons
 
@@ -284,51 +386,198 @@ def _classify_error(
     field: str,
     legacy: dict[str, Any],
     permissible: set[str] | None,
+    *,
+    confirmed_value_mappings: dict[str, dict[tuple[str, str], str]] | None = None,
+    valid_legacy_fields: frozenset[str] = frozenset(),
+    legacy_support_sources: dict[str, Any] | None = None,
 ) -> tuple[str, list[str]]:
-    """The sub-category for one error, with the close-match reasons behind it.
+    """The sub-category for one error, with the near-match reasons behind it.
 
-    An insertion and a deletion split on the same question, asked of the value each is
-    about: did the record hold it?  A substitution asks that too -- of the value the run
-    wrote -- but only after the close-match tests, which take out the rows where the run's
-    answer is defensibly near gold's.  That order is safe rather than merely conventional:
-    every row it takes from :data:`MISLOCATE_LEGACY_VALUE` is one whose asserted value is
-    equal to gold's once shape is relaxed.
+    Insertions split on whether the legacy record holds the asserted value. Omissions
+    require a matching value at the target field or a supported source alias; contextual
+    hints and coincidental matches in unrelated fields cannot establish a reference value.
+    Substitutions check representation equivalence or confirmed mappings first, then
+    exclude reviewed valid source fields, then look for an asserted value in another
+    legacy field as evidence of a candidate mapping error. Remaining substitutions are
+    different values, even if copied through a valid source-to-target mapping.
     """
     if case == INSERTION:
-        return (OVERESTIMATE_LEGACY_VALUE if _appears_in_legacy(predicted_value, legacy) else TOO_OPTIMISTIC_ANSWER), []
+        return (UNEXPECTED_COPY if _appears_in_legacy(predicted_value, legacy) else UNEXPECTED_FILL), []
     if case == DELETION:
-        return (UNDERESTIMATE_LEGACY_VALUE if _appears_in_legacy(gold_value, legacy) else ENTIRELY_DONT_KNOW), []
+        supported = bool(
+            legacy_support_sources
+            if legacy_support_sources is not None
+            else _omission_legacy_support(gold_value, field, legacy, assay_key="")
+        )
+        return (MISSED_VALUE if supported else EXTERNAL_GAP), []
 
-    reasons = close_match_reasons(gold_value, predicted_value, field, legacy, permissible)
+    reasons = near_match_reasons(
+        gold_value, predicted_value, field, legacy, permissible, confirmed_value_mappings=confirmed_value_mappings
+    )
     if reasons:
-        return CLOSE_MATCH, reasons
-    if _legacy_fields_carrying(predicted_value, legacy) - {field}:
-        return MISLOCATE_LEGACY_VALUE, []
-    return COMPLETELY_WRONG, []
+        return NEAR_MATCH, reasons
+    sources = _legacy_fields_carrying(predicted_value, legacy)
+    if sources & valid_legacy_fields:
+        return DIFFERENT_VALUE, []
+    if sources - {field}:
+        return WRONG_MAPPING, []
+    return DIFFERENT_VALUE, []
+
+
+def _iter_legacy_values(value: Any, path: str) -> Iterator[tuple[str, Any]]:
+    """Yield a legacy value and its descendants with their field paths."""
+    yield path, value
+    if isinstance(value, dict):
+        for key, child in value.items():
+            yield from _iter_legacy_values(child, f"{path}.{key}")
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            yield from _iter_legacy_values(child, f"{path}[{index}]")
+
+
+def _matches_legacy_value(value: Any, legacy_value: Any) -> bool:
+    """Match normalized whole values, or a numeric value recorded with an explicit unit."""
+    if _is_missing(legacy_value):
+        return False
+    target = _loose_identifier(value)
+    if target and _loose_identifier(legacy_value) == target:
+        return True
+    number = _as_number(value)
+    if number is None:
+        return False
+    recorded_number = _as_number(legacy_value)
+    if recorded_number is None and isinstance(legacy_value, str):
+        quantity = _QUANTITY.fullmatch(legacy_value.strip())
+        if quantity:
+            recorded_number = Decimal(quantity.group(1))
+    return recorded_number is not None and recorded_number == number
 
 
 def _legacy_fields_carrying(value: Any, legacy: dict[str, Any]) -> set[str]:
-    """Which legacy fields hold *value*, comparing loosely and ignoring a DOI prefix.
+    """Which legacy field paths hold *value*, comparing loosely and ignoring a DOI prefix.
 
     The one definition of "the record contains this", so "the run copied the same field"
     and "the run copied a different field" cannot disagree about what counts as carried.
-    A value with no comparable form -- one that loosens away to nothing, such as ``"."``
-    -- is carried by nothing, since matching it against another empty form would report
-    provenance where there is no value to have a provenance.
+    A blank value is carried by nothing.  Signs and punctuation are retained, so
+    ``-5`` is not reported as present merely because the record contains ``5``.
+
+    Nested objects and list items are searched as individual values, rather than only
+    comparing their containing object as a whole.  For example, ``other_metadata.Seq_run``
+    can account for an asserted sequencing batch identifier.  Matching still compares
+    whole values and numbers recorded with explicit units, such as ``225 pM`` for ``225``;
+    a substring inside an identifier or a dictionary key alone does not establish provenance.
     """
     target = _loose_identifier(value)
     if not target:
         return set()
     return {
-        legacy_field
-        for legacy_field, legacy_value in legacy.items()
-        if not _is_missing(legacy_value) and _loose_identifier(legacy_value) == target
+        path
+        for legacy_field, value_at_field in legacy.items()
+        for path, legacy_value in _iter_legacy_values(value_at_field, legacy_field)
+        if _matches_legacy_value(value, legacy_value)
     }
 
 
 def _appears_in_legacy(value: Any, legacy: dict[str, Any]) -> bool:
-    """Whether any legacy field holds *value*."""
+    """Whether any legacy field or nested value holds *value*."""
     return bool(_legacy_fields_carrying(value, legacy))
+
+
+def _omission_legacy_hints(field: str, legacy: dict[str, Any], *, assay_key: str) -> dict[str, Any]:
+    """Find explicit source fields that provide context for an omitted target field.
+
+    A nonblank value at the target field or a known source alias is a hint even when
+    its wording differs from the reference. Related assay-method and platform fields
+    supply context for preparation and barcode fields. These hints can be incomplete
+    or inconsistent with the reference; they do not certify a particular inference.
+    Generic identifiers, operator details, and protocol links alone are not hints.
+    """
+    source_fields = {field, *_OMISSION_HINT_ALIASES.get(field, ())}
+    if assay_key in {"atacseq", "rnaseq"}:
+        if field.startswith(("barcode_", "umi_")):
+            source_fields.update(_SEQUENCING_BARCODE_HINTS)
+        if field in _PREPARATION_HINT_TARGETS:
+            if assay_key == "rnaseq":
+                source_fields.update({"rnaseq_assay_method", "assay_type"})
+            else:
+                source_fields.update(
+                    {"transposition_method", "transposition_kit_number", "transposition_transposase_source"}
+                )
+        if field == "transposition_reagent_kit":
+            source_fields.update(
+                {"transposition_kit_number", "transposition_transposase_source", "library_preparation_kit"}
+            )
+        if field == "sample_indexing_kit":
+            kit = legacy.get("library_preparation_kit")
+            if isinstance(kit, str) and re.search(r"\bindex(?:es|ing)?\b", kit, re.I):
+                source_fields.add("library_preparation_kit")
+        if field == "assay_input_entity":
+            source_fields.update(
+                {"sc_isolation_entity", "bulk_transposition_input_number_nuclei", "rnaseq_assay_method"}
+            )
+    if assay_key == "af" and field == "analyte_class":
+        source_fields.add("assay_type")
+    if assay_key == "maldi" and field == "ion_mobility":
+        model = legacy.get("acquisition_instrument_model")
+        if isinstance(model, str) and re.search(r"\btims", model, re.I):
+            source_fields.add("acquisition_instrument_model")
+    if assay_key == "desi" and field in {
+        "matrix_deposition_method",
+        "preparation_matrix",
+        "preparation_instrument_model",
+        "preparation_instrument_vendor",
+    }:
+        source_fields.update({"assay_type", "ms_source"})
+
+    return {
+        path: value
+        for name, top_value in legacy.items()
+        for path, value in _iter_legacy_values(top_value, name)
+        if (path in source_fields or path.rsplit(".", 1)[-1] in source_fields)
+        and not _is_missing(value)
+        and not isinstance(value, (dict, list))
+        and _loose(value) not in _NO_LEGACY_HINT
+    }
+
+
+def _omission_legacy_support(gold_value: Any, field: str, legacy: dict[str, Any], *, assay_key: str) -> dict[str, Any]:
+    """Values that establish the reference at a source describing the target property.
+
+    Search nested source fields too. Read labels permit the deterministic conversion
+    R1 -> Read 1 (R1), but only within the same property: a barcode read is not a UMI
+    read. Numeric coincidences at unrelated fields are retained in legacy_sources for
+    audit, but cannot support a missed-value assignment.
+    """
+    source_fields = {
+        field,
+        *_OMISSION_SOURCE_ALIASES.get(field, ()),
+        *_ASSAY_OMISSION_SOURCE_ALIASES.get(assay_key, {}).get(field, ()),
+    }
+    sources = {}
+    for name, top_value in legacy.items():
+        for path, value in _iter_legacy_values(top_value, name):
+            if re.sub(r"\[\d+\]", "", path.rsplit(".", 1)[-1]) not in source_fields or _is_missing(value):
+                continue
+            matches = _equivalent_to_gold(value, gold_value, _loose(value), field=field)
+            if not field.endswith(("_id", "_sequence")) and _as_number(gold_value) is not None:
+                matches = matches or _matches_legacy_value(gold_value, value)
+            if not matches and field in {"barcode_read", "umi_read"}:
+                pattern = r"(?:r([12])|read\s*([12])(?:\s*\(r[12]\))?)"
+                source_read = re.fullmatch(pattern, _loose(value))
+                reference_read = re.fullmatch(pattern, _loose(gold_value))
+                if source_read and reference_read:
+                    # Require the parenthesized label, if present, to agree as well.
+                    def read_number(match: re.Match[str]) -> str:
+                        return next(group for group in match.groups() if group is not None)
+
+                    number = read_number(source_read)
+                    matches = number == read_number(reference_read) and all(
+                        not re.search(r"\(r[12]\)", text) or f"(r{number})" in text
+                        for text in (_loose(value), _loose(gold_value))
+                    )
+            if matches:
+                sources[path] = value
+    return sources
 
 
 def _decision_log(
@@ -352,12 +601,10 @@ def _decision_log(
 def _require_legacy(legacy_path: Path, predicted_path: Path) -> dict[str, Any]:
     """The legacy record at *legacy_path*, or a refusal to categorise without it.
 
-    Every category here except the two shape tests is decided by asking what the legacy
-    record holds, so a missing input is not a gap in one column -- it silently moves
-    errors into :data:`SPURIOUS_INVENTED`, :data:`UNSUPPORTED_VALUE` and
-    :data:`ABSTAINED_ABSENT`, the three categories that mean "the record could not
-    account for this".  The reconciliation check would still pass, because the count is
-    right and only the attribution is wrong, so nothing downstream would notice.
+    Provenance-based labels need the legacy record.  A missing input would silently
+    move errors into :data:`UNEXPECTED_FILL`, :data:`DIFFERENT_VALUE`, or
+    :data:`EXTERNAL_GAP`.  Reconciliation would still pass because the error count is
+    unchanged, even though its attribution is wrong.
 
     A record with a prediction had an input when the run read it, which is what makes
     this a broken corpus rather than a partial one: an assay missing its gold or its
@@ -380,6 +627,7 @@ def collect_field_errors(
     match_case: bool = True,
     match_whole_word: bool = True,
     run: int = 1,
+    confirmed_value_mappings: dict[str, dict[tuple[str, str], str]] | None = None,
 ) -> pd.DataFrame:
     """One row per counted error, labelled at both levels of the taxonomy.
 
@@ -413,6 +661,9 @@ def collect_field_errors(
             gold = load_record(gold_path)
             predicted = load_record(predicted_path)
             legacy = _require_legacy(assay.input_dir / gold_path.name, predicted_path)
+            legacy_paths = {
+                path: value for name, value in legacy.items() for path, value in _iter_legacy_values(value, name)
+            }
             decisions = _decision_log(assay, model, condition, gold_path.name, run=run)
 
             for field in gold:
@@ -420,10 +671,35 @@ def collect_field_errors(
                 if case not in (INSERTION, DELETION, SUBSTITUTION):
                     continue
 
-                subcategory, reasons = _classify_error(
-                    case, gold.get(field), predicted.get(field), field, legacy, permissible.get(field)
+                hints = _omission_legacy_hints(field, legacy, assay_key=assay.key) if case == DELETION else {}
+                support = (
+                    _omission_legacy_support(gold.get(field), field, legacy, assay_key=assay.key)
+                    if case == DELETION
+                    else {}
                 )
+                subcategory, reasons = _classify_error(
+                    case,
+                    gold.get(field),
+                    predicted.get(field),
+                    field,
+                    legacy,
+                    permissible.get(field),
+                    confirmed_value_mappings=confirmed_value_mappings,
+                    valid_legacy_fields=_REVIEWED_LEGACY_FIELD_MAPPINGS.get(assay.key, {}).get(field, frozenset()),
+                    legacy_support_sources=support,
+                )
+                source_value = gold.get(field) if case == DELETION else predicted.get(field)
+                sources = _legacy_fields_carrying(source_value, legacy)
                 decision = decisions.get(field, {})
+                omission_basis = ""
+                if case == DELETION:
+                    omission_basis = (
+                        "reference established by legacy source"
+                        if support
+                        else "legacy hint insufficient to establish reference"
+                        if hints
+                        else "no supporting legacy value detected"
+                    )
                 rows.append(
                     {
                         "assay": assay.label,
@@ -433,10 +709,15 @@ def collect_field_errors(
                         "costs": COSTS_BY_CASE[case],
                         "category": CATEGORY_BY_CASE[case],
                         "subcategory": subcategory,
-                        "close_match_reasons": ", ".join(reasons),
+                        "near_match_reasons": ", ".join(reasons),
                         "gold_value": gold.get(field),
                         "predicted_value": predicted.get(field),
                         "legacy_value": legacy.get(field),
+                        "legacy_sources": {path: legacy_paths[path] for path in sorted(sources)},
+                        "legacy_hint_sources": hints,
+                        "legacy_support_sources": support,
+                        "legacy_target_present": any(path.rsplit(".", 1)[-1] == field for path in legacy_paths),
+                        "omission_basis": omission_basis,
                         "resolution": decision.get("resolution"),
                         "reasoning": decision.get("reasoning"),
                         "pointer": f"{assay.key}/{gold_path.stem}#{field}",
@@ -465,6 +746,25 @@ def _check_levels_agree(errors: pd.DataFrame) -> None:
     }
     if wrong:
         raise ValueError(f"sub-category filed under the wrong category: {sorted(wrong)}")
+
+
+def summarize_error_subcategories_by_field_type(errors: pd.DataFrame) -> pd.DataFrame:
+    """Count each error once within its subcategory and template-defined field type.
+
+    Pass a deduplicated frame to count distinct disagreements, or the complete collection
+    to count record-field instances. Zero-count subcategories and field types are retained.
+    """
+    import pandas as pd
+
+    table = (
+        pd.crosstab(errors["subcategory"], errors["field_type"])
+        .reindex(index=SUBCATEGORIES, columns=["ontology", "non_ontology"], fill_value=0)
+        .fillna(0)
+        .astype(int)
+    )
+    table["total"] = table.sum(axis=1)
+    table.columns.name = None
+    return table.reset_index()
 
 
 def deduplicate_errors(errors: pd.DataFrame) -> pd.DataFrame:
