@@ -4,7 +4,7 @@ The paper's main figure.  A panel is a window on the unit square with a mark per
 field type) -- or per (model, field type) in :func:`plot_pr_model_comp`, or per (run, field
 type) in :func:`plot_pr_run_comp` --
 which is why this module is mostly furniture: the window, the constant-F1 contours behind
-the marks, the two legends under them, and the two ways of laying the panels out.  What the
+the marks, the legends under them, and the two ways of laying the panels out.  What the
 marks themselves look like is :mod:`plots.marks`.
 """
 
@@ -219,22 +219,29 @@ def _draw_pr_path(
             [dot] = ax.plot(recall, precision, marker, zorder=zorder, **style)
             dot.set_gid(gid)
         if mark.letter:
-            letter = ax.annotate(
-                mark.letter,
-                (recall, precision),
-                ha="center",
-                va="center",
-                fontsize=6.5 if len(mark.letter) == 1 else 5.5,
-                color=(
-                    "white"
-                    if _relative_luminance(mark.style["markerfacecolor"]) < LABEL_ON_DARK_BELOW
-                    else NO_COLOR_INK
-                ),
-                # Just over its own mark and under the next shape forward, so a letter is
-                # covered along with the mark it names rather than showing through.
-                zorder=zorder + 0.05,
-            )
-            letter.set_gid(_point_letter_gid(*point_ids[point_number]) if point_ids is not None else gid)
+            label_gid = _point_letter_gid(*point_ids[point_number]) if point_ids is not None else gid
+            _draw_point_letter(ax, (recall, precision), mark, zorder, label_gid)
+
+
+def _draw_point_letter(
+    ax: plt.Axes,
+    xy: tuple[float, float],
+    mark: ConditionMark,
+    zorder: float,
+    gid: str | None,
+) -> None:
+    """Put a run number or condition letter at the centre of a visible marker."""
+    letter = ax.annotate(
+        mark.letter,
+        xy,
+        ha="center",
+        va="center",
+        fontsize=6.5 if len(mark.letter) == 1 else 5.5,
+        color=("white" if _relative_luminance(mark.style["markerfacecolor"]) < LABEL_ON_DARK_BELOW else NO_COLOR_INK),
+        # Just over its own mark and under the next original shape forward.
+        zorder=zorder + 0.05,
+    )
+    letter.set_gid(gid)
 
 
 def _point_letter_gid(field_type: str, index: int) -> str:
@@ -264,16 +271,26 @@ def _pr_legends(
     *,
     show_field_keys: bool = True,
 ) -> float:
-    """Colour for what the points compare, and -- when a panel holds more than one -- marker for the field type.
+    """Key the condition and field type, together for a plain hollow/solid pair.
 
     *keys* is one (label, mark) per thing compared: a condition, model, or run.
 
-    Stacked rather than side by side: on one line the condition names and the field-type names
-    collide as soon as either list grows.  *show_field_keys* is ``False`` when every
+    A monochrome pair repeats the actual marker combinations under each field-type heading.
+    The groups share one line when they fit; narrower figures stack whole groups or use
+    separate condition and shape keys.  *show_field_keys* is ``False`` when every
     panel holds a single field type and says so in its own title, where a key would only
     repeat what the reader has already been told.  Returns the fraction of figure height
     to keep clear for the keys, a constant physical size however tall the figure is.
     """
+    if (
+        show_field_keys
+        and tuple(mark.fill for _label, mark in keys) == (False, True)
+        and all(mark.letter is None and mark.hatch is None for _label, mark in keys)
+    ):
+        strip = _pr_grouped_field_legend(fig, keys, field_types)
+        if strip is not None:
+            return strip
+
     # A swatch, not a marker: every marker shape in the panels stands for a field type, so a
     # circle here would read as "ontology-constrained" before it read as a colour.  The
     # swatch keeps what the key does mean -- the colour, or with colour off the fill, hollow,
@@ -336,6 +353,61 @@ def _pr_legends(
         **style,
     )
     return (1.4 + rows) * line
+
+
+def _pr_grouped_field_legend(
+    fig: plt.Figure,
+    keys: list[tuple[str, ConditionMark]],
+    field_types: tuple[str, ...],
+) -> float | None:
+    """Show each field heading followed by its hollow and solid condition markers.
+
+    Keep headings with their marker pairs when a small figure needs several lines.
+    Return ``None`` if even one group is too wide at the normal legend text size.
+    """
+    groups = []
+    for field_type in field_types:
+        group = [Line2D([], [], linestyle="", label=FIELD_TYPE_LABELS[field_type].replace(" Fields", " fields") + ":")]
+        for label, mark in keys:
+            group.append(
+                Line2D(
+                    [],
+                    [],
+                    linestyle="",
+                    marker=FIELD_TYPE_MARKERS[field_type],
+                    markersize=FIELD_KEY_SIZE,
+                    markerfacecolor=mark.style["markerfacecolor"],
+                    markeredgecolor=(mark.style["markerfacecolor"] if mark.fill else mark.style["markeredgecolor"]),
+                    markeredgewidth=NO_COLOR_EDGE_WIDTH,
+                    label=label,
+                )
+            )
+        groups.append(group)
+
+    renderer = fig.canvas.get_renderer()
+    for rows in (1, len(groups)):
+        # Matplotlib fills columns downward; this order keeps each group reading across.
+        ordered = (
+            [handle for group in groups for handle in group]
+            if rows == 1
+            else [group[column] for column in range(3) for group in groups]
+        )
+        legend = fig.legend(
+            handles=ordered,
+            ncol=len(ordered) // rows,
+            loc="lower center",
+            bbox_to_anchor=(0.5, 0.0),
+            frameon=False,
+            fontsize=LEGEND_TEXT_SIZE - 0.5,
+            handlelength=0.9,
+            handletextpad=0.5,
+            columnspacing=1.0,
+            borderaxespad=0.0,
+        )
+        if legend.get_window_extent(renderer).width <= fig.bbox.width:
+            return (0.3 + rows) * LEGEND_LINE_INCHES / fig.get_size_inches()[1]
+        legend.remove()
+    return None
 
 
 def _run_legend(fig: plt.Figure, keys: list[Patch], bottom: float, style: dict[str, object]) -> int:
@@ -499,11 +571,10 @@ def plot_pr_model_comp(
     is the pattern its mark is filled with instead, from :data:`~plots.marks.MODEL_HATCHES`:
     solid ink, then lines and grids in ink on white.
 
-    Where marks of one field type land on the same spot, only the top one can be seen, so the
-    stack is named: a box beside it lists every model in it, top first, joined to it by a faint
-    line.  The box goes as close as it can without covering a mark or another box, and the line
-    runs under the marks.  With a single field type the field-type key is left off, since one
-    shape has nothing to tell apart; *title* can name the field type instead.
+    Where models land on the same spot, their markers remain at that score.  Faint leaders
+    from the shared point name every model in the tie, including the visible top marker.
+    With a single field type the field-type key is left off, since one shape has nothing to
+    tell apart; *title* can name the field type instead.
 
     Raises:
         ValueError: If *models* is empty or names a model twice, more models are drawn than
@@ -545,6 +616,7 @@ def plot_pr_model_comp(
         save_path=save_path,
         partial=True,
         name_stacks=True,
+        label_ties_in_place=True,
         inset=inset,
     )
 
@@ -573,8 +645,9 @@ def plot_pr_run_comp(
     :func:`plot_pr_condition_comp`; each run's number is centred in its marker.  Field
     types keep their marker shapes.  With *no_color*, a single baseline is hollow and a
     single system solid; patterns distinguish conditions when either group has several.
-    The numbers identify clear runs; a run whose marker is mostly covered gets a
-    leader label instead.  *inset* enlarges nearby distinct points.  The layout and axis options
+    The numbers identify clear runs.  Identical scores keep their markers at the same
+    position, with leader labels identifying the tied runs.  Hidden markers at distinct
+    scores also get leader labels.  *inset* enlarges nearby distinct points.  The layout and axis options
     mean what they do in the other precision/recall figures.
 
     *condition* selects just one condition for callers of the original one-condition
@@ -659,6 +732,7 @@ def plot_pr_run_comp(
         save_path=save_path,
         partial=True,
         name_stacks=True,
+        label_ties_in_place=True,
         point_names=[f"{condition_label(condition)}, {run}" for condition, run in drawn],
         inset=inset,
     )
@@ -687,6 +761,7 @@ def _plot_pr_points(
     save_path: str | None,
     partial: bool = False,
     name_stacks: bool = False,
+    label_ties_in_place: bool = False,
     point_names: list[str] | None = None,
     inset: bool = False,
 ) -> None:
@@ -715,6 +790,8 @@ def _plot_pr_points(
                 model,
                 condition,
                 category=field_type,
+                # Preserve close score differences when identifying exact ties.
+                decimal_places=12,
                 run=point_run,
                 assays=[
                     key
@@ -754,7 +831,9 @@ def _plot_pr_points(
         }
     else:
         summaries = [
-            create_overall_precision_recall_summary(data_root, model, condition, run=point_run).set_index("category")
+            create_overall_precision_recall_summary(
+                data_root, model, condition, decimal_places=12, run=point_run
+            ).set_index("category")
             for model, condition, point_run in points
         ]
         rows = [POOLED_LABEL]
@@ -915,10 +994,23 @@ def _plot_pr_points(
             zoomed = frozenset(member for _inset, members in panel_insets for member in members)
             extents = tuple(ax_inset.get_window_extent() for ax_inset, _members in panel_insets)
             _name_stacks(
-                ax, panel_points, names, marks_of, avoid=extents, avoid_lines=_connector_lines(ax), skip=zoomed
+                ax,
+                panel_points,
+                names,
+                marks_of,
+                avoid=extents,
+                avoid_lines=_connector_lines(ax),
+                skip=zoomed,
+                label_ties_in_place=label_ties_in_place,
             )
             for ax_inset, _members in panel_insets:
-                _name_stacks(ax_inset, _in_view(ax_inset, panel_points), names, marks_of)
+                _name_stacks(
+                    ax_inset,
+                    _in_view(ax_inset, panel_points),
+                    names,
+                    marks_of,
+                    label_ties_in_place=label_ties_in_place,
+                )
     _finish(fig, save_path)
 
 
@@ -1016,6 +1108,52 @@ def _obscured_members(
     return hidden
 
 
+def _copy_can_hold_letter(
+    ax: plt.Axes,
+    member: int,
+    panel_points: list[tuple[str, int, tuple[float, float]]],
+    marks_of: dict[int, ConditionMark],
+    anchors: list[tuple[float, float]],
+    copy_members: list[int],
+) -> bool:
+    """Whether a displaced marker has a clear centre and at least 80% visible area."""
+    to_pixels = ax.figure.dpi / 72
+
+    def footprint(point: int, xy: tuple[float, float]) -> Path:
+        field_type, index, _scored = panel_points[point]
+        marker = FIELD_TYPE_MARKERS[field_type]
+        mark = marks_of[index]
+        size = float(_mark_style(mark, marker)["markersize"]) * to_pixels
+        if mark.halo:
+            size += 2 * NO_COLOR_EDGE_WIDTH * to_pixels
+        style = MarkerStyle(marker)
+        vertices = style.get_path().transformed(style.get_transform()).to_polygons()[0]
+        return Path(ax.transData.transform(xy) + vertices * size)
+
+    field_type, index, _scored = panel_points[member]
+    marker = FIELD_TYPE_MARKERS[field_type]
+    mark = marks_of[index]
+    size = float(_mark_style(mark, marker)["markersize"]) * to_pixels
+    style = MarkerStyle(marker)
+    vertices = style.get_path().transformed(style.get_transform()).to_polygons()[0]
+    unit_path = Path(vertices)
+    grid_x, grid_y = np.meshgrid(np.linspace(-0.45, 0.45, 15), np.linspace(-0.45, 0.45, 15))
+    grid = np.column_stack((grid_x.ravel(), grid_y.ravel()))
+    centre = ax.transData.transform(anchors[member])
+    samples = centre + grid[unit_path.contains_points(grid)] * size
+    covered = np.zeros(len(samples), dtype=bool)
+    centre_covered = False
+    # Every original mark is drawn above a displaced copy.  Copies share a depth, so
+    # only the ones drawn later can cover it.
+    above = [(point, scored) for point, (_field, _index, scored) in enumerate(panel_points)]
+    above += [(point, anchors[point]) for point in copy_members[copy_members.index(member) + 1 :]]
+    for point, xy in above:
+        cover = footprint(point, xy)
+        covered |= cover.contains_points(samples)
+        centre_covered |= cover.contains_point(centre)
+    return not centre_covered and np.mean(~covered) >= STACK_MIN_VISIBLE_FRACTION
+
+
 def _name_stacks(
     ax: plt.Axes,
     panel_points: list[tuple[str, int, tuple[float, float]]],
@@ -1025,14 +1163,18 @@ def _name_stacks(
     avoid: tuple[Bbox, ...] = (),
     avoid_lines: tuple[tuple[np.ndarray, np.ndarray], ...] = (),
     skip: frozenset[int] = frozenset(),
+    label_ties_in_place: bool = False,
 ) -> None:
     """Give obscured marks nearby labels and leaders; leave clear marks labelled in place.
 
     *panel_points* is every mark in the panel as (field type, index into *names*, position), in
     the order they were drawn.  A mark is obscured when less than 80% of its outline
-    remains visible.  Its centred letter or run number is removed, so the leader label
-    is its sole label.  A clear top mark keeps its centred label and needs no leader.
-    Obscured marks at exactly one score are repeated nearby and connected to that score.
+    remains visible.  Its centred letter or run number is removed from the original.
+    A clear top mark keeps its centred label.  By default, obscured marks at exactly one
+    score are repeated nearby and connected to that score.  A repeated mark with enough
+    visible area gets its letter or number back inside; otherwise it gets a leader label.
+    With *label_ties_in_place*, every distinct name at a tied score instead gets a leader
+    from the original score, and no marker is copied.
 
     A label goes to the nearest of the spots tried that covers no mark or earlier label
     and stays inside the panel.  Leaders run under the marks.  Where every spot covers
@@ -1059,10 +1201,11 @@ def _name_stacks(
     ]
 
     ties: dict[tuple[float, float], list[int]] = {}
+    copy_members: list[int] = []
     for member, (_field_type, _index, xy) in enumerate(panel_points):
         ties.setdefault(xy, []).append(member)
     for tied in ties.values():
-        if len(tied) > 1:
+        if len(tied) > 1 and not label_ties_in_place:
             origin = marks[tied[-1]]
             used = [origin]
             for member in reversed([member for member in tied if member in obscured and member not in skip]):
@@ -1099,7 +1242,22 @@ def _name_stacks(
                 )
                 anchors[member] = copied
                 marks[member] = target
-    for member in sorted(obscured, reverse=True):
+                copy_members.append(member)
+    # A copy is a new, readable marker.  If its centre and most of its shape remain
+    # clear after the fanout, put its run number there and omit the leader callout.
+    callouts = obscured.copy()
+    if label_ties_in_place:
+        for tied in ties.values():
+            if len(tied) > 1:
+                callouts.difference_update(tied)
+                # Several field types can place one model at the same score.  Name it once.
+                callouts.update({panel_points[member][1]: member for member in tied}.values())
+    for member in copy_members:
+        mark = marks_of[panel_points[member][1]]
+        if mark.letter and _copy_can_hold_letter(ax, member, panel_points, marks_of, anchors, copy_members):
+            _draw_point_letter(ax, anchors[member], mark, 1.9, STACK_COPY_GID)
+            callouts.remove(member)
+    for member in sorted(callouts, reverse=True):
         if member in skip:
             continue
         anchor = anchors[member]
@@ -1214,7 +1372,8 @@ def _draw_insets(
     order, on a square window so a step sideways still means what a step up means.  Each inset
     goes to the spot, of a grid of :data:`INSET_POSITIONS` a side at the sizes of
     :data:`INSET_SIZES` or :data:`INSET_PAIR_SIZES`, that covers fewest marks, zoomed patches
-    and insets already placed -- the largest and lowest of those that cover none.
+    and insets already placed -- the largest and lowest of those that cover none.  When
+    two insets sit at different heights, the higher-precision group takes the upper one.
     """
     groups = _crowds(ax, panel_points)
     while len(groups) > 2:
@@ -1263,6 +1422,16 @@ def _draw_insets(
         )
         layout.append(slot)
         obstacles.append(Bbox(ax.transAxes.transform([slot[:2], (slot[0] + slot[2], slot[1] + slot[3])])))
+
+    if len(kept) == 2:
+        # Keep the inset for the higher-precision group above the other one.  Slot
+        # selection is independent of group contents, so exchanging them stays clear.
+        precision_gap = np.mean([panel_points[i][2][1] for i in kept[0][0]]) - np.mean(
+            [panel_points[i][2][1] for i in kept[1][0]]
+        )
+        height_gap = (layout[0][1] + layout[0][3] / 2) - (layout[1][1] + layout[1][3] / 2)
+        if precision_gap * height_gap < 0:
+            layout.reverse()
 
     insets = []
     for slot, (group, (x0, x1, y0, y1)) in zip(layout, kept, strict=True):

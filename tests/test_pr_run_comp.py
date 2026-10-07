@@ -150,7 +150,7 @@ class TestRunComparison:
         assert _legend_labels(captured[0]) == ["ARMS"]
         assert {text.get_text() for text in ax.texts if text.get_text() in {"5", "2"}} == {"5", "2"}
 
-    def test_coincident_runs_have_individual_labels_and_visible_markers(
+    def test_coincident_runs_stay_at_the_true_score_with_run_labels(
         self, data_root: Path, captured: list[plt.Figure]
     ) -> None:
         for name, record in _GOLD.items():
@@ -158,12 +158,42 @@ class TestRunComparison:
         plot_pr_run_comp(str(data_root), "m", runs=(1, 3), condition="arms-agent", field_types=("ontology",))
         ax = captured[0].axes[0]
         boxes = [text.get_text() for text in ax.texts if text.get_gid() == pr_space.STACK_NAME_GID]
-        assert boxes == ["ARMS, 1"]
-        copies = [line for line in ax.get_lines() if line.get_gid() == pr_space.STACK_COPY_GID]
-        assert len(copies) == 1
-        assert (float(copies[0].get_xdata()[0]), float(copies[0].get_ydata()[0])) != (1.0, 1.0)
-        assert len([line for line in ax.get_lines() if line.get_gid() == pr_space.STACK_SCORE_LINK_GID]) == 1
-        assert [(text.get_text(), text.xy) for text in ax.texts if text.get_text() in {"1", "3"}] == [("3", (1.0, 1.0))]
+        assert set(boxes) == {"ARMS, 1", "ARMS, 3"}
+        assert not any(line.get_gid() == pr_space.STACK_COPY_GID for line in ax.get_lines())
+        assert not any(line.get_gid() == pr_space.STACK_SCORE_LINK_GID for line in ax.get_lines())
+        assert _points(ax)[to_hex(CONDITION_COLOURS[1])] == [(1.0, 1.0), (1.0, 1.0)]
+        leaders = [line for line in ax.get_lines() if line.get_zorder() == 1.5]
+        assert len(leaders) == 2
+        assert all(tuple(line.get_xydata()[0]) == (1.0, 1.0) for line in leaders)
+        assert [(text.get_text(), text.xy) for text in ax.texts if text.get_text() == "3"] == [("3", (1.0, 1.0))]
+
+    def test_three_tied_baseline_squares_stay_overlapped_with_run_labels(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        for run in (1, 2, 3):
+            for name, record in _PREDICTIONS[2].items():
+                _write(data_root / "atacseq" / "output" / "m" / "baseline" / f"run-{run}" / f"{name}.json", record)
+        plot_pr_run_comp(
+            str(data_root),
+            "m",
+            runs=(1, 2, 3),
+            baselines=("baseline",),
+            systems=(),
+            field_types=("non_ontology",),
+            no_color=True,
+        )
+        ax = captured[0].axes[0]
+        assert {text.get_text() for text in ax.texts if text.get_gid() == pr_space.STACK_NAME_GID} == {
+            "Baseline, 1",
+            "Baseline, 2",
+            "Baseline, 3",
+        }
+        assert _points(ax)["#ffffff"] == [(0.5, 0.5)] * 3
+        assert not any(line.get_gid() == pr_space.STACK_COPY_GID for line in ax.get_lines())
+        assert not any(line.get_gid() == pr_space.STACK_SCORE_LINK_GID for line in ax.get_lines())
+        leaders = [line for line in ax.get_lines() if line.get_zorder() == 1.5]
+        assert len(leaders) == 3
+        assert all(tuple(line.get_xydata()[0]) == (0.5, 0.5) for line in leaders)
 
     def test_split_panels_keep_the_field_type_titles(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_pr_run_comp(

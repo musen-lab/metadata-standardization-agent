@@ -222,13 +222,18 @@ class TestStackNames:
         assert not any(line.get_gid() == pr_space.STACK_COPY_GID for line in ax.get_lines())
         plt.close(fig)
 
-    def test_a_stack_is_named_top_first(self, data_root: Path, captured: list[plt.Figure]) -> None:
-        """The top model remains clear, so only the model under it needs a callout."""
+    def test_every_model_in_an_exact_tie_is_named_at_the_true_score(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
         for name, record in _PREDICTIONS["good"].items():
             _write(data_root / "atacseq" / "output" / "copy" / "arms-agent" / f"{name}.json", record)
         plot_pr_model_comp(str(data_root), ("good", "half", "copy"), field_types=("ontology",))
-        boxes = _stack_boxes(captured[0].axes[0])
-        assert boxes == ["good"]
+        ax = captured[0].axes[0]
+        assert set(_stack_boxes(ax)) == {"good", "copy"}
+        assert not any(line.get_gid() == pr_space.STACK_COPY_GID for line in ax.get_lines())
+        leaders = [line for line in ax.get_lines() if line.get_zorder() == 1.5]
+        assert len(leaders) == 2
+        assert all(tuple(line.get_xydata()[0]) == (1.0, 1.0) for line in leaders)
 
     def test_each_line_starts_at_its_own_stack(self, data_root: Path, captured: list[plt.Figure]) -> None:
         """A model's stacks sit at different spots per field type; each line leaves its own one.
@@ -239,9 +244,24 @@ class TestStackNames:
             _write(data_root / "atacseq" / "output" / "twin" / "arms-agent" / f"{name}.json", record)
         plot_pr_model_comp(str(data_root), ("half", "twin"), field_types=("ontology", "non_ontology"))
         ax = captured[0].axes[0]
-        score_links = [line for line in ax.get_lines() if line.get_gid() == pr_space.STACK_SCORE_LINK_GID]
-        starts = {(float(line.get_xdata()[0]), float(line.get_ydata()[0])) for line in score_links}
+        leaders = [line for line in ax.get_lines() if line.get_zorder() == 1.5]
+        starts = {(float(line.get_xdata()[0]), float(line.get_ydata()[0])) for line in leaders}
         assert starts == {(0.5, 1.0), (0.5, 0.5)}
+        assert not any(line.get_gid() == pr_space.STACK_SCORE_LINK_GID for line in ax.get_lines())
+
+    def test_four_perfect_models_stay_overlapped_with_names_on_leaders(
+        self, data_root: Path, captured: list[plt.Figure]
+    ) -> None:
+        models = _eight_models(data_root)[:4]
+        plot_pr_model_comp(str(data_root), models, field_types=("ontology",), no_color=True)
+        ax = captured[0].axes[0]
+        assert set(_stack_boxes(ax)) == set(models)
+        assert not any(line.get_gid() == pr_space.STACK_COPY_GID for line in ax.get_lines())
+        assert not any(collection.get_gid() == pr_space.STACK_COPY_GID for collection in ax.collections)
+        assert all(tuple(collection.get_offsets()[0]) == (1.0, 1.0) for collection in ax.collections)
+        leaders = [line for line in ax.get_lines() if line.get_zorder() == 1.5]
+        assert len(leaders) == len(models)
+        assert all(tuple(line.get_xydata()[0]) == (1.0, 1.0) for line in leaders)
 
     def test_marks_apart_are_not_named(self, data_root: Path, captured: list[plt.Figure]) -> None:
         plot_pr_model_comp(str(data_root), ("good", "half"), field_types=("ontology",))
@@ -397,7 +417,7 @@ class TestInsets:
         for fig in captured:
             # "good" and "copy" tie exactly: nothing to enlarge, so no inset either way.
             assert len(fig.axes) == 1
-            assert _stack_boxes(fig.axes[0]) == ["good"]
+            assert set(_stack_boxes(fig.axes[0])) == {"good", "copy"}
 
     def test_the_condition_figure_accepts_insets(self, data_root: Path, captured: list[plt.Figure]) -> None:
         """Its marks here sit far apart, so it draws, and draws no inset: the option reaches it unharmed."""
