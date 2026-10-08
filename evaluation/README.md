@@ -1,6 +1,6 @@
 # Evaluation Framework
 
-Measures the quality of agent-predicted metadata against gold-standard references.
+Measures the quality of agent-predicted metadata against reference-standard records.
 
 ## Getting Started
 
@@ -13,8 +13,6 @@ The recommended way to run evaluations and explore results is the `experiment.ip
 
 Open the notebook and follow the configuration cells to set your `DATA_ROOT`, `MODEL`, `ASSAYS` and `CONDITIONS`. Run it from the repository root: its setup cell puts this directory on the import path so the modules below can be imported by name.
 
-Running the experiments is two calls, both from `[sweep.py](sweep.py)`:
-
 ```python
 from sweep import plan_sweep, run_sweep
 
@@ -23,16 +21,6 @@ run_sweep(plan, dry_run=False)             # one run, into each <condition>/
 run_sweep(plan, n_repeat=5, dry_run=False) # the whole plan five times, into <condition>/run-1/ .. run-5/
 run_sweep(plan, n_repeat=2, first_run=2, dry_run=False)  # two more beside an existing run-1: run-2/, run-3/
 ```
-
-`plan_sweep` loads the API keys from `.env` and prints what the sweep covers. It raises on an unknown assay, an unknown condition, an assay with no input records, or a missing key — before anything is spent. `run_sweep` then runs the jobs (one job is one assay under one condition), one at a time, every condition of one assay before the next assay starts. It spends nothing while `dry_run` stands, which is its default.
-A single run writes each job straight into its condition's directory, as the CLI does.
-With `n_repeat=N` above 1 it makes N runs of the whole plan instead, finishing each run before starting the next, and writes run *n* to `<condition>/run-<n>/`.
-`first_run` numbers new runs after ones already on disk.
-Nothing already written is overwritten unless you pass `overwrite=True`: a sweep that would write where predictions already are is refused before it spends anything, and names the `first_run` that follows the last run there.
-The CLI follows the same rule, with `--overwrite`, and asks before it replaces anything.
-A condition directory holds one layout or the other: `run_sweep` refuses, before spending anything, to write one run where `run-<n>` directories already are, or several where a single run already is.
-Every analysis function reads run 1 unless given `run=<n>`, finding it in whichever layout the condition has, for example `create_overall_precision_recall_summary(DATA_ROOT, MODEL, "arms-agent", run=2)`.
-Two views read several runs at once: `create_run_spread_summary(DATA_ROOT, MODEL, "arms-agent", runs=(1, 2, 3))` gives precision and recall per assay as the mean with the lowest and highest run (`notebook_utils.show_run_spread` prints it for several conditions), and `plot_field_stability(DATA_ROOT, MODEL, runs=(1, 2, 3))` shows, per assay, the share of all reference fields answered identically across runs. Reference values do not affect the consistency bands: any three identical predictions count as consistent, including blanks or values entered for a reference-blank field.
 
 ## Directory Conventions
 
@@ -72,23 +60,42 @@ DATA_ROOT/
 └── ...
 ```
 
-Gold-standard and output files share the same filenames so that each output can be matched to its reference for evaluation.
+Reference-standard and output files share the same filenames so that each output can be matched to its reference for evaluation.
 
 ## Metrics
 
-Three accuracy metrics are computed by `analysis/metrics/`:
+`analysis/metrics/` computes two families of metrics over the fields of each reference record. Both judge a field the same way: `null`, `""` and whitespace-only strings count as blank, and a field missing from the prediction counts as blank.
 
-### Ontology-Constrained Field Accuracy (`ontology_constrained_field_accuracy`)
+### Accuracy
 
-Accuracy restricted to fields whose values must come from a controlled ontology or branch-based permissible-value list (as defined in the schema). Only those fields are evaluated; all others are ignored.
+Accuracy is the fraction of reference fields where the prediction agrees with reference records.
 
-### Non-Ontology-Constrained Field Accuracy (`non_ontology_constrained_field_accuracy`)
+| Function | Fields scored |
+|---|---|
+| `compute_all_field_accuracy(predicted, gold)` | Every field in the gold record. |
+| `compute_ontology_constrained_field_accuracy(predicted, gold, schema_path)` | Fields whose values must come from a controlled ontology or branch-based permissible-value list, as defined in the schema. |
+| `compute_non_ontology_constrained_field_accuracy(predicted, gold, schema_path)` | Free-text and other fields that are **not** ontology-constrained, the complement of the subset above. |
 
-Accuracy restricted to free-text and other fields that are **not** ontology-constrained. This is the complement of the ontology-constrained subset.
+### Precision and Recall
+
+`compute_field_confusion(predicted, gold, schema_path)` sorts every gold field into confusion-matrix counters, where the positive action is asserting a value.
+
+| Gold | Prediction | Counted as |
+|---|---|---|
+| blank | blank | `TN` |
+| blank | a value | `FP` (insertion) |
+| a value | blank | `FN` (deletion) |
+| a value | the matching value | `TP` |
+| a value | a different value | `FP` and `FN` (substitution) |
+
+`precision_recall_f1(counts)` turns one category's counts into scores:
+
+- **Precision** is `TP / (TP + FP)`, the fraction of asserted values that were right.
+- **Recall** is `TP / (TP + FN)`, the fraction of gold values that were produced.
 
 ### Match Parameters
 
-All three metrics accept two optional parameters that relax string matching:
+All three accuracy functions and `compute_field_confusion` accept two optional keyword parameters that relax string matching:
 
 | Parameter | Default | Effect |
 |---|---|---|
