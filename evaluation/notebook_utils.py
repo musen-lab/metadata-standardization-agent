@@ -30,10 +30,12 @@ from analysis.data_analysis import (
     summarize_error_subcategories_by_field_type,
 )
 from analysis.metrics import CONFUSION_CATEGORIES
+from analysis.reference_constraints import audit_reference_constraints
 from analysis.significance import (
     CATEGORIES,
     CATEGORY_LABELS,
     PairedData,
+    build_pre_post_precision_recall_table,
     build_precision_recall_table,
     collect_paired_data,
     deduplicated_paired_tests,
@@ -43,8 +45,10 @@ from analysis.significance import (
 from plots.marks import condition_label
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Collection, Mapping, Sequence
     from pathlib import Path
+
+    from analysis.reference_constraints import ReferenceConstraintAudit
 
 #: The instance-weighted table's columns, in reading order.
 WEIGHTED_COLUMNS = ["assay", "field_type", "n_records", "TP", "FP", "FN", "precision", "recall", "f1"]
@@ -64,6 +68,243 @@ DEDUPLICATED_COLUMNS = [
 ]
 
 METRICS = ("precision", "recall")
+
+
+def show_reference_exclusions(
+    data_root: str | Path,
+    *,
+    report_dir: str | Path | None = None,
+) -> ReferenceConstraintAudit:
+    """Print assay-wide exclusions and optionally save complete review evidence.
+
+    The HTML report groups fields by assay, with expandable constraint/value/record
+    evidence. CSVs retain the field summary, all witnesses, and audit coverage.
+    No reference records are modified and no exclusion is labelled an ARMS error.
+    """
+    from html import escape
+    from pathlib import Path
+
+    audit = audit_reference_constraints(data_root)
+    print("=== reference constraint audit: fields labelled excluded within each assay ===")
+    print(audit.coverage.to_string(index=False))
+    if audit.fields.empty:
+        print("No populated reference values violate the checked constraints.")
+    else:
+        print("\nEach listed field is excluded from every record in its assay, for both methods.")
+        print(audit.fields.to_string(index=False))
+
+    if report_dir is not None:
+        destination = Path(report_dir)
+        destination.mkdir(parents=True, exist_ok=True)
+        for name, table in (("fields", audit.fields), ("violations", audit.violations), ("coverage", audit.coverage)):
+            table.to_csv(destination / f"reference_exclusions_{name}.csv", index=False)
+
+        parts = [
+            '<!doctype html><html lang="en"><meta charset="utf-8">',
+            '<meta name="viewport" content="width=device-width, initial-scale=1">',
+            "<title>Reference constraint exclusions</title>",
+            "<style>body{font:16px system-ui;margin:2rem;line-height:1.5}"
+            "table{border-collapse:collapse;font-size:14px;width:100%}"
+            "td,th{border:1px solid #ccc;padding:.5rem;text-align:left;vertical-align:top}"
+            "td{overflow-wrap:anywhere}summary{cursor:pointer;font-weight:600}"
+            "details{margin:1rem 0}nav a{margin-right:1rem}</style><body>",
+            "<h1>Reference constraint exclusions</h1>",
+            "<p>A populated reference value violating an explicit template constraint excludes its entire field "
+            "within that assay, including valid and blank instances, for both methods and all runs. "
+            "These are exclusions, not ARMS errors. Checks use saved templates and all reference records only.</p>",
+            "<p>Checks: JSON data type, multiplicity, regex patterns, and closed permissible-value lists. "
+            "Matching is case sensitive with no trimming or semantic reassessment. Blank or missing "
+            "values do not trigger exclusion, even in required fields. Open ontology lists, descriptions, "
+            "and fields absent from a template cannot establish a violation. Link and temporal types "
+            "are checked as strings; format restrictions require an explicit pattern.</p>",
+            "<p>Invalid records counts only violating records. Excluded comparisons counts all reference "
+            "instances of that field; the scoring tables use records predicted by both methods.</p>",
+            "<nav>"
+            + " ".join(f'<a href="#{escape(assay)}">{escape(assay)}</a>' for assay in audit.coverage["assay"])
+            + "</nav>",
+            audit.coverage.rename(columns={"n_gold_records": "n_reference_records"}).to_html(index=False, escape=True),
+        ]
+        for assay in audit.coverage["assay"]:
+            parts.append(f'<h2 id="{escape(assay)}">{escape(assay)}</h2>')
+            fields = audit.fields[audit.fields["assay"] == assay]
+            if fields.empty:
+                parts.append("<p>No excluded fields.</p>")
+                continue
+            parts.append(
+                fields.drop(columns=["assay"])
+                .rename(columns={"n_gold_records": "n_reference_records"})
+                .to_html(index=False, escape=True)
+            )
+            for row in fields.itertuples(index=False):
+                evidence = audit.violations.query("assay == @assay and field == @row.field")
+                parts.append(
+                    f"<details><summary>{escape(row.field)}: {row.n_invalid_records} invalid of "
+                    f"{row.n_gold_records} reference records — "
+                    f"{row.n_excluded_comparisons} excluded comparisons</summary>"
+                )
+                for constraint, group in evidence.groupby("constraint", sort=False):
+                    parts.append(
+                        f"<h3>{escape(constraint)}</h3><p>Expected: "
+                        f"<code>{escape(group['expected'].iloc[0])}</code></p>"
+                    )
+                    parts.append(
+                        group[["gold_value", "n_records", "records"]]
+                        .rename(columns={"gold_value": "reference_value"})
+                        .to_html(index=False, escape=True)
+                    )
+                parts.append("</details>")
+        parts.append("</body></html>")
+        (destination / "reference_exclusions.html").write_text("\n".join(parts), encoding="utf-8")
+        print(f"\nReview report: {destination / 'reference_exclusions.html'}")
+    return audit
+
+
+def show_post_adjudication_evaluation(
+    data_root: str | Path,
+    model: str,
+    *,
+    baseline: str,
+    system: str,
+    run: int = 1,
+    n_resamples: int = 10_000,
+    report_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Report a separate evaluation after objective assay-level reference exclusions.
+
+    Reuses the original record-cluster intervals, applying the same gold-derived
+    exclusions to both conditions. Prints plain per-assay and pooled precision
+    and recall tables, then reuses ``show_deduplicated_tests`` with the same
+    exclusions. The returned audit and tables allow further inspection.
+    """
+    from pathlib import Path
+
+    from analysis.significance import build_per_assay_precision_recall_table
+
+    audit = show_reference_exclusions(data_root, report_dir=report_dir)
+    exclusions = audit.excluded_fields_by_assay
+    per_assay = build_per_assay_precision_recall_table(
+        data_root,
+        model,
+        baseline=baseline,
+        system=system,
+        run=run,
+        excluded_fields_by_assay=exclusions,
+    )
+    pooled = build_precision_recall_table(
+        data_root,
+        model,
+        baseline=baseline,
+        system=system,
+        run=run,
+        excluded_fields_by_assay=exclusions,
+    )
+    columns = ["assay", "category", "metric", "n_records", baseline, system, "difference"]
+    pooled = pooled[pooled["metric"].isin(METRICS)].assign(assay="All assays")
+    frames = [table[columns] for table in (per_assay, pooled) if not table.empty]
+    field_level = pd.concat(frames, ignore_index=True)
+    print(f"\n=== post-adjudication per-assay precision and recall (run {run}): point [95% CI] ===")
+    print(per_assay.reindex(columns=columns).to_string(index=False))
+    print("\n=== post-adjudication pooled precision and recall: point [95% CI] ===")
+    print(pooled.drop(columns="assay").to_string(index=False))
+    print("\n=== post-adjudication deduplicated precision and recall ===")
+    deduplicated = show_deduplicated_tests(
+        data_root,
+        model,
+        baseline=baseline,
+        system=system,
+        run=run,
+        n_resamples=n_resamples,
+        excluded_fields_by_assay=exclusions,
+    )
+    if report_dir is not None:
+        destination = Path(report_dir)
+        # Metrics are labelled by model, condition pair and run; the audit itself
+        # is independent of all three and can be reused across comparisons.
+        stem = f"post_adjudication_{model}_{baseline}_vs_{system}_run-{run}"
+        field_level.to_csv(destination / f"{stem}_field_level.csv", index=False)
+        per_assay.to_csv(destination / f"{stem}_per_assay_tests.csv", index=False)
+        pooled.drop(columns="assay").to_csv(destination / f"{stem}_pooled.csv", index=False)
+        if deduplicated is not None:
+            deduplicated.to_csv(destination / f"{stem}_deduplicated.csv", index=False)
+    return {
+        "audit": audit,
+        "field_level": field_level,
+        "per_assay_tests": per_assay,
+        "pooled": pooled,
+        "deduplicated": deduplicated,
+    }
+
+
+def show_pre_post_adjudication_comparison(
+    data_root: str | Path,
+    model: str,
+    *,
+    excluded_fields: Mapping[str, Collection[str]],
+    post_deduplicated: pd.DataFrame | None,
+    baseline: str,
+    system: str,
+    run: int = 1,
+    n_resamples: int = 10_000,
+) -> dict[str, pd.DataFrame]:
+    """Print two effect tables: per-assay field-level scores, then deduplicated scores.
+
+    Use the same run and shared records on both sides. ``change`` means post minus
+    pre for each method. These are descriptive changes in the evaluation scope,
+    not significance tests of a performance change. Keep point estimates unrounded
+    until printing; parsing formatted confidence intervals would lose precision.
+    """
+    per_assay = build_pre_post_precision_recall_table(
+        data_root,
+        model,
+        excluded_fields=excluded_fields,
+        baseline=baseline,
+        system=system,
+        run=run,
+    )
+    pre_deduplicated = pd.DataFrame(
+        deduplicated_paired_tests(
+            data_root,
+            model,
+            baseline=baseline,
+            system=system,
+            run=run,
+            n_resamples=n_resamples,
+        )
+    ).rename(columns={"baseline": baseline, "system": system})
+    keys = ["field_type", "metric", "paired on"]
+    columns = [*keys, "n_items", baseline, system]
+
+    def view(table: pd.DataFrame | None, stage: str) -> pd.DataFrame:
+        table = table if table is not None else pd.DataFrame()
+        return table.reindex(columns=columns).rename(
+            columns={
+                "n_items": f"n_items_{stage}",
+                baseline: f"{baseline} {stage}",
+                system: f"{system} {stage}",
+            }
+        )
+
+    pre_view = view(pre_deduplicated, "pre")
+    pre_view["_order"] = range(len(pre_view))
+    deduplicated = pre_view.merge(
+        view(post_deduplicated, "post"),
+        on=keys,
+        how="outer",
+        sort=False,
+        validate="one_to_one",
+    )
+    deduplicated = deduplicated.sort_values("_order", kind="stable").drop(columns="_order")
+    ordered = [*keys, "n_items_pre", "n_items_post"]
+    for condition in (baseline, system):
+        deduplicated[f"{condition} change"] = deduplicated[f"{condition} post"] - deduplicated[f"{condition} pre"]
+        ordered.extend(f"{condition} {stage}" for stage in ("pre", "post", "change"))
+    deduplicated = deduplicated[ordered]
+    formatters = {f"{condition} change": lambda value: f"{value:+.3f}" for condition in (baseline, system)}
+    print("=== pre- and post-adjudication: per assay and pooled; change = post minus pre ===")
+    print(per_assay.to_string(index=False, float_format=lambda value: f"{value:.3f}", formatters=formatters))
+    print("\n=== pre- and post-adjudication: deduplicated; change = post minus pre ===")
+    print(deduplicated.to_string(index=False, float_format=lambda value: f"{value:.3f}", formatters=formatters))
+    return {"per_assay": per_assay, "deduplicated": deduplicated}
 
 
 def count_predictions(data_root: str | Path, model: str, conditions: Sequence[str], *, run: int = 1) -> dict[str, int]:
@@ -286,6 +527,7 @@ def show_deduplicated_tests(
     alpha: float = 0.05,
     n_resamples: int = 10_000,
     run: int = 1,
+    excluded_fields_by_assay: Mapping[str, Collection[str]] | None = None,
 ) -> pd.DataFrame | None:
     """Print the same question asked of distinct values, and return the verdict table.
 
@@ -299,15 +541,24 @@ def show_deduplicated_tests(
         return None
 
     rows = deduplicated_paired_tests(
-        data_root, model, baseline=baseline, system=system, n_resamples=n_resamples, run=run
+        data_root,
+        model,
+        baseline=baseline,
+        system=system,
+        n_resamples=n_resamples,
+        run=run,
+        excluded_fields_by_assay=excluded_fields_by_assay,
     )
+    if not rows:
+        print("Nothing to test: no retained paired values or fields after exclusions.")
+        return pd.DataFrame()
     table = pd.DataFrame(rows)
     table["difference [95% CI]"] = table.apply(
         lambda row: f"{row['delta']:+.3f} [{row['lo']:+.3f}, {row['hi']:+.3f}]", axis=1
     )
     table["p_value"] = table["pvalue"].round(4)
     table[f"reject H0 at {alpha}"] = ["yes" if pvalue < alpha else "no" for pvalue in table["pvalue"]]
-    table = table.rename(columns={"baseline": baseline, "system": system}).round({baseline: 3, system: 3})
+    table = table.rename(columns={"baseline": baseline, "system": system})
 
     print(f"=== deduplicated: paired over items, not records ({n_resamples:,} resamples) ===")
     columns = [
@@ -321,7 +572,7 @@ def show_deduplicated_tests(
         "p_value",
         f"reject H0 at {alpha}",
     ]
-    print(table[columns].to_string(index=False))
+    print(table[columns].round({baseline: 3, system: 3}).to_string(index=False))
     print("\nA row significant here is not explained by repetition.  A row significant in the")
     print("instance-weighted test but not here is a real saving of work, carried by values the")
     print("corpus repeats -- not evidence that the run knows more distinct answers.")

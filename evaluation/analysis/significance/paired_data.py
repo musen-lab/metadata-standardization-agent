@@ -19,6 +19,7 @@ from analysis.corpus import get_assay, iter_records, load_record
 from analysis.metrics import CONFUSION_CATEGORIES, compute_field_confusion
 
 if TYPE_CHECKING:
+    from collections.abc import Collection
     from pathlib import Path
 
 #: The field groupings the paper reports.  Aliased to the categories the confusion
@@ -83,6 +84,7 @@ def collect_paired_data(
     baseline: str = "baseline",
     system: str = "arms-agent",
     run: int = 1,
+    excluded_fields: Collection[str] = (),
 ) -> PairedData:
     """Collect paired outcomes for a single assay from saved outputs.
 
@@ -94,6 +96,8 @@ def collect_paired_data(
 
     Records predicted by only one of the two conditions are skipped: the comparison is
     paired, so an unmatched record would put them on different denominators.
+    ``excluded_fields`` omits those fields from every record and both conditions;
+    leaving it empty preserves the original evaluation.
     """
     assay = get_assay(data_root, assay_key)
     baseline_dir = assay.output_dir(model, baseline, run=run)
@@ -108,6 +112,7 @@ def collect_paired_data(
         system_file = system_dir / gold_file.name
         if not (baseline_file.exists() and system_file.exists()):
             continue
+        gold = {name: value for name, value in gold.items() if name not in excluded_fields}
         _add_record(data, gold, load_record(baseline_file), load_record(system_file), assay.schema_path)
 
     return data

@@ -11,6 +11,7 @@ marks themselves look like is :mod:`plots.marks`.
 from __future__ import annotations
 
 from math import ceil
+from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -63,6 +64,9 @@ from plots.theme import (
     _finish,
     _relative_luminance,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Collection, Mapping, Sequence
 
 #: Every panel is the whole unit square, whatever it plots.  Cropping to the data would
 #: put the origin somewhere other than the corner, and a reader would have to check the
@@ -451,6 +455,8 @@ def plot_pr_condition_comp(
     title: str | None = None,
     save_path: str | None = None,
     run: int = 1,
+    excluded_fields: Mapping[str, Collection[str]] | None = None,
+    paired: bool = False,
 ) -> None:
     """Operating points in precision/recall space.
 
@@ -508,6 +514,11 @@ def plot_pr_condition_comp(
     trade-off.  Every panel shares one window, so they stay comparable rather than each
     rescaling to its own data.  When *save_path* is given the figure is written there
     (PNG/PDF inferred from the extension) instead of shown interactively.
+
+    ``excluded_fields`` is an assay-keyed map removing those fields in every record of each
+    assay before computing the plotted scores. With ``paired=True``, every point
+    uses only records predicted by all compared conditions, matching the paired
+    precision/recall tables. Defaults preserve the original evaluation.
     """
     _check_pr_arguments(baselines, systems, field_types)
     conditions = (*baselines, *systems)
@@ -530,7 +541,10 @@ def plot_pr_condition_comp(
         title=title,
         save_path=save_path,
         name_stacks=True,
+        label_ties_in_place=True,
         inset=inset,
+        excluded_fields_by_assay=excluded_fields,
+        paired_conditions=conditions if paired else (),
     )
 
 
@@ -764,6 +778,8 @@ def _plot_pr_points(
     label_ties_in_place: bool = False,
     point_names: list[str] | None = None,
     inset: bool = False,
+    excluded_fields_by_assay: Mapping[str, Collection[str]] | None = None,
+    paired_conditions: Sequence[str] = (),
 ) -> None:
     """Draw and finish a precision/recall figure: the layout all three public figures share.
 
@@ -793,6 +809,8 @@ def _plot_pr_points(
                 # Preserve close score differences when identifying exact ties.
                 decimal_places=12,
                 run=point_run,
+                excluded_fields_by_assay=excluded_fields_by_assay,
+                paired_conditions=paired_conditions,
                 assays=[
                     key
                     for key in assays
@@ -832,7 +850,13 @@ def _plot_pr_points(
     else:
         summaries = [
             create_overall_precision_recall_summary(
-                data_root, model, condition, decimal_places=12, run=point_run
+                data_root,
+                model,
+                condition,
+                decimal_places=12,
+                run=point_run,
+                excluded_fields_by_assay=excluded_fields_by_assay,
+                paired_conditions=paired_conditions,
             ).set_index("category")
             for model, condition, point_run in points
         ]

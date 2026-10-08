@@ -1,17 +1,20 @@
 """The reported tables: one row per assay, and the pooled rows beneath them.
 
-Everything here is presentation -- collecting the paired outcomes once, handing them to
+The interval tables collect the paired outcomes once, hand them to
 the estimators, and formatting the results as ``point [lo, hi]`` strings.  The columns
 are strings rather than numbers because these tables are read, not computed on; the
-functions that produce numbers are :mod:`~analysis.significance.bootstrap` and
+functions that produce intervals are :mod:`~analysis.significance.bootstrap` and
 :mod:`~analysis.significance.hypothesis_tests`.
+The pre/post comparison returns unrounded numeric estimates and changes so that
+presentation rounding cannot affect the calculated differences.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from analysis.corpus import iter_assays
+from analysis.metrics import precision_recall_f1
 from analysis.significance.bootstrap import (
     bootstrap_pooled_accuracy,
     bootstrap_prf,
@@ -26,6 +29,7 @@ from analysis.significance.paired_data import CATEGORIES, CATEGORY_LABELS, Paire
 from analysis.significance.single_condition import collect_single_condition_data
 
 if TYPE_CHECKING:
+    from collections.abc import Collection, Mapping
     from pathlib import Path
 
     import pandas as pd
@@ -43,11 +47,29 @@ def _fmt_p(p: float) -> str:
     return "<0.001" if p < 0.001 else f"{p:.3f}"
 
 
-def _pooled_data(data_root: str | Path, model: str, baseline: str, system: str, *, run: int = 1) -> PairedData:
+def _pooled_data(
+    data_root: str | Path,
+    model: str,
+    baseline: str,
+    system: str,
+    *,
+    run: int = 1,
+    excluded_fields_by_assay: Mapping[str, Collection[str]] | None = None,
+) -> PairedData:
     """Paired outcomes for every assay, accumulated into one :class:`PairedData`."""
     pooled = PairedData()
     for assay in iter_assays(data_root):
-        pooled.extend(collect_paired_data(data_root, model, assay.key, baseline=baseline, system=system, run=run))
+        pooled.extend(
+            collect_paired_data(
+                data_root,
+                model,
+                assay.key,
+                baseline=baseline,
+                system=system,
+                run=run,
+                excluded_fields=(excluded_fields_by_assay or {}).get(assay.key, ()),
+            )
+        )
     return pooled
 
 
@@ -58,6 +80,7 @@ def build_precision_recall_table(
     baseline: str = "baseline",
     system: str = "arms-agent",
     run: int = 1,
+    excluded_fields_by_assay: Mapping[str, Collection[str]] | None = None,
 ) -> pd.DataFrame:
     """Precision, recall and F1 with cluster-bootstrap CIs, pooled across assays.
 
@@ -65,10 +88,19 @@ def build_precision_recall_table(
     the paired difference, each as ``point [lo, hi]``.  Records are the resampling
     unit throughout, and the three metrics share each replicate's resample, so the
     baseline, ARMS and difference columns of a row are mutually consistent.
+    An optional assay-keyed exclusion map removes the same fields from both
+    methods in every record. The default retains the original evaluation.
     """
     import pandas as pd
 
-    pooled = _pooled_data(data_root, model, baseline, system, run=run)
+    pooled = _pooled_data(
+        data_root,
+        model,
+        baseline,
+        system,
+        run=run,
+        excluded_fields_by_assay=excluded_fields_by_assay,
+    )
 
     rows = []
     for category in CATEGORIES:
@@ -88,6 +120,79 @@ def build_precision_recall_table(
                 }
             )
     return pd.DataFrame(rows)
+
+
+def build_pre_post_precision_recall_table(
+    data_root: str | Path,
+    model: str,
+    *,
+    excluded_fields: Mapping[str, Collection[str]],
+    baseline: str = "baseline",
+    system: str = "arms-agent",
+    run: int = 1,
+) -> pd.DataFrame:
+    """Effect of assay-wide exclusions on each method, per assay and pooled.
+
+    Reuse the paired-data collector and the existing TP/FP/FN score definitions.
+    Changes are post minus pre for the *same method*, not system minus baseline.
+    They describe different sets of scored fields, not a change in predictions.
+    Return unrounded point estimates; no uncertainty test of the change is implied.
+    A category entirely excluded post-adjudication has no estimate (NaN), rather
+    than an artificial zero. Counts name records with fields in each category.
+    """
+    import pandas as pd
+
+    views: list[tuple[str, PairedData, PairedData]] = []
+    pooled_pre, pooled_post = PairedData(), PairedData()
+    for assay in iter_assays(data_root):
+        pre = collect_paired_data(data_root, model, assay.key, baseline=baseline, system=system, run=run)
+        post = collect_paired_data(
+            data_root,
+            model,
+            assay.key,
+            baseline=baseline,
+            system=system,
+            run=run,
+            excluded_fields=excluded_fields.get(assay.key, ()),
+        )
+        views.append((assay.label, pre, post))
+        pooled_pre.extend(pre)
+        pooled_post.extend(post)
+    views.append(("All assays", pooled_pre, pooled_post))
+
+    def scores(data: PairedData, category: str, offset: int) -> dict[str, float]:
+        counts = data.record_confusion[category]
+        if not counts:
+            return dict.fromkeys(("precision", "recall"), float("nan"))
+        return precision_recall_f1(
+            {key: sum(row[offset + i] for row in counts) for i, key in enumerate(("TP", "FP", "FN"))}
+        )
+
+    columns = ["assay", "category", "metric", "n_records_pre", "n_records_post"]
+    columns += [f"{condition} {stage}" for condition in (baseline, system) for stage in ("pre", "post", "change")]
+    rows: list[dict[str, Any]] = []
+    for assay, pre, post in views:
+        for category in CATEGORIES:
+            if not pre.record_confusion[category]:
+                continue
+            estimates = {
+                condition: (scores(pre, category, offset), scores(post, category, offset))
+                for condition, offset in ((baseline, 0), (system, 3))
+            }
+            for metric in ("precision", "recall"):
+                row: dict[str, Any] = {
+                    "assay": assay,
+                    "category": CATEGORY_LABELS[category],
+                    "metric": metric,
+                    "n_records_pre": len(pre.record_confusion[category]),
+                    "n_records_post": len(post.record_confusion[category]),
+                }
+                for condition, (before, after) in estimates.items():
+                    row[f"{condition} pre"] = before[metric]
+                    row[f"{condition} post"] = after[metric]
+                    row[f"{condition} change"] = after[metric] - before[metric]
+                rows.append(row)
+    return pd.DataFrame(rows, columns=columns)
 
 
 def build_single_condition_table(data_root: str | Path, model: str, condition: str, *, run: int = 1) -> pd.DataFrame:
@@ -132,6 +237,7 @@ def build_per_assay_precision_recall_table(
     baseline: str = "baseline",
     system: str = "arms-agent",
     run: int = 1,
+    excluded_fields_by_assay: Mapping[str, Collection[str]] | None = None,
 ) -> pd.DataFrame:
     """Per-assay precision and recall: ARMS against baseline, with a corrected p-value.
 
@@ -156,12 +262,22 @@ def build_per_assay_precision_recall_table(
     The ``significant`` column applies *alpha* to the corrected p-value.  Read it with
     ``n_records`` beside it: the permutation null has only ``2**n`` arrangements, so
     fewer than six differing records cannot reach 0.05 however large the effect.
+    ``excluded_fields_by_assay`` uses assay keys (for example, ``atacseq``) and
+    removes those fields from every record for both methods before resampling.
     """
     import pandas as pd
 
     rows = []
     for assay in iter_assays(data_root):
-        data = collect_paired_data(data_root, model, assay.key, baseline=baseline, system=system, run=run)
+        data = collect_paired_data(
+            data_root,
+            model,
+            assay.key,
+            baseline=baseline,
+            system=system,
+            run=run,
+            excluded_fields=(excluded_fields_by_assay or {}).get(assay.key, ()),
+        )
         for category in CATEGORIES:
             confusion = data.record_confusion[category]
             if not confusion:

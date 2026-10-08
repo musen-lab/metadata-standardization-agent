@@ -322,14 +322,39 @@ class TestShapeStacking:
 
 
 class TestConditionLegend:
-    def test_tied_conditions_get_separate_marker_callouts(self, data_root: Path, captured: list[plt.Figure]) -> None:
+    def test_tied_conditions_are_named_at_true_scores_without_marker_copies(
+        self,
+        data_root: Path,
+        captured: list[plt.Figure],
+    ) -> None:
         for name, record in _PREDICTIONS["good"].items():
             _write(data_root / "atacseq" / "output" / "good" / "baseline" / f"{name}.json", record)
         plot_pr_condition_comp(str(data_root), "good", field_types=("ontology",))
         ax = captured[0].axes[0]
-        assert _stack_boxes(ax) == ["Baseline"]
-        assert len([line for line in ax.get_lines() if line.get_gid() == pr_space.STACK_COPY_GID]) == 1
-        assert len([line for line in ax.get_lines() if line.get_gid() == pr_space.STACK_SCORE_LINK_GID]) == 1
+        assert set(_stack_boxes(ax)) == {"Baseline", "ARMS"}
+        assert not any(line.get_gid() == pr_space.STACK_COPY_GID for line in ax.get_lines())
+        assert not any(line.get_gid() == pr_space.STACK_SCORE_LINK_GID for line in ax.get_lines())
+        assert sum(len(points) for points in _points(ax).values()) == 2
+
+    def test_one_condition_tied_across_field_types_has_only_the_two_original_markers(
+        self,
+        data_root: Path,
+        captured: list[plt.Figure],
+    ) -> None:
+        for name, record in _PREDICTIONS["half"].items():
+            _write(data_root / "atacseq" / "output" / "good" / "baseline" / f"{name}.json", record)
+        plot_pr_condition_comp(
+            str(data_root),
+            "good",
+            field_types=("ontology", "non_ontology"),
+            no_color=True,
+            show_f1_contours=False,
+        )
+        ax = captured[0].axes[0]
+        assert not any(line.get_gid() == pr_space.STACK_COPY_GID for line in ax.get_lines())
+        dots = [line for line in ax.get_lines() if line.get_linestyle() == "None" and len(line.get_xdata()) == 1]
+        assert len(dots) == 4
+        assert sum(tuple(line.get_xydata()[0]) == (1.0, 1.0) for line in dots) == 2
 
     def test_conditions_and_field_types_take_their_manuscript_names(
         self, data_root: Path, captured: list[plt.Figure]

@@ -81,6 +81,7 @@ from analysis.significance.paired_data import CATEGORIES, CATEGORY_LABELS, Paire
 from analysis.significance.single_condition import SingleConditionData, collect_single_condition_data
 from analysis.significance.tables import (
     build_per_assay_precision_recall_table,
+    build_pre_post_precision_recall_table,
     build_precision_recall_table,
     build_single_condition_table,
 )
@@ -97,6 +98,7 @@ __all__ = [
     "bootstrap_pooled_accuracy",
     "bootstrap_prf",
     "build_per_assay_precision_recall_table",
+    "build_pre_post_precision_recall_table",
     "build_precision_recall_table",
     "build_single_condition_table",
     "cluster_bootstrap_prf",

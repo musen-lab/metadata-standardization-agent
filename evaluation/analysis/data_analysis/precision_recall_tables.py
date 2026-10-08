@@ -23,7 +23,7 @@ from analysis.metrics import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Collection, Iterable, Mapping, Sequence
 
     import pandas as pd
 
@@ -38,6 +38,8 @@ def _accumulate_confusion(
     condition: str,
     *,
     run: int = 1,
+    excluded_fields_by_assay: Mapping[str, Collection[str]] | None = None,
+    paired_conditions: Sequence[str] = (),
 ) -> tuple[dict[str, dict[str, int]], int, int]:
     """Pool confusion counts over every gold/predicted pair in *assays*.
 
@@ -56,10 +58,17 @@ def _accumulate_confusion(
     for assay in assays:
         if not assay.has_gold:
             continue
+        excluded_fields = (excluded_fields_by_assay or {}).get(assay.key, ())
+        paired_dirs = [assay.output_dir(model, other, run=run) for other in paired_conditions]
 
-        for _gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition, run=run)):
+        for gold_file, gold, predicted in iter_pairs(assay.gold_dir, assay.output_dir(model, condition, run=run)):
             if predicted is None:
                 n_skipped += 1
+                continue
+            if not all((directory / gold_file.name).exists() for directory in paired_dirs):
+                continue
+            gold = {name: value for name, value in gold.items() if name not in excluded_fields}
+            if excluded_fields and not gold:
                 continue
             record_counts = compute_field_confusion(predicted, gold, assay.schema_path)
             for category in CONFUSION_CATEGORIES:
@@ -101,16 +110,27 @@ def create_overall_precision_recall_summary(
     *,
     decimal_places: int = 3,
     run: int = 1,
+    excluded_fields_by_assay: Mapping[str, Collection[str]] | None = None,
+    paired_conditions: Sequence[str] = (),
 ) -> pd.DataFrame:
     """Pool precision, recall and F1 across all assays, one row per field category.
 
     Returns one row per entry in :data:`CONFUSION_CATEGORIES` with the raw
     ``TP``/``FP``/``FN``/``TN``/``insertions``/``deletions``/``substitutions`` counts and the
     derived ``precision``, ``recall`` and ``f1``.
+    Optional assay-wide exclusions remove fields before counting. Supply
+    ``paired_conditions`` to score only records predicted by every named condition.
     """
     import pandas as pd
 
-    counts, n_pairs, _ = _accumulate_confusion(iter_assays(data_root), model, condition, run=run)
+    counts, n_pairs, _ = _accumulate_confusion(
+        iter_assays(data_root),
+        model,
+        condition,
+        run=run,
+        excluded_fields_by_assay=excluded_fields_by_assay,
+        paired_conditions=paired_conditions,
+    )
 
     return pd.DataFrame(
         [
@@ -129,6 +149,8 @@ def create_per_assay_precision_recall_summary(
     decimal_places: int = 3,
     run: int = 1,
     assays: Sequence[str] | None = None,
+    excluded_fields_by_assay: Mapping[str, Collection[str]] | None = None,
+    paired_conditions: Sequence[str] = (),
 ) -> pd.DataFrame:
     """Precision, recall and F1 per assay, micro-averaged within each assay.
 
@@ -137,6 +159,8 @@ def create_per_assay_precision_recall_summary(
     skipping assays with no evaluated pairs.  *assays* names the assays to score, by key;
     left out, every assay is.  Naming them keeps an assay the run never reached from being
     scored at all, and so from warning about every one of its records.
+    Optional assay-wide exclusions remove fields before counting. Supply
+    ``paired_conditions`` to score only records predicted by every named condition.
     """
     import pandas as pd
 
@@ -146,7 +170,14 @@ def create_per_assay_precision_recall_summary(
     rows: list[dict[str, Any]] = []
     scored = iter_assays(data_root) if assays is None else (get_assay(data_root, key) for key in assays)
     for assay in scored:
-        counts, n_pairs, _ = _accumulate_confusion([assay], model, condition, run=run)
+        counts, n_pairs, _ = _accumulate_confusion(
+            [assay],
+            model,
+            condition,
+            run=run,
+            excluded_fields_by_assay=excluded_fields_by_assay,
+            paired_conditions=paired_conditions,
+        )
         if not n_pairs:
             continue
         rows.append({"assay": assay.label, **_scores_row(counts[category], n_pairs, decimal_places)})

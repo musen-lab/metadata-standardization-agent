@@ -32,6 +32,7 @@ from analysis.metrics import compute_field_results
 from analysis.significance.paired_data import CATEGORIES, CATEGORY_LABELS
 
 if TYPE_CHECKING:
+    from collections.abc import Collection, Mapping
     from pathlib import Path
 
 #: Resamples for both the permutation test and the bootstrap interval, matching
@@ -74,11 +75,14 @@ def collect_deduplicated_outcomes(
     baseline: str,
     system: str,
     run: int = 1,
+    excluded_fields_by_assay: Mapping[str, Collection[str]] | None = None,
 ) -> DeduplicatedOutcomes:
     """Collect both conditions' outcomes, keyed the two ways the paired tests need.
 
     Only records both conditions produced are visited: the comparison is paired, so an
     unmatched record would put the two conditions on different denominators.
+    Assay-wide exclusions are removed before collecting either recall clusters
+    or asserted values, so they contribute to neither metric's denominator.
     """
     outcomes = DeduplicatedOutcomes()
     conditions = (baseline, system)
@@ -87,12 +91,14 @@ def collect_deduplicated_outcomes(
         if not assay.has_gold:
             continue
         ontology_fields = assay.ontology_fields()
+        excluded_fields = (excluded_fields_by_assay or {}).get(assay.key, ())
         directories = {condition: assay.output_dir(model, condition, run=run) for condition in conditions}
 
         for gold_file, gold in iter_records(assay.gold_dir):
             paths = {condition: directory / gold_file.name for condition, directory in directories.items()}
             if not all(path.exists() for path in paths.values()):
                 continue
+            gold = {name: value for name, value in gold.items() if name not in excluded_fields}
 
             records = {condition: load_record(path) for condition, path in paths.items()}
             correct = {
@@ -177,6 +183,7 @@ def deduplicated_paired_tests(
     n_resamples: int = N_RESAMPLES,
     seed: int = SEED,
     run: int = 1,
+    excluded_fields_by_assay: Mapping[str, Collection[str]] | None = None,
 ) -> list[dict[str, Any]]:
     """Condition both paired tests for every field category, and return one row per test.
 
@@ -184,7 +191,14 @@ def deduplicated_paired_tests(
     items stood behind it, both conditions' means, and the difference with its interval and
     p-value.  Formatting and thresholding are left to the caller: this returns numbers.
     """
-    outcomes = collect_deduplicated_outcomes(data_root, model, baseline=baseline, system=system, run=run)
+    outcomes = collect_deduplicated_outcomes(
+        data_root,
+        model,
+        baseline=baseline,
+        system=system,
+        run=run,
+        excluded_fields_by_assay=excluded_fields_by_assay,
+    )
     both_asserted = sorted(key for key, conditions in outcomes.asserted_by_field.items() if len(conditions) == 2)
     conditions = (baseline, system)
 
