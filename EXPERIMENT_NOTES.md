@@ -1,29 +1,40 @@
-# Experiment Notes: Model Configuration
+# Experiment Notes: Model and Prompt Configuration
 
-These notes describe how the model was configured.
+These notes describe the model settings and prompts used in the main experiment and the supplementary model comparison. ARMS allowed parallel tool calls; the prompt-only baseline had no tools. The evaluation used a workflow recursion limit of 100.
 
-## 1. Model settings
+## 1. GPT Model Settings
+
+The main ARMS and prompt-only comparison used `gpt-5.6-terra`. The supplementary ARMS comparison also used `gpt-5.6-luna` and `gpt-5.6-sol`.
 
 | Setting | Value |
 |---|---|
-| Model | `gpt-5.6-terra` |
-| Reasoning effort | High |
-| Temperature | Not set (the provider's default is used) |
-| Maximum output length | Not set (the provider's limit for the model applies) |
-| Seed | Not set |
-| Top-p | Not set (the provider's default is used) |
-| Tool calls in parallel | Allowed for ARMS; the baseline has no tools |
-| Maximum agent steps per record | 30 |
+| Models | `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.6-sol` |
+| `reasoning_effort` | `high` |
+| `temperature` | Provider default (see note below) |
+| `top_p` | Not set |
+| `seed` | Not set |
+| Maximum output length | Not set |
 
-A note on temperature: our code asks for a temperature of 0, but the library we use to call the model does not send a temperature to this model family when reasoning is on. In practice, no temperature reaches the model, so the provider's default applies. We confirmed this by inspecting the exact request the code sends.
+The client was configured with `temperature=0.0`, but inspection of the outgoing GPT-5.6 request showed that this value was not transmitted.
 
-## 2. Determinism
+## 2. Qwen Model Settings
 
-TBA
+The supplementary comparison used the open-weight `qwen3.8-flash-next` model, served locally on an NVIDIA DGX Spark. Its sampling settings followed the [Qwen3.8-Flash-Next model card's thinking-mode recommendations](https://huggingface.co/Qwen/Qwen3.8-Flash-Next).
 
-## 3. Prompts
+| Setting | Value |
+|---|---|
+| Model | `qwen3.8-flash-next` |
+| `reasoning_effort` | `medium` |
+| `temperature` | 1.0 |
+| `top_p` | 0.95 |
+| `top_k` | 20 |
+| `min_p` | 0.0 |
+| `presence_penalty` | 0.0 |
+| `repetition_penalty` | 1.0 |
+| `seed` | Not set |
+| Maximum output length | Not set |
 
-### System prompts
+## 3. System Prompts
 
 Each method has a fixed system prompt, the same for every record:
 
@@ -32,7 +43,7 @@ Each method has a fixed system prompt, the same for every record:
 | ARMS | [arms_agent/prompts.py](arms-agent/src/arms_agent/prompts.py) |
 | Baseline | [baseline.py](evaluation/conditions/prompt_only/prompts/baseline.py) |
 
-### User prompts
+## 4. User Prompts
 
 Each record is sent to the model as one message.
 
