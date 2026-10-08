@@ -6,7 +6,7 @@ This repository is the **code and supplementary material** for the paper:
 > Josef Hardi, Martin J. O'Connor, Marcos Martínez-Romero, Jean G. Rosario, Stephen A. Fisher, Mark A. Musen.
 > arXiv: https://arxiv.org/abs/2604.08552
 
-ARMS is an LLM agent that standardizes legacy biomedical metadata records into the [CEDAR](https://metadatacenter.org/) template format. Instead of treating ontology constraints as static text in a prompt, the agent calls external services at inference time — fetching the live CEDAR template and querying BioPortal for canonical ontology terms — through [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-protocol) tools. This repository contains the agent, the evaluation framework, and the data used to produce every number and figure in the paper.
+ARMS is an LLM agent that standardizes legacy biomedical metadata records to conform to a [CEDAR](https://metadatacenter.org/) template.  Instead of treating ontology constraints as static text in a prompt, the agent calls external services at inference time—fetching the live CEDAR template and querying BioPortal for standardized ontology terms—through [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-protocol) tools. This repository contains the agent, evaluation framework, and data used to produce every number and figure reported in the paper.
 
 ## Experiment Code and Data Analysis
 
@@ -24,45 +24,63 @@ The agent is a standalone package under `arms-agent/`, published to PyPI as [arm
 
 | Component | Location |
 |---|---|
-| Expert-curated gold standard | `data/<assay>/gold/` |
+| Expert-curated reference standard | `data/<assay>/gold/` |
 | Legacy input records | `data/<assay>/input/`|
-| Baseline output | `data/<assay>/output/<model>/baseline/` (`run-<n>/` in it for repeated runs) |
+| Baseline output | `data/<assay>/output/<model>/baseline/` |
 | ARMS output | `data/<assay>/output/<model>/arms-agent/` |
-| Ablation outputs (template tool only, term search only) | `data/<assay>/output/<model>/{template-tool,term-tool}/` |
+| Ablation outputs | `data/<assay>/output/<model>/{template-tool,term-tool}/` |
 
-The evaluation set is 839 records across 12 assay types, sampled independently within each assay (up to 100 per assay; assays with fewer curated records included in full). See `data/sampling.py` for the exact procedure.
+Repeated conditions store predictions under `run-<n>/` inside their condition directory.
+
+The evaluation set is 839 records across 12 assay types, sampled independently within each assay (up to 100 per assay; assays with fewer curated records included in full). `data/sampling.py` provides a utility for sampling paired input and gold records.
 
 ### The evaluation metrics and analysis
 
 | What it produces | Location |
 |---|---|
-| Exact-match accuracy metrics; per-field results | `evaluation/analysis/metrics/` |
-| Per-assay and overall accuracy tables | `evaluation/analysis/data_analysis/` |
-| Confidence intervals and statistical tests | `evaluation/analysis/significance/` |
-| Result plots | `evaluation/plots/` |
+| Exact-match accuracy, precision, recall, and per-field results | `evaluation/analysis/metrics/` |
+| Per-assay and pooled tables, deduplicated scoring, error analysis, and run spread | `evaluation/analysis/data_analysis/` |
+| Bootstrap confidence intervals, paired permutation tests, and deduplicated comparisons | `evaluation/analysis/significance/` |
+| Precision/recall comparisons, run spread, field stability, and model comparison plots | `evaluation/plots/` |
 | End-to-end analysis notebook | `experiment.ipynb` |
 
 ## Reproducing the Paper's Results
 
-All analysis runs on the prediction files already in the `data` folder. **No LLM API calls are needed** to reproduce the accuracy numbers, confidence intervals, significance tests, or error breakdowns.
+All analysis runs on the prediction files already in the `data` folder. **No API keys or LLM API calls are needed** to reproduce the precision and recall, confidence intervals, significance tests, error breakdowns, or run stability results.
 
-Analysis code is available in the `experiment.ipynb` notebook.
+Install Python 3.12 and [uv](https://docs.astral.sh/uv/), then set up the workspace:
+
+```bash
+uv sync --all-extras
+```
+
+Open `experiment.ipynb` from the repository root using the `.venv` Python kernel. Run the setup and configuration cells in **A. Configurations**, then the cells from **Data Analysis** onward. Skip **B. Run Experiments** for offline analysis: its `plan_sweep` calls require API keys even when `RUN_EXPERIMENT=False`, and can register model prices in Langfuse when tracing is enabled.
+
+Before running the model comparison plots, define their assay selection in a separate configuration cell (the notebook normally defines it in **B. Run Experiments**):
+
+```python
+MODEL_COMP_ASSAYS = ["codex", "histology", "imc-2d", "lightsheet"]
+```
+
+The notebook compares baseline and ARMS, the two ablations, repeated runs, and other LLM models. It also compares scores after deduplicating repeated values. See [evaluation/README.md](evaluation/README.md) for the evaluation interfaces and directory conventions.
 
 ### Running the ARMS agent experiment (requires API keys)
 
-To regenerate predictions (this calls the OpenAI, CEDAR, and BioPortal APIs), create a `.env` file with `OPENAI_API_KEY`, `CEDAR_API_KEY`, and `BIOPORTAL_API_KEY`, then:
+To regenerate predictions (this calls the OpenAI, CEDAR, and BioPortal APIs), create a `.env` file with `OPENAI_API_KEY`, `CEDAR_API_KEY`, and `BIOPORTAL_API_KEY`, then run a single condition into a fresh output directory:
 
 ```bash
 uv run python -m evaluation \
   --input data/atacseq/input \
   --target-schema https://repo.metadatacenter.org/templates/dd5e8653-81cf-470b-b71b-15cab421bb84 \
-  --output data/atacseq/output/gpt-5.6-terra \
+  --output runs/atacseq/output/gpt-5.6-terra \
   --model gpt-5.6-terra --concurrent 8 --condition arms-agent
 ```
 
+This writes predictions under `runs/atacseq/output/gpt-5.6-terra/arms-agent/`. The CLI refuses to run if a prediction directory already exists unless `--overwrite` is given.
+
 ### Tracing agent runs (optional)
 
-Runs can be traced to [Langfuse](https://langfuse.com/) to inspect each LLM call, MCP tool call, and agent step. Add `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_HOST` to `.env`; tracing activates only when both keys are set and is otherwise a no-op. Set `LANGFUSE_TRACING_ENVIRONMENT` (or pass `--langfuse-environment` to the evaluation CLI) to separate sweeps from each other within a project. See [.env.example](.env.example).
+Runs can be traced to [Langfuse](https://langfuse.com/) to inspect each LLM call, tool calls, and agent steps. Add `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_HOST` to `.env`; tracing activates only when both keys are set and is otherwise a no-op. Set `LANGFUSE_TRACING_ENVIRONMENT` (or pass `--langfuse-environment` to the evaluation CLI) to separate sweeps from each other within a project. See [.env.example](.env.example).
 
 ## Development
 

@@ -1,6 +1,6 @@
 [project]
 name = "arms-agent"
-version = "1.0.2"
+version = "1.1.0"
 description = "An LLM agent that standardizes legacy biomedical metadata to adhere to CEDAR templates"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -54,7 +54,7 @@ build-backend = "hatchling.build"
 packages = ["src/arms_agent"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/arms_agent", "tests", "README.md", "LICENSE", "pyproject.toml"]
+include = ["src/arms_agent", "tests", "README.md", "CHANGELOG.md", "LICENSE", "pyproject.toml"]
 # Hatchling always ships the nearest VCS ignore file and cannot be told not to,
 # so arms-agent/.gitignore exists to be that file.  Without it the workspace's own
 # ignore list is published, naming internal paths no installer needs.

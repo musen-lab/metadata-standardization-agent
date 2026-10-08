@@ -1,10 +1,10 @@
 # ARMS Agent
 
-An LLM agent that standardizes legacy biomedical metadata records to adhere to the [CEDAR](https://metadatacenter.org/) template.
+An LLM agent that standardizes legacy biomedical metadata records to conform to a [CEDAR](https://metadatacenter.org/) template.
 
 It fetches the live CEDAR template and queries BioPortal for canonical terms through [Model Context Protocol](https://www.anthropic.com/news/model-context-protocol) tools, so the constraints it applies are the ones the template holds right now.
 
-This is the agent described in *Automated Standardization of Legacy Biomedical Metadata Using an Ontology-Constrained LLM Agent* ([arXiv:2604.08552](https://arxiv.org/abs/2604.08552)). The evaluation harness, the experiment dataset, and the code for the data analysis between baseline vs ARMS agent in the [project repository](https://github.com/musen-lab/metadata-standardization-agent).
+This is the agent described in *"Automated Standardization of Legacy Biomedical Metadata Using an Ontology-Constrained LLM Agent"* article ([arXiv:2604.08552](https://arxiv.org/abs/2604.08552)). The evaluation harness, experiment dataset, and analysis comparing baseline and ARMS live in the [project repository](https://github.com/musen-lab/metadata-standardization-agent).
 
 ## Install
 
@@ -14,13 +14,15 @@ pip install arms-agent
 
 ## Configure
 
-Three keys are required. Put them in the environment, or in a `.env` file in the directory you run from:
+Python 3.12 or later is required. Put these three keys in the environment, or in a `.env` file in the directory you run from:
 
 ```
 OPENAI_API_KEY=...       # LLM calls
 CEDAR_API_KEY=...        # fetching CEDAR templates
 BIOPORTAL_API_KEY=...    # ontology term lookups
 ```
+
+The CLI loads the `.env` and its values override existing environment variables.
 
 Optional: set `OPENAI_BASE_URL` to route LLM calls through an OpenAI-compatible gateway.
 
@@ -45,14 +47,14 @@ the keys in place.
 ```bash
 arms-migrate \
   --input legacy-metadata.json \
-  --target-schema https://repo.metadatacenter.org/templates/[CEDAR-TEMPLATE-UUID] \
+  --target-schema 'https://repo.metadatacenter.org/templates/[CEDAR-TEMPLATE-UUID]' \
   --output standardized-metadata.json \
   --model gpt-5-mini
 ```
 
-`--output` takes a file or a directory. Given a directory, the filename comes from the input (default: the
-system's temp directory. `--model` defaults to `gpt-5.6-terra`. Add `--debug` for step-by-step
-logging on stderr.
+Replace `[CEDAR-TEMPLATE-UUID]` with the template's UUID. `--output` takes a file path or an existing directory. Given a directory, the filename comes from the input; if omitted, it writes `migrated-metadata.json` in the system's temp directory. The CLI also writes a sibling `<output>.decisions.json` processing log and reports elapsed time, token usage, and estimated cost.
+
+`--model` defaults to `gpt-5.6-terra`. Add `--debug` for step-by-step logging on stderr. The workflow uses `RECURSION_LIMIT=100` to allow models that search terms one at a time to finish.
 
 For a model on another OpenAI-compatible server, set how it reasons and samples:
 
@@ -63,23 +65,28 @@ arms-migrate ... --model qwen3.8-flash-next-fast \
 ```
 
 `--reasoning-effort` defaults to `high`; the server decides which levels it accepts.
-`--sampling` defaults to temperature 0 and sends only the settings it names.
+`--sampling` always sends a temperature (default: 0) and sends other settings only when given.
 `top_k`, `min_p` and `repetition_penalty` are not OpenAI parameters, so they go in the request body for a server such as vLLM or SGLang to read.
 
 ## Integration in Python
 
 ```python
-import asyncio, json
+import asyncio
+import json
 
+from dotenv import find_dotenv, load_dotenv
 from langchain_core.messages import HumanMessage
 
 from arms_agent.agent import build_migration_agent, build_response_format
 from arms_agent.prompts import SYSTEM_PROMPT
 from arms_agent.tools import all_tools
-from arms_agent.workflow import build_workflow
+from arms_agent.workflow import RECURSION_LIMIT, build_workflow
+
+load_dotenv(find_dotenv(usecwd=True), override=True)
 
 template_iri = "https://repo.metadatacenter.org/templates/[CEDAR-TEMPLATE-UUID]"
-legacy = json.load(open("legacy-metadata.json"))
+with open("legacy-metadata.json") as source:
+    legacy = json.load(source)
 
 agent = build_migration_agent(
     model="gpt-5-mini",
@@ -95,7 +102,7 @@ result = asyncio.run(
             "messages": [
                 HumanMessage(
                     content=(
-                        "Standarize the legacy metadata record to adhere to the CEDAR template.\n\n"
+                        "Standardize the legacy metadata record to adhere to the CEDAR template.\n\n"
                         f"CEDAR Template IRI: {template_iri}\n\n"
                         f"Legacy metadata:\n```json\n{json.dumps(legacy, indent=2)}\n```"
                     )
@@ -103,17 +110,17 @@ result = asyncio.run(
             ],
             "cedar_template_iri": template_iri,
         },
-        config={"recursion_limit": 30},
+        config={"recursion_limit": RECURSION_LIMIT},
     )
 )
 print(json.dumps(result["metadata"], indent=2))
 ```
 
-The agent answers against a JSON schema built from the template, so the result conforms to the template's field structure. When a model answers without a validated object, a fixed extraction step parses the text into one.
+The agent answers against a JSON schema built from the template. If it writes the answer as text, the workflow first tries to parse and validate it locally. If needed, it calls an extraction model with a 120-second request timeout and no automatic retries, then validates the extracted record. Invalid records raise an error. The result contains `metadata` and a `decisions` processing log.
 
 ## Caching
 
-CEDAR template and BioPortal term responses are cached in SQLite for 24 hours, to keep repeated runs fast and off the rate limits. Override with `ARMS_CACHE_DIR` and `ARMS_CACHE_TTL_SECONDS` in the .env file. 
+CEDAR template and BioPortal term responses are cached in SQLite for 24 hours, to keep repeated runs fast and off the rate limits. Override with `ARMS_CACHE_DIR` and `ARMS_CACHE_TTL_SECONDS` in the environment or `.env` file.
 
 ## Other settings
 
@@ -126,6 +133,8 @@ CEDAR template and BioPortal term responses are cached in SQLite for 24 hours, t
 | `OPENAI_STRUCTURED_OUTPUT` | `provider` | How the template's schema reaches the model: `provider` sends it as the request's `response_format`; `tool` offers it as a tool the model calls to answer, for an endpoint that enforces `response_format` on every reply and so never lets the model call a tool. |
 
 Costs are local estimates from provider-reported token counts, not billed amounts.
+
+`OPENAI_COST_CACHE_DISCOUNT` is no longer used. Replace it with `OPENAI_COST_CACHED_MULTIPLIER`: set it to `1.0` if cached input is charged at OpenAI's full cached-input rate while `OPENAI_COST_MULTIPLIER` discounts other tokens, or leave it unset to apply the same multiplier to all token rates.
 
 ## License
 
