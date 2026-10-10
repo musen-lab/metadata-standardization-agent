@@ -16,9 +16,9 @@ Omissions require legacy evidence that establishes the reference value for the t
 field. Related context alone is insufficient. Insertions split on whether the legacy
 record holds the asserted value.
 Substitutions first check representation equivalence or explicitly confirmed term
-mappings, then exclude reviewed valid source-field mappings before identifying candidate
-mapping errors from another legacy field.  All other
-substitutions are different values, including uncorrected same-field legacy values.
+mappings. Remaining substitutions are candidate wrong mappings when the asserted value
+is found anywhere in the legacy record, including the same field or a renamed source
+field. Different values are asserted values not found in the legacy record.
 These labels describe reference disagreements, including cases where the reference
 preserves a legacy value that does not meet the specification. External-gap candidates
 lack sufficient legacy evidence, even when a method or kit provides a starting hint.
@@ -98,23 +98,12 @@ CONFUSION_CELLS_BY_CATEGORY = {
 #: The asserted value differs from the reference but conveys the same information.
 NEAR_MATCH = "near_match"
 
-#: A candidate field-mapping error: the asserted value comes from another legacy field,
+#: A candidate mapping error: the asserted value is found anywhere in the legacy record,
 #: differs from the reference, and does not qualify as a near match.
 WRONG_MAPPING = "wrong_mapping"
 
-# Source-to-target mappings reviewed against the ATACseq field definitions and decision
-# logs. A renamed source field is not itself evidence of a mapping error. Keep these
-# assay-specific: similarly named fields in another assay can have different meanings.
-_REVIEWED_LEGACY_FIELD_MAPPINGS = {
-    "atacseq": {
-        "dataset_type": frozenset({"assay_type"}),
-        "barcode_offset": frozenset({"cell_barcode_offset"}),
-        "barcode_size": frozenset({"cell_barcode_size"}),
-    }
-}
-
-#: The asserted value differs from the reference and qualifies as neither a near match
-#: nor a wrong mapping.  This includes uncorrected values copied from the same legacy field.
+#: The asserted value differs from the reference, is not a near match, and is not found
+#: anywhere in the legacy record.
 DIFFERENT_VALUE = "different_value"
 
 # ---------------------------------------------------------------------------
@@ -388,7 +377,6 @@ def _classify_error(
     permissible: set[str] | None,
     *,
     confirmed_value_mappings: dict[str, dict[tuple[str, str], str]] | None = None,
-    valid_legacy_fields: frozenset[str] = frozenset(),
     legacy_support_sources: dict[str, Any] | None = None,
 ) -> tuple[str, list[str]]:
     """The sub-category for one error, with the near-match reasons behind it.
@@ -396,10 +384,9 @@ def _classify_error(
     Insertions split on whether the legacy record holds the asserted value. Omissions
     require a matching value at the target field or a supported source alias; contextual
     hints and coincidental matches in unrelated fields cannot establish a reference value.
-    Substitutions check representation equivalence or confirmed mappings first, then
-    exclude reviewed valid source fields, then look for an asserted value in another
-    legacy field as evidence of a candidate mapping error. Remaining substitutions are
-    different values, even if copied through a valid source-to-target mapping.
+    Substitutions check representation equivalence or confirmed mappings first. Otherwise,
+    an asserted value found anywhere in the legacy record is a candidate wrong mapping;
+    a different value must be absent from the legacy record.
     """
     if case == INSERTION:
         return (UNEXPECTED_COPY if _appears_in_legacy(predicted_value, legacy) else UNEXPECTED_FILL), []
@@ -416,12 +403,7 @@ def _classify_error(
     )
     if reasons:
         return NEAR_MATCH, reasons
-    sources = _legacy_fields_carrying(predicted_value, legacy)
-    if sources & valid_legacy_fields:
-        return DIFFERENT_VALUE, []
-    if sources - {field}:
-        return WRONG_MAPPING, []
-    return DIFFERENT_VALUE, []
+    return (WRONG_MAPPING if _appears_in_legacy(predicted_value, legacy) else DIFFERENT_VALUE), []
 
 
 def _iter_legacy_values(value: Any, path: str) -> Iterator[tuple[str, Any]]:
@@ -685,7 +667,6 @@ def collect_field_errors(
                     legacy,
                     permissible.get(field),
                     confirmed_value_mappings=confirmed_value_mappings,
-                    valid_legacy_fields=_REVIEWED_LEGACY_FIELD_MAPPINGS.get(assay.key, {}).get(field, frozenset()),
                     legacy_support_sources=support,
                 )
                 source_value = gold.get(field) if case == DELETION else predicted.get(field)

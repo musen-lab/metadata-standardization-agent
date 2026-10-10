@@ -612,12 +612,11 @@ def show_error_analysis(
     numbers, DOI resolver URLs, dataset-path notation, read-length separators, and value
     mappings confirmed by a reviewer to preserve the same information.  Text containment,
     legacy preservation, and permitted-vocabulary membership alone do not qualify.
-    Different values include remaining substitutions, even when
-    copied from the same legacy field.  Wrong mappings are candidates identified by a
-    matching value in another legacy field, excluding reviewed valid source mappings.
-    ATACseq's assay_type, cell_barcode_offset, and cell_barcode_size correctly map to
-    dataset_type, barcode_offset, and barcode_size; differing values from those sources
-    are different_value. Other source-to-target semantics still need review.
+    After checking near matches, wrong mappings are candidates identified by a matching
+    asserted value anywhere in the legacy record, including the same field or a renamed
+    source field. Different values must be absent from the legacy record. Finding a value
+    establishes legacy availability, not proof that the source-to-target mapping is wrong;
+    source-to-target semantics still need review.
     Omissions are ``missed_value`` only when the reference is established by a value
     at the target field or a supported legacy source alias. Related methods, kits,
     barcode fields, and PCR counts alone cannot establish UMI values. Missing new-schema
@@ -669,7 +668,8 @@ def show_error_analysis(
         agree = "accounted for" if totals["counted"] == totals["categorised"] else "MISMATCH"
         print(f"  {cell}: {totals['counted']} counted, {totals['categorised']} categorised -- {agree}")
     print("  near_match: a different representation confirmed to convey the same information")
-    print("  wrong_mapping: candidate mapping error, excluding reviewed valid source mappings")
+    print("  wrong_mapping: a non-near-match asserted value found anywhere in the legacy record")
+    print("  different_value: a non-near-match asserted value not found in the legacy record")
     print("  missed_value: reference established by a matching target field or supported legacy alias")
     print("  external_gap: legacy information does not establish the reference; external provenance requires review")
     if field_type is not None:

@@ -125,9 +125,9 @@ class TestSubstitutions:
         _case(tmp_path, "r", gold={"title": "Orbitrap Fusion"}, predicted={"title": "Orbitrap Fusion Lumos"}, legacy={})
         assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
 
-    def test_copying_the_same_legacy_field_alone_is_not_close(self, tmp_path: Path) -> None:
+    def test_different_value_copied_from_the_same_legacy_field_is_a_wrong_mapping(self, tmp_path: Path) -> None:
         _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": "kidney"}, legacy={"tissue": "kidney"})
-        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
+        assert _one(tmp_path)["subcategory"] == WRONG_MAPPING
 
     def test_permitted_vocabulary_membership_alone_is_not_close(self, tmp_path: Path) -> None:
         _case(
@@ -218,7 +218,7 @@ class TestSubstitutions:
             ("barcode_size", "cell_barcode_size", "Not applicable", "40"),
         ],
     )
-    def test_valid_atacseq_mappings_with_different_values(
+    def test_different_values_found_in_renamed_sources_are_wrong_mappings(
         self, tmp_path: Path, field: str, source: str, reference: str, prediction: str
     ) -> None:
         _case(
@@ -229,11 +229,11 @@ class TestSubstitutions:
             legacy={source: prediction, "unrelated_field": prediction},
         )
         row = _one(tmp_path)
-        assert row["subcategory"] == DIFFERENT_VALUE
+        assert row["subcategory"] == WRONG_MAPPING
         assert row["legacy_sources"][source] == prediction
         assert not row["near_match_reasons"]
 
-    def test_valid_mapping_requires_a_matching_value_in_the_valid_source(self, tmp_path: Path) -> None:
+    def test_different_value_found_only_in_an_unrelated_source_is_a_wrong_mapping(self, tmp_path: Path) -> None:
         _case(
             tmp_path,
             "r",
@@ -242,6 +242,17 @@ class TestSubstitutions:
             legacy={"cell_barcode_offset": "12", "sequencing_phix_percent": "0"},
         )
         assert _one(tmp_path)["subcategory"] == WRONG_MAPPING
+
+    @pytest.mark.parametrize("legacy", [{"other_metadata": {"organ": "kidney"}}, {"organs": ["heart", "kidney"]}])
+    def test_different_value_found_in_nested_legacy_values_is_a_wrong_mapping(
+        self, tmp_path: Path, legacy: dict
+    ) -> None:
+        _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": "kidney"}, legacy=legacy)
+        assert _one(tmp_path)["subcategory"] == WRONG_MAPPING
+
+    def test_legacy_substring_does_not_disqualify_a_different_value(self, tmp_path: Path) -> None:
+        _case(tmp_path, "r", gold={"tissue": "lung"}, predicted={"tissue": "kidney"}, legacy={"title": "kidney biopsy"})
+        assert _one(tmp_path)["subcategory"] == DIFFERENT_VALUE
 
     def test_near_match_wins_over_mislocated(self, tmp_path: Path) -> None:
         # The asserted value equals gold's once shape is relaxed *and* sits in another
